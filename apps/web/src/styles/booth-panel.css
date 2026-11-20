@@ -1,0 +1,56 @@
+/* The polling place panel (VE-208). It sits where the seat panel sits (the .panel rules in app.css and panel.css give it the
+   desktop column and the phone sheet); these are the contents. Colour is the party's own and nothing else: bars, strip dots
+   and the line are ink on the surface. Tokens only, so light and dark both work. */
+.bp { gap: var(--space-3); }
+.bp__sub { margin: 0; font-size: var(--text-xs); color: var(--color-text-subtle); }
+.bp__chip { display: inline-block; white-space: nowrap; margin-left: 6px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--marker-bg); color: var(--marker-text); font-size: var(--text-2xs); }
+.bp__nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.bp__nav-label { flex: 0 0 auto; font-size: var(--text-xs); color: var(--color-text-subtle); }
+.bp__crumb { padding: 0; border: 0; background: none; color: var(--color-text-subtle); font: inherit; font-size: var(--text-sm); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.bp__crumb:hover { color: var(--color-navy); }
+/* VE-227 (finding 7): a 44 px target round the words (they are 16 px tall), the look unchanged. */
+.bp__crumb { position: relative; }
+.bp__crumb::before { content: ""; position: absolute; inset: -14px -8px; }
+.bp__crumb:focus-visible, .bp__select:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.bp__select { flex: 1 1 140px; min-width: 0; max-width: 100%; padding: 4px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-xs); }
+
+.bp__block { display: grid; gap: var(--space-1); padding-top: var(--space-2); border-top: 1px solid var(--color-border); }
+.bp__block--first { border-top: 0; padding-top: 0; }
+.bp__line { margin: 0; font-size: var(--text-sm); }
+.bp__cap { margin: 0; font-size: var(--text-xs); color: var(--color-text-subtle); }
+
+/* The final two: both sides at the ends of one bar, a tick at 50%. */
+.bp__two { display: grid; gap: 4px; }
+.bp__two-row { display: flex; justify-content: space-between; gap: var(--space-2); font-size: var(--text-sm); }
+.bp__two-row b { font-variant-numeric: tabular-nums; }
+.bp__end { text-align: right; }
+.bp__two-bar { position: relative; display: flex; height: 12px; border-radius: 3px; overflow: hidden; background: var(--color-surface-alt); }
+.bp__two-bar span { display: block; height: 100%; }
+.bp__two-bar i { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: var(--color-text); opacity: 0.7; }
+
+.bp__facts { display: grid; grid-template-columns: max-content 1fr; gap: 2px var(--space-3); margin: 0; font-size: var(--text-sm); }
+.bp__facts dt { color: var(--color-text-subtle); }
+.bp__facts dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.bp__fp { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: var(--text-sm); }
+.bp__fp li, .bp__pair-row { display: grid; grid-template-columns: minmax(70px, 30%) 1fr 3.4em; align-items: center; gap: var(--space-2); }
+.bp__fp b, .bp__pair-row b { text-align: right; font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
+.bp__pair { display: grid; gap: 4px; font-size: var(--text-xs); }
+.bp__track { display: block; height: 8px; border-radius: 2px; background: var(--color-surface-alt); overflow: hidden; }
+.bp__track i { display: block; height: 100%; }
+
+/* The strip and the line: ink and grey on the surface. */
+.bp__strip { display: grid; gap: 2px; margin: 0; }
+.bp__strip svg { width: 100%; height: auto; overflow: visible; }
+/* 12 units in a 320-unit box is about 10px (--text-2xs), the smallest size the app uses. */
+.bp__strip text { font-size: 12px; fill: var(--color-text-subtle); }
+.bp__strip text.bp__strong { fill: var(--color-text); font-weight: 700; }
+.bp__axis { stroke: var(--color-border-strong); }
+.bp__mid { stroke: var(--color-text-subtle); stroke-dasharray: 3 3; }
+.bp__dot { fill: var(--color-text-subtle); fill-opacity: 0.65; stroke: var(--color-surface); stroke-width: 0.6; }
+.bp__dot--me { fill: var(--color-text); fill-opacity: 1; stroke-width: 1.2; }
+.bp__line-path { fill: none; stroke: var(--color-text); stroke-width: 1.6; }
+.bp__first { fill: var(--color-surface); stroke: var(--color-text); stroke-width: 1.6; }
+
+/* VE-227 (finding 7): the "Other places" picker is 27 px tall; a finger gets 44. */
+@media (pointer: coarse) { .bp__select { min-height: 44px; } }

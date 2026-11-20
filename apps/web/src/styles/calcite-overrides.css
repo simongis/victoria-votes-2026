@@ -1,0 +1,28 @@
+/*
+  Map our design tokens onto Calcite CSS custom properties so Calcite
+  widgets inherit our blues and orange focus ring rather than Esri purple.
+  Reference: https://developers.arcgis.com/calcite-design-system/foundations/theming/
+*/
+
+:root {
+  /* Primary brand - overrides Esri purple */
+  --calcite-color-brand:        var(--color-blue);
+  --calcite-color-brand-hover:  var(--color-blue-hover);
+  --calcite-color-brand-press:  var(--color-navy);
+
+  /* Surfaces */
+  --calcite-color-foreground-1: var(--color-surface);
+  --calcite-color-foreground-2: var(--color-surface-alt);
+
+  /* Text */
+  --calcite-color-text-1:       var(--color-text);
+  --calcite-color-text-2:       var(--color-text-subtle);
+
+  /* Borders */
+  --calcite-color-border-1:     var(--color-border);
+  --calcite-color-border-2:     var(--color-border-strong);
+
+  /* Focus - orange */
+  --calcite-color-focus:        var(--color-focus);
+}
+

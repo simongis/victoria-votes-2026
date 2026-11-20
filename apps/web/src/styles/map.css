@@ -1,0 +1,28 @@
+/* Phones (VE-217, ADR 0032): one Victoria map the reader pinches and pans. While it is zoomed in, a small "Whole state"
+   button under View takes it back to the whole state; at the whole state it is not there. Desktop keeps its outline button
+   above + and - (components/map/map.css), so this one never shows there. */
+.map-whole { display: none; }
+@media (max-width: 1023px) {
+  .map-container[data-zoomed="true"] .map-whole {
+    position: absolute;
+    top: 60px;
+    left: var(--space-2);
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .map-whole:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+  .map-whole:active { filter: brightness(0.92); }
+  /* Not during the Map to Hex flight, which draws only the seats. */
+  .app[data-morph="true"] .map-container .map-whole { display: none; }
+}

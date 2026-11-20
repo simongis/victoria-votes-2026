@@ -1,0 +1,25 @@
+/* Polling places on the Map (VE-77c). The dots are placed and sized in pixels by the pane (booths/place.ts). */
+.booth-dot, .booth-ring { pointer-events: none; }
+/* The picked seat's dots can take keyboard focus; the ring shows which one, beside the label. */
+.booth-dot:focus { outline: none; }
+.booth-dot:focus-visible { stroke: var(--color-text); stroke-width: 3; stroke-opacity: 1; }
+/* Polling places is its own toggle beside the colour group. While it is on, the colour group stays (clicking Leader or Swing
+   leaves the dots) but does not read as chosen. */
+.colour-chips .segmented[data-muted] button[aria-checked="true"],
+.view-sheet__colour .segmented[data-muted] button[aria-checked="true"] { --pill-bg: var(--color-surface-alt); --pill-bd: var(--color-border); --pill-fg: var(--color-text-subtle); font-weight: 400; }
+.colour-chips .segmented--one { flex-shrink: 0; }
+
+/* The key's dots, round where the Leader key's swatches are square. */
+.bkey__dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; flex: none; }
+.bkey__dot--small { width: 5px; height: 5px; margin-right: 2px; background: var(--color-text-subtle, currentColor); opacity: 0.8; }
+.bkey__dot--big { width: 11px; height: 11px; background: var(--color-text-subtle, currentColor); opacity: 0.8; }
+.bkey__dot--faint { width: 6px; height: 6px; background: var(--color-text, currentColor); opacity: 0.22; }
+
+/* While the booth layer loads, or if it cannot: one quiet line over the stage. */
+.places-note { position: absolute; top: var(--space-3); left: 50%; transform: translateX(-50%); z-index: 20; margin: 0; padding: 2px var(--space-2); font-size: var(--text-xs); color: var(--color-text-subtle); background: var(--color-surface); border-radius: var(--radius-sm); pointer-events: none; }
+
+/* VE-143: cartography, not clusters. Each plain dot wears a paper halo so crowded dots stay separate; the pane sets
+   --booth-halo on the layer (wider at the whole-state fit, thinner zoomed in). No blend mode: multiply turned Labor
+   over Liberal in Melbourne to near black. The picked seat's dots get a soft shadow so they lift off the rest. */
+.booth-dot[data-halo] { stroke-width: var(--booth-halo, 1.1px); }
+.booth-dot[data-outlined] { filter: drop-shadow(0 0 2.5px var(--color-text)); }

@@ -1,0 +1,55 @@
+/* The SVG map (VE-74). Paths are drawn in ticks under one matrix per layer, so every stroke is non-scaling. */
+.svgmap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* The pane handles pinch and drag itself. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: grab;
+  outline: none;
+}
+.svgmap.is-dragging { cursor: grabbing; }
+.svgmap path { vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.svgmap [data-district] { cursor: pointer; }
+.svgmap .map-marks path { pointer-events: none; }
+/* The shadow is the costly part of a frame: leave it off while the map is moving. */
+.svgmap.is-moving [data-band="2"] { filter: none; }
+
+/* The transition overlay draws the flying shapes; the real map hides underneath. */
+.app[data-morph="true"] .map-container .svgmap { visibility: hidden; }
+
+/* Zoom buttons: 44 px targets, floating bottom right on desktop (the colour chips take the bottom left, VE-64b, clear of
+   the Rewind handle's taller hit area below) and in a column at the top left on narrow screens, under the View button. */
+.map-zoom { position: absolute; right: 8px; bottom: 30px; display: flex; flex-direction: column; gap: var(--space-2); z-index: 2; }
+@media (max-width: 1023px) {
+  .map-zoom { right: auto; bottom: auto; left: 8px; top: 68px; }
+  /* Phones do without this full-extent button, as a 20 px silhouette does not read (ADR 0024): they get a worded "Whole state"
+     button while zoomed in instead (styles/map.css, ADR 0032). */
+  .map-zoom__fit { display: none !important; }
+}
+.map-zoom button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: transform 100ms ease-out, filter 100ms ease-out;
+}
+.map-zoom button:focus-visible { outline: var(--focus-ring); }
+.map-zoom button:active { transform: scale(0.94); filter: brightness(0.9); }
+.map-zoom button:disabled { opacity: 0.45; cursor: default; }
+.map-zoom svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; fill: none; }
+/* The silhouette is a solid shape, 28 px wide (the box is 24 x 16.7; FB-128 asked for bigger icons in the same 44 px buttons). */
+.map-zoom .map-zoom__fit svg { width: 28px; height: auto; stroke: none; fill: currentColor; }
+:root[data-motion="off"] .map-zoom button { transition: none; }
+:root[data-motion="off"] .map-zoom button:active { transform: none; }

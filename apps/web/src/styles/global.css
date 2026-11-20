@@ -1,0 +1,74 @@
+@import "./tokens.css";
+@import "./ui.css";
+@import "./calcite-overrides.css";
+@import "./app.css";
+@import "./explore.css";
+
+/* Albert Sans (SIL Open Font Licence 1.1), self-hosted Latin subset. The metric overrides were fitted so text widths and
+   line heights match the typeface the layout was first tuned against (VE-155, prototypes/font-compare): real-text width
+   within 0.1 per cent, line height within 0.1 per cent, so line breaks do not move.
+   Files live in src/assets so Vite hashes them and honours BASE_PATH. */
+@font-face {
+  font-family: "Albert Sans";
+  src: url("../assets/fonts/AlbertSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 103.65%;
+  ascent-override: 96.53%;
+  descent-override: 33.78%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Albert Sans";
+  src: url("../assets/fonts/AlbertSans-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+  size-adjust: 103.65%;
+  ascent-override: 96.53%;
+  descent-override: 33.78%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Albert Sans";
+  src: url("../assets/fonts/AlbertSans-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 103.65%;
+  ascent-override: 96.53%;
+  descent-override: 33.78%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Albert Sans";
+  src: url("../assets/fonts/AlbertSans-BoldItalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+  size-adjust: 103.65%;
+  ascent-override: 96.53%;
+  descent-override: 33.78%;
+  line-gap-override: 0%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  color: var(--color-text);
+  background: var(--color-surface-alt);
+}

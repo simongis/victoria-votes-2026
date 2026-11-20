@@ -1,0 +1,20 @@
+/* Seat hover (VE-120): one effect on the Hex and the Map. A mid-grey outline with a pale halo and a faint lift in the
+   fill, so it reads as "this one" without being the picked seat's near-black hairline (--pick-ink) or the selected
+   seat's thick deep blue (--map-selected). The ring is drawn last (an overlay), so neighbours never cover it. */
+.hover-ring {
+  fill: rgba(255, 255, 255, 0.18);
+  stroke: var(--color-text-subtle);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  pointer-events: none;
+  filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.95));
+}
+
+/* VE-165 (UX review 8 Nov, finding 6): in Gains the ring is an emphasis, never a fade. The overlay's pale fill sits above the
+   seat and its number, so here it is dropped: the seat keeps its fill at full strength and the ring gets thicker and navy
+   (the accent), not grey. The 3.5 width matches the selected seat's, the heaviest edge on the stage. */
+.app[data-colour="gains"] .hover-ring {
+  fill: none;
+  stroke: var(--color-navy);
+  stroke-width: 3.5;
+}

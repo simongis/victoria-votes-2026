@@ -1,0 +1,276 @@
+/*
+  UI foundation layer: the single component family for app chrome.
+  Every control, card, panel and table in the app uses these classes; views
+  must not re-implement their own variants. Map symbology is untouched.
+
+  Families:
+  - .control-strip / .strip-*   row-2 control band (light surface)
+  - .chip / .segmented          filter chips and segmented toggles
+  - .icon-btn / .btn-ghost      small utility buttons
+  - .map-card                   floating legend/info cards over the map
+  - .side-panel / .edge-tab     docked right panels and their pull tabs
+  - .data-table                 ranked tables inside panels
+  - .busy-bar                   2px working indicator
+*/
+
+/* ── Focus: one treatment everywhere (thick orange ring) ───── */
+.chip:focus-visible,
+.edge-tab:focus-visible,
+.select-chip:focus-visible,
+.map-card button:focus-visible,
+.masthead-tab:focus-visible,
+.masthead a:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+}
+.masthead-tab:focus-visible {
+  outline-offset: -3px; /* keep the ring inside the masthead band */
+}
+
+/* ── Row 2: control strip ───────────────────────────────────────────────── */
+.control-strip {
+  position: absolute;
+  top: var(--row1-h);
+  left: 0;
+  right: 0;
+  height: var(--row2-h);
+  z-index: var(--z-strip);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+.strip-label {
+  color: var(--color-text-subtle);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--label-tracking);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.strip-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--color-border);
+  flex-shrink: 0;
+}
+
+.strip-title {
+  color: var(--color-navy);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.strip-note {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.strip-error {
+  color: var(--color-error);
+  font-size: var(--text-xs);
+}
+
+/* ── Chips (filter pills, picker triggers) ──────────────────────────────── */
+.chip {
+  height: var(--control-h);
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.chip:hover:not([data-active]) {
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+}
+.chip[data-active] {
+  background: var(--color-navy);
+  border-color: var(--color-navy);
+  color: var(--color-text-on-brand);
+  font-weight: 600;
+}
+
+/* ── Controls: 44 x 44 px hit areas (VE-56, Simon's hard requirement) ───────────────────────────────────────
+   Every button's real box is at least 44 x 44 px; the visible pill is painted by ::before, so the target is bigger
+   than the mark and the chrome can stay slim. Neighbours sit 8 px apart. Themes recolour through the --pill-* vars.
+   Selected state is aria-checked (radiogroups) or aria-pressed (toggles). */
+.segmented {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+.segmented button,
+.rewind__handle,
+.btn-ghost,
+.info__btn {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: none;
+  background: transparent;
+  color: var(--pill-fg, var(--color-text-subtle));
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.segmented button::before,
+.rewind__handle::before,
+.btn-ghost::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--pill-t, 8px);
+  bottom: var(--pill-b, 8px);
+  z-index: -1;
+  border: 1px solid var(--pill-bd, var(--color-border));
+  border-radius: var(--pill-r, var(--radius-pill));
+  background: var(--pill-bg, var(--color-surface-alt));
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.segmented button[aria-checked="true"],
+.segmented button[aria-pressed="true"] {
+  --pill-bg: var(--color-navy);
+  --pill-bd: var(--color-navy);
+  --pill-fg: var(--color-text-on-brand);
+  font-weight: 600;
+}
+.segmented button[aria-checked="false"]:hover,
+.segmented button[aria-pressed="false"]:hover,
+.btn-ghost:not(:disabled):hover { color: var(--color-text); }
+/* The focus ring goes round the visible pill, not the larger invisible box. */
+.segmented button:focus-visible,
+.rewind__handle:focus-visible,
+.btn-ghost:focus-visible,
+.info__btn:focus-visible,
+.icon-btn:focus-visible { outline: none; }
+.segmented button:focus-visible::before,
+.rewind__handle:focus-visible::before,
+.btn-ghost:focus-visible::before,
+.info__btn:focus-visible::before,
+.icon-btn:focus-visible::before { outline: var(--focus-ring); outline-offset: 2px; }
+
+/* ── Small utility buttons ──────────────────────────────────────────────── */
+.icon-btn {
+  position: relative;
+  isolation: isolate;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+  line-height: 0;
+}
+.icon-btn::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  z-index: -1;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.icon-btn:hover:not(:disabled) { color: var(--color-blue); }
+.icon-btn:disabled { opacity: 0.4; cursor: default; }
+
+.btn-ghost { --pill-bg: transparent; --pill-bd: var(--color-border-strong); }
+.btn-ghost:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Native select styled into the chip family ──────────────────────────── */
+.select-chip {
+  height: var(--control-h);
+  padding: 0 26px 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23003174' stroke-width='1.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+.select-chip:hover {
+  border-color: var(--color-blue);
+}
+
+/* ── Docked side panels ─────────────────────────────────────────────────── */
+.side-panel {
+  position: absolute;
+  top: var(--topbar-h);
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-panel);
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+}
+
+.side-panel__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 6px 8px 6px 14px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.side-panel__title {
+  margin: 0;
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.side-panel__foot {
+  padding: 6px 14px;
+  font-size: var(--text-2xs);
+  color: var(--color-text-subtle);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+/* Pull tab shown when a side panel is collapsed */

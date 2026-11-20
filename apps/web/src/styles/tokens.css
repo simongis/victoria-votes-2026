@@ -1,0 +1,166 @@
+/*
+  Design tokens for the results app: a calm, trustworthy, civic palette (blues, neutrals, one orange focus ring).
+  This is an independent tool and is not affiliated with, or endorsed by, any government body.
+
+  Rules of use:
+  - Components reference SEMANTIC tokens (roles), never raw hex.
+  - One chip/segment/button family, defined once in ui.css on these tokens.
+*/
+
+:root {
+  /* ── Brand colours ──────────────────────────────────────────── */
+  --color-navy:        #003174;
+  --color-blue:        #0052c2;
+  --color-blue-hover:  #003174;   /* darken on hover                       */
+  --color-blue-light:  #e6f5fd;
+  --color-blue-mid:    #0095ec;
+
+  /* ── Masthead (deliberately darker than the navy nav, per Simon) ──────── */
+  --color-header:      #ffffff;   /* light masthead (Civic direction)       */
+  --color-header-2:    #f5f5f5;   /* secondary band                          */
+  --color-gold:        #e0b300;   /* Victorian-government gold accent rule   */
+
+  /* ── Neutral surface ──────────────────────────────────────────────────── */
+  --color-surface:       #ffffff;
+  --color-surface-alt:   #f5f5f5;
+  --color-border:        #e6e6e6;
+  --color-border-strong: #ccc;
+
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --color-text:          #1a1a1a;
+  --color-text-subtle:   #666;
+  --color-text-on-brand: #ffffff;
+
+  /* ── On-dark text roles (masthead is the only dark band) ─────────────── */
+  --on-dark-strong:  #ffffff;
+  --on-dark:         rgba(255, 255, 255, 0.78);
+  --on-dark-subtle:  rgba(255, 255, 255, 0.62);
+  --on-dark-divider: rgba(255, 255, 255, 0.18);
+
+  /* ── Accessibility ────────────────────────────────────────────────────── */
+  --color-focus:         #b85c00;   /* Orange, darkened for VE-100: #ff9e1b was 2.1:1 on white, this is 4.6:1 (3:1 is the floor for a ring) */
+  --focus-ring:          3px solid var(--color-focus);  /* used as `outline` */
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  --color-success:  #007d85;
+  --color-warning:  #b75b00;
+  --color-error:    #aa0028;
+
+  /* ── Selection (linked map/table/chart highlight surface) ────────────── */
+  --color-selected-row: var(--color-blue-light);
+
+  /* ── Choropleth ramp (light → dark navy) ─────────────────────── */
+  --choropleth-low:  #dde8f7;
+  --choropleth-high: #003174;
+  --choropleth-zero: #d9d9d9;   /* neutral grey - no data      */
+
+  /* ── Spacing ──────────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ── Typography ───────────────────────────────────────────────────────── */
+  --font-sans:     "Albert Sans", Arial, Helvetica, sans-serif;
+  /* Compact UI type scale: this is a data-dense map tool, not a content site.
+     Use the ROLE, not an ad-hoc px value. */
+  --text-2xs: 10px;   /* microlabels, footnotes, table headers */
+  --text-xs:  11px;   /* secondary labels, table cells, legend rows */
+  --text-sm:  12px;   /* controls, strip text, card titles */
+  --text-md:  13px;   /* body, popups, list options */
+  --text-lg:  15px;   /* emphasised values */
+  --text-xl:  17px;   /* view/chart headings */
+  --line-height: 1.5;
+  --label-tracking: 0.08em;   /* uppercase microlabel letter-spacing */
+
+  /* ── Border radius ────────────────────────────────── */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-pill: 999px;
+
+  /* ── Elevation ────────────────────────────────────────── */
+  /* Restraint rule: floating map cards get shadow-sm; docked panels get a
+     border only (no shadow); shadow-md is reserved for transient popovers. */
+  --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.16);
+  --shadow-md: 0 4px 8px 2px rgba(26, 26, 26, 0.16);
+
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  --transition-fast: 120ms ease;
+  --transition-mid:  200ms ease;
+
+  /* Panel motion (VE-67, FB-48). Material 3 motion: a shared axis for panels that enter and leave the page (the district
+     panel on X, Rewind on Y, a phone sheet on Y), the emphasised-decelerate curve to enter, emphasised-accelerate to
+     leave, and a leave that is shorter than the enter (M3: enter 250-400 ms, exit about two thirds of that). Carbon's
+     "productive" motion agrees: a task panel is quick and gets out of the way. Content cross-fades on a seat switch. */
+  --motion-enter:     300ms;
+  --motion-exit:      200ms;
+  --motion-content:   180ms;
+  --ease-decelerate:  cubic-bezier(0.05, 0.7, 0.1, 1);   /* M3 emphasised decelerate: things arriving */
+  --ease-accelerate:  cubic-bezier(0.3, 0, 0.8, 0.15);   /* M3 emphasised accelerate: things leaving  */
+  --ease-standard:    cubic-bezier(0.2, 0, 0, 1);        /* M3 standard: things moving in place       */
+  --motion-shift-x:   32px;                              /* shared-axis X travel for the district panel */
+  --motion-shift-y:   24px;                              /* shared-axis Y travel for Rewind */
+
+  /* Update effects (VE-60, docs/research/update-effects.md). One cue per event: counts are quiet, flips earn a wipe and
+     one thin halo, declared settles. Everything is scaled by --fx-scale (set on .app; under 1 while Rewind plays fast). */
+  --fx-count-ms:         900ms;   /* tint over a seat with new counts */
+  --fx-number-ms:        700ms;   /* number roll */
+  --fx-chip-ms:          1600ms;  /* the "+n" chip */
+  --fx-flip-wipe-ms:     900ms;   /* old leader colour wiped to the new */
+  --fx-flip-halo-ms:     1200ms;
+  --fx-flip-halo-delay-ms: 450ms;
+  --fx-declared-ms:      600ms;
+  --fx-ease-out:         cubic-bezier(0.16, 1, 0.3, 1);
+  --fx-ease-wipe:        cubic-bezier(0.65, 0, 0.35, 1);
+  --fx-tint-alpha:       0.28;
+  --fx-ink:              var(--color-text);   /* neutral, so it reads on any party colour */
+
+  /* ── Layout ───────────────────────────────────────────────────────────── */
+  --row1-h: 40px;            /* masthead band (TS twin: ROW1_H in App.tsx) */
+  --row2-h: 48px;            /* control strip band (TS twin: ROW2_H) */
+  --topbar-h: 88px;          /* row1 + row2 (TS twin: TOPBAR_H) */
+  --control-h: 28px;         /* standard control height in the strip family */
+  --map-inset: 12px;         /* gap between map edge and floating cards */
+  --attribution-clear: 32px; /* bottom offset clearing the ArcGIS attribution */
+
+  /* Results encoding (VE-14). Views read these through theme.ts, never literals, so a
+     [data-theme="..."] block can reskin map, hexes and tally. Civic values. */
+  --party-alp: #e0343b;
+  --party-lib: #1f5fbf;
+  --party-nat: #0a4a4a;
+  --party-grn: #65c957;
+  --party-onp: #f28e1c;
+  --party-ind: #0a8a96;
+  --party-oth: #a0a0a0;
+  --map-paper:      #f6f4ef;   /* ground behind map and hexes (no basemap) */
+  --map-no-result:  #d0d4d9;   /* district with no figures yet: a cool grey a step darker than the paper (white on cream was 1.10:1, VE-100); Others is a mid grey, far darker */
+  --map-edge:       #ffffff;   /* lines between districts and hexes */
+  --map-selected:   #003174;   /* selection outline, every view */
+  --map-tint-base:  #ffffff;   /* "leading" tints mix towards this */
+  --map-tint-amount: 0.6;
+
+  /* Data markers and notices (replay/trial badge, paused banner): their own
+     text/ground pairs so they stay legible on any theme background. */
+  --marker-bg:     #fff4d6;
+  --marker-text:   #5c4300;
+  --marker-border: #e0b300;
+  --notice-offline-bg:   #fde8ec;
+  --notice-offline-text: #aa0028;
+
+  /* Rewinding (ADR 0024): a violet no party, marker or selection colour uses. White on it is about 7.6:1. The wash tints
+     the top band and bottom bar only; the map and hex never change colour. */
+  --rewind:        #6a3d9a;
+  --rewind-wash:   #f4effa;
+  --color-chip-ground:   #ffffff;  /* tally bar ground */
+
+  /* ── Z scale ──────────────────────────────────────────────────────────── */
+  --z-map-card: 10;   /* legends and floating cards over the map */
+  --z-panel:    15;   /* docked side panels */
+  --z-edge-tab: 16;   /* collapsed-panel pull tabs */
+  --z-strip:    20;   /* row 2 control strip */
+  --z-masthead: 30;   /* row 1 masthead */
+  --z-popover:  1000; /* portal menus (menus) */
+}

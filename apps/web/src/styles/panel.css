@@ -1,0 +1,43 @@
+/* VE-129 (FB-145): the seat panel the way the ABC's and the AP's seat cards read. Status and holder first, the two-candidate
+   bar, how much is counted, then every candidate as a row with a bar. Loaded after app.css, so it overrides the older rules. */
+.panel__status { display: grid; gap: 2px; }
+.panel__held { margin: 0 0 0 18px; font-size: var(--text-xs); color: var(--color-text-subtle); }
+.panel__h { margin: 0; font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--color-text-subtle); }
+.panel__forecast { align-self: start; display: inline-flex; align-items: center; min-height: 44px; font-size: var(--text-xs); color: var(--color-text-subtle); text-decoration: underline; text-underline-offset: 2px; }
+
+/* First preferences are open, not folded: a heading with nothing under it read as empty. */
+.panel__fp { display: grid; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--color-border); }
+.panel__fp .cands { gap: var(--space-2); margin-top: 0; }
+.cand__top { align-items: flex-start; }
+.cands__name b { font-size: var(--text-sm); }
+.cands__v { font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.cand__bar { height: 6px; }
+.cand[data-pair] .cands__name b { color: var(--color-text); }
+
+/* The night line, with its axis in words: the dashed middle is level; above it the 2022 holder leads. */
+.night { display: grid; gap: 4px; padding-top: var(--space-2); border-top: 1px solid var(--color-border); }
+.night__plot { display: grid; grid-template-columns: 64px 1fr; gap: 6px; align-items: stretch; }
+.night__axis { display: flex; flex-direction: column; justify-content: space-between; font-size: var(--text-2xs, 0.6875rem); line-height: 1.15; color: var(--color-text-subtle); text-align: right; }
+.night .night__plot svg { height: 56px; }
+
+/* VE-91 (FB-78): phone held sideways. The seat panel opens from the right edge, full stage height, so the map stays in view
+   on the left (a bottom sheet would be most of a 360 px screen). Same query as the landscape block in app.css. */
+@media (max-width: 1023px) and (orientation: landscape) and (max-height: 500px) {
+  .panel { top: 0; left: auto; right: 0; bottom: 0; width: min(380px, 50%); max-height: none; padding-bottom: 0; border-top: none; border-left: 1px solid var(--color-border); border-radius: 0; }
+  .panel[data-motion="full"] { animation-name: panel-in; }
+  .panel[data-motion="full"][data-state="closing"] { animation-name: panel-out; }
+  .panel__grip { display: none; }
+}
+
+/* VE-208b (FB-247): the seat panel and the polling place panel are one frame. When one takes over from the other the frame
+   does not slide or fade; only the content cross-fades (the body and heading keep their own content-in). Same specificity
+   as the slide rules in app.css, later in the cascade, and also under the phone query. */
+.panel[data-motion="full"][data-handoff] { animation: none; }
+.panel__head h2:focus { outline: none; }
+.panel__head .bp__title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-2); min-width: 0; }
+
+/* The seat's places under Polling places: short text links, scrolling when a seat has many. */
+.panel__places { display: grid; gap: var(--space-1); padding-top: var(--space-2); border-top: 1px solid var(--color-border); }
+.panel__places ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 2px var(--space-3); max-height: 7.5rem; overflow-y: auto; }
+.panel__places button { padding: 2px 0; border: 0; background: none; color: var(--color-navy); font: inherit; font-size: var(--text-xs); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.panel__places button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }

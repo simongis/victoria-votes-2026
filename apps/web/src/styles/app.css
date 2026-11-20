@@ -1,0 +1,1026 @@
+/* App shell (VE-14, compacted in VE-56, one stage since VE-64a): the top band, the stage with the seats rail beside
+   it, the district panel, and one bottom strip holding Rewind and the theme emblem. The stage holds both shapes at
+   full size and hides the one not showing (a MapView resize mid-flight dropped the transitions to 15-28 fps, so the
+   stage never changes size when the shape changes). */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.sq {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+  flex-shrink: 0;
+}
+.sq--firm { background: var(--party-alp); }
+.sq--lead { background: color-mix(in srgb, var(--party-alp), var(--map-tint-base) 60%); }
+.sq--none { background: var(--map-no-result); border: 1px solid var(--color-border-strong); }
+
+/* The top band (band, badge, the top row) lives in topband.css (VE-66b). The headline and the tally below it are
+   here (VE-83b, ADR 0023); the `.app` prefix lets these win over the band's older fixed-height rules. */
+/* VE-85b (FB-89): trimmed from 119 px towards 100 px by taking height out of padding, line-height and the gaps; every element stays. */
+.app .band { height: auto; padding-top: 2px; padding-bottom: 2px; }
+.band__headline {
+  margin: 0;
+  padding: 0 var(--space-4) 3px;
+  font-size: var(--text-lg);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+.band__who { font-weight: 700; }
+
+/* The tally: a calm stacked bar in the map's own colours, the 45 line, then names and counts with the partners bracketed. */
+.tl { position: relative; flex: none; }
+.tl__bar { position: relative; display: flex; height: 20px; background: var(--color-chip-ground); }
+.tl__seg {
+  position: relative;
+  display: block;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  font: inherit;
+  color: inherit;
+  height: 100%;
+  min-width: 0;
+  cursor: pointer;
+  transition: width 600ms cubic-bezier(0.3, 0.7, 0.2, 1), opacity 200ms ease;
+}
+.tl__seg[data-empty="true"] { }
+/* Seats with no figures yet: an empty, dashed slot, so the bar still adds up to 88. */
+.tl__gap { flex: 1 1 0; min-width: 0; outline: 1px dashed var(--color-border-strong); outline-offset: -1px; }
+.tl__seg:focus-visible { outline: var(--focus-ring); outline-offset: -3px; }
+.tl__line { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: var(--color-text); pointer-events: none; z-index: 2; }
+.tl__maj {
+  position: absolute;
+  top: -6px;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--color-header);
+  color: var(--color-text);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  line-height: 12px;
+  pointer-events: none;
+  z-index: 3;
+}
+.tl__key { display: flex; align-items: flex-end; gap: 2px 8px; padding: 3px var(--space-4) 0; font-size: var(--text-sm); color: var(--color-text); }
+.tl__fill { flex: 1 1 0; min-width: 0; }
+.tl__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 6px 1px 3px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  position: relative;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 200ms ease, background-color 120ms ease;
+}
+.tl__chip:hover, .tl__chip[aria-pressed="true"] { background: var(--color-header-2); border-color: var(--color-border-strong); }
+.tl__chip:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+.tl__chip b { font-size: var(--text-md); font-variant-numeric: tabular-nums; }
+.tl__chip--head { font-weight: 700; }
+.tl__chip[data-dim="true"], .tl__seg[data-dim="true"] { opacity: 0.3; }
+.tl__sw { display: inline-flex; gap: 1px; }
+.tl__swp { display: inline-flex; border-radius: 2px; overflow: hidden; }
+.tl__swp i { display: block; width: 6px; height: 11px; }
+.tl__short { display: none; }
+/* A bracket under a group's name and partners: a line with a short tick at each end. */
+.tl__grp { position: relative; display: inline-flex; align-items: center; gap: 2px; padding: 0 4px 3px; border-bottom: 1.5px solid var(--color-text-subtle); }
+.tl__grp::before, .tl__grp::after { content: ""; position: absolute; bottom: 0; width: 1.5px; height: 6px; background: var(--color-text-subtle); }
+.tl__grp::before { left: 0; }
+.tl__grp::after { right: 0; }
+.tl__parts { display: inline-flex; gap: 2px; }
+
+@media (max-width: 1023px) {
+  .band__headline { padding: 0 var(--space-3) 3px; font-size: var(--text-md); }
+  .tl__bar { height: 18px; }
+  .tl__key { flex-wrap: wrap; gap: 0 1px; padding: 3px 4px 0; font-size: var(--text-xs); }
+  .tl__chip { gap: 3px; padding: 1px 2px; }
+  .tl__swp i { width: 4px; height: 9px; }
+  /* A partner shows its strong tone only here; the bar above carries the pale one. */
+  .tl__parts .tl__swp i + i { display: none; }
+  .tl__chip b { font-size: var(--text-sm); }
+  .tl__grp { padding: 0 1px 3px; gap: 0; }
+  .tl__parts { gap: 0; }
+  .tl__full { display: none; }
+  .tl__short { display: inline; }
+}
+/* Touch: a transparent 44 px target around each pick, so the bar and key look the same (VE-93). Segments grow upward and
+   downward only (their width is the seat count, 4 px a seat on a phone, so the named chips below are the wide target);
+   chips are at least 44 wide. A later chip wins where targets overlap. */
+@media (pointer: coarse) {
+  .tl__seg:not([data-empty="true"])::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
+  .tl__chip::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: 44px; transform: translate(-50%, -50%); }
+}
+:root[data-motion="off"] :is(.tl__seg, .tl__chip) { transition: none; }
+
+/* The pick (ADR 0023): the seats picked in the tally, on Map and Hex, get a near-black outline a hair thicker than a
+   normal seat edge (0.5 px on the Map, 1.2 units on the Hex). Nothing else at rest wears it. */
+:root { --pick-ink: #121212; }
+.map-pick { fill: none; stroke: var(--pick-ink); stroke-width: 1; stroke-linejoin: round; }
+.hex-pick { fill: none; stroke: var(--pick-ink); stroke-width: 1.4; stroke-linejoin: round; }
+
+/* ── Info popovers ────────────────────────────────────────────────────── */
+.info { position: relative; display: inline-flex; }
+.info__btn {
+  padding: 0;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-navy);
+}
+.info__btn::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  z-index: -1;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+.info__pop {
+  position: absolute;
+  top: calc(100% + 2px);
+  z-index: var(--z-popover);
+  width: min(320px, 86vw);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  white-space: normal;
+}
+.info__pop--up { top: auto; bottom: calc(100% + 2px); }
+.info__pop--right { right: 0; }
+.info__pop--left { left: 0; }
+.info__pop p + p, .info__pop ul + p { margin-top: var(--space-2); }
+.key { list-style: none; display: grid; gap: 4px; }
+/* The Animations switch in the "i" sheet (VE-115): a 44 px target with the state spelled out, never colour alone. */
+.motion-switch { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-2); font-weight: 700; }
+.switch { position: relative; display: inline-flex; align-items: center; min-width: 72px; min-height: 44px; padding: 0 var(--space-3) 0 36px; border: 1px solid var(--color-border-strong); border-radius: 22px; background: var(--color-surface); color: var(--color-text); font: inherit; font-weight: 700; cursor: pointer; }
+.switch::before { content: ""; position: absolute; left: 6px; top: 50%; width: 22px; height: 22px; margin-top: -11px; border-radius: 50%; background: var(--color-text-subtle); }
+.switch[aria-checked="true"] { background: var(--color-blue); border-color: var(--color-blue); color: #fff; }
+.switch[aria-checked="true"] { padding: 0 36px 0 var(--space-3); }
+.switch[aria-checked="true"]::before { left: auto; right: 6px; background: #fff; }
+.switch:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.motion-note { color: var(--color-text-subtle); }
+.key__notice { padding-top: var(--space-2); border-top: 1px solid var(--color-border); font-weight: 600; }
+
+/* ── Status notices and holding page ──────────────────────────────────── */
+.notice {
+  flex-shrink: 0;
+  padding: 6px var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  background: var(--marker-bg);
+  color: var(--marker-text);
+  border-bottom: 1px solid var(--marker-border);
+}
+.notice--offline { background: var(--notice-offline-bg); color: var(--notice-offline-text); border-color: var(--notice-offline-text); }
+.holding {
+  position: relative; /* VE-149: the narrow-screen "i" floats in its top right corner */
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  font-size: var(--text-lg);
+  color: var(--color-text-subtle);
+  text-align: center;
+}
+
+/* VE-149: the not-live marker over the polling places (hard rule 2), top left so it clears the "i" and the loading note. */
+.places-marker { position: absolute; top: var(--space-3); left: var(--space-2); max-width: calc(100% - 64px); z-index: 20; margin: 0; padding: 2px var(--space-2); font-size: var(--text-xs); font-weight: 600; color: var(--marker-text); background: var(--marker-bg); border: 1px solid var(--marker-border); border-radius: var(--radius-sm); pointer-events: none; }
+
+/* ── Workspace: the stage, the seats rail and the district panel ──────── */
+.workspace {
+  --rail-w: clamp(260px, 20vw, 340px);
+  /* The open Rewind panel's height: 8 px, the 44 px slider, its end labels and the 22 px clearance (measured 81 px). */
+  --rewind-panel-h: 82px;
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--map-paper);
+}
+.panes {
+  position: absolute;
+  inset: 0;
+  background: var(--map-paper);
+}
+.pane {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  background: var(--map-paper);
+}
+/* Hidden, not removed: both shapes keep the stage's size, so switching shapes never resizes the map. */
+.pane[data-active="false"] { visibility: hidden; }
+/* The shape control, top left of the stage. The colour chips take the bottom left (zoom is bottom right). */
+.stage-controls { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 30; }
+.colour-chips { position: absolute; bottom: 22px; left: var(--space-2); z-index: 30; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: calc(100% - var(--space-4)); }
+/* VE-226: the box is as wide as its widest line (the chips row), so its empty corner beside the short key lines sat over the
+   More ways card at 1024 x 768 and ate clicks on the card's left half. The box takes no clicks itself; its lines do. */
+.colour-chips { pointer-events: none; }
+.colour-chips > * { pointer-events: auto; }
+.colour-chips__row { display: flex; align-items: center; gap: var(--space-2); max-width: 100%; }
+.colour-chips .segmented { overflow-x: auto; scrollbar-width: none; }
+.colour-chips .info { flex-shrink: 0; }
+
+/* The "View" sheet is for narrow screens only; desktop keeps the two controls above. */
+.view-sheet { display: none; }
+.view-sheet__btn {
+  display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius-md, 8px);
+  background: var(--color-surface); color: var(--color-text); font: inherit; cursor: pointer; box-shadow: var(--shadow-md);
+}
+.view-sheet__pop {
+  position: absolute; top: calc(100% + var(--space-2)); left: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md, 8px);
+  background: var(--color-surface); box-shadow: var(--shadow-md); width: max-content; max-width: calc(100vw - var(--space-4));
+}
+.view-sheet__pop .stage-controls, .view-sheet__pop .colour-chips { position: static; max-width: 100%; }
+
+/* Colour keys inside the "i": the Trust 3 x 3 grid and the Certainty chips. */
+.ckey { margin-top: var(--space-2); }
+.ckey__grid { display: grid; grid-template-columns: repeat(3, 22px); gap: 2px; }
+.ckey__grid span { display: block; width: 22px; height: 22px; border-radius: 2px; }
+/* The Swing grid with plain axis words (FB-127): "Safe seat" at the top, "Close seat" at the bottom, away from Labor to toward Labor across. */
+.ckey__plot { display: flex; gap: 6px; align-items: stretch; }
+.ckey__yaxis { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; width: 52px; padding: 4px 0; font-size: var(--text-2xs); color: var(--color-text-subtle); text-align: right; }
+.ckey__xaxis { display: flex; justify-content: space-between; gap: var(--space-2); margin-top: 4px; font-size: var(--text-2xs); color: var(--color-text-subtle); }
+/* The key line under the chips: party swatches (Leader) or the swing colours (Swing), one wrapping row (FB-126). */
+.colour-key:has(.lkey__item) { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--space-3); }
+.lkey__item { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.lkey__sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, 0.18); }
+.lkey__item .lkey__sw + .lkey__sw { margin-left: -2px; }
+@media (max-width: 1023px) {
+  .colour-key:has(.lkey__item) { gap: 2px var(--space-2); }
+}
+.ckey__list { list-style: none; margin-top: var(--space-2); display: grid; gap: 4px; }
+.ckey__sw { display: inline-block; width: 14px; height: 14px; border-radius: 2px; vertical-align: -3px; margin-right: 4px; border: 1px solid var(--color-border-strong); }
+.ckey__note { list-style: disc; margin: var(--space-2) 0 0 var(--space-4); display: grid; gap: 4px; font-size: var(--text-xs); }
+.ckey__chips { display: flex; gap: var(--space-2); }
+.ckey__chip { padding: 4px 12px; border-radius: var(--radius-pill); background: var(--color-navy); color: var(--color-text-on-brand); font-size: var(--text-xs); }
+.ckey__chip--blur { filter: blur(2.5px); }
+
+.map-container { position: absolute; inset: 0; }
+
+/* Seats view */
+.seats { position: absolute; inset: 0; display: flex; flex-direction: column; }
+
+.link-btn:focus-visible, .rewind input:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+/* The top padding keeps the hexes clear of the shape control; the morph reads the padded box, so it lands exactly. */
+.hexes { flex: 1; width: 100%; height: 100%; filter: var(--layer-shadow, drop-shadow(0 1px 3px rgba(0, 0, 0, 0.28))); padding: calc(var(--space-2) + 44px) var(--space-2) 22px; }
+.hex {
+  stroke: var(--map-edge);
+  stroke-width: 1.2;
+  cursor: pointer;
+  transition: fill 500ms ease;
+}
+/* A seat with no result is paper-coloured, so it keeps a faint outline (FB-53). Console overrides the line colour. */
+.hex--empty { stroke: var(--hex-empty-edge, rgba(0, 0, 0, 0.22)); stroke-width: 1; }
+.hex:focus { outline: none; }
+.hex:focus-visible { stroke: var(--color-focus); stroke-width: 3; }
+.hex--sel { stroke: var(--map-selected); stroke-width: 3.5; }
+/* Certainty: the selection outline drawn above the blurred groups so it stays sharp. */
+.hex-outline { stroke: var(--map-selected); stroke-width: 3.5; }
+.data-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); background: var(--color-surface); }
+.data-table th, .data-table td { padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+.data-table thead th { position: sticky; top: 0; background: var(--color-surface); font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: var(--label-tracking); color: var(--color-text-subtle); }
+.data-table tr.is-selected { background: var(--color-selected-row); }
+.link-btn { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; border: none; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--color-blue); cursor: pointer; }
+
+/* The seats rail (ADR 0018): a compact table beside the stage on desktop, a bottom sheet that peeks on narrow screens. */
+.rail {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--rail-w);
+  width: var(--rail-w);
+  min-height: 0;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+}
+.rail__handle { display: none; }
+.rail__body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.rail__body[hidden] { display: none; }
+.rail__bar { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-2); }
+.rail__search { flex: 1; min-width: 0; min-height: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface-alt); color: var(--color-text); font: inherit; font-size: var(--text-sm); }
+.rail__search:focus-visible, .rail__chip:focus-visible, .sortbtn:focus-visible, .rail__handle:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+.rail__chip { min-height: 44px; min-width: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+.rail__chip[aria-pressed="true"] { background: var(--color-navy); border-color: var(--color-navy); color: var(--color-text-on-brand); }
+/* VE-128: the filters are one row of small chips. Each looks 32 px tall but keeps a 44 px hit area: the 6 px transparent
+   border above and below is part of the button (background-clip stops the fill at the padding), and an inset shadow draws the outline. */
+/* VE-166: "Close seats" is longer than "In doubt", so the side padding is 4 px (it was 8) and the chips 4 px, to keep the three chips on one row at 1440 with the 8 px gap between controls (FB-146). */
+.rail__filters { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; padding: 0 var(--space-1) var(--space-2); overflow-x: auto; scrollbar-width: none; }
+.rail__filters::-webkit-scrollbar { display: none; }
+
+/* VE-128: the chips wrap onto a second line where the rail is at its narrowest (1280 px) rather than scrolling one out of sight. */
+.lenspanel .rail__filters { mask-image: none; }
+.rail__filters .rail__chip, .rail__bar .rail__chip { flex: none; padding: 0 4px; border-width: 6px 0; border-color: transparent; border-radius: 999px; background-clip: padding-box; box-shadow: inset 0 0 0 1px var(--color-border-strong); font-size: var(--text-xs); white-space: nowrap; }
+.rail__filters .rail__chip[aria-pressed="true"], .rail__bar .rail__chip[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--color-navy); }
+/* The count rides beside the search box, where the chips used to wrap onto a second line. */
+.rail__count { flex: none; margin: 0; font-size: var(--text-xs); color: var(--color-text-subtle); white-space: nowrap; }
+
+/* VE-125: the panel an open Explore lens puts in the rail's place. It reuses the rail's search box and chips. */
+.lenspanel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.lenspanel .rail__filters { flex-wrap: wrap; overflow-x: visible; }
+.lenspanel__summary { margin: 0; padding: 0 var(--space-3) var(--space-2); font-size: var(--text-sm); line-height: 1.35; color: var(--color-text); }
+.lenspanel__unit { margin: 0; padding: 0 var(--space-3) var(--space-1); font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: var(--label-tracking); color: var(--color-text-subtle); }
+.lenspanel__list { margin: 0; padding: 0; list-style: none; }
+.lenspanel__row { border-top: 1px solid var(--color-border); scroll-margin-block: 4px; }
+.lenspanel__row button { display: grid; grid-template-columns: auto minmax(0, 1fr) 58px 58px; align-items: center; width: 100%; min-height: 34px; padding: 0 var(--space-2) 0 var(--space-3); border: none; background: none; color: var(--color-text); font: inherit; font-size: var(--text-xs); text-align: left; cursor: pointer; }
+.lenspanel__row button:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
+.lenspanel__row.is-lit { background: var(--color-selected-row); }
+.lenspanel__row.is-picked { box-shadow: inset 3px 0 0 var(--map-selected); }
+.lenspanel__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lenspanel__mark { display: inline-flex; line-height: 0; }
+.lenspanel__value { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 1023px) {
+  .lenspanel__row button { min-height: 44px; }
+  /* The lens fills the stage over the peeking sheet, so the sheet (its handle reads the summary) rides above it and the Back button
+     steps up clear of the handle. */
+  .rail[data-lens="true"] { z-index: 45; }
+  .workspace:has(.rail[data-lens="true"]) .explore-lens__foot { padding-bottom: 68px; }
+  /* The handle reads the lens's summary: allow two short lines. */
+  .rail[data-lens="true"] .rail__handle { padding: 4px var(--space-4) 0; font-size: var(--text-xs); line-height: 1.25; text-align: center; }
+}
+.rail__scroll { flex: 1; min-height: 0; overflow: auto; margin-bottom: 22px; /* clears the Rewind handle's and theme switch's taller hit areas */ }
+.rail__none { padding: var(--space-3); font-size: var(--text-sm); color: var(--color-text-subtle); }
+/* VE-226 (finding 7): the heading over the close-seats list's seats still waiting for a count after preferences. */
+.rail__sep th { padding: var(--space-3) var(--space-2) var(--space-1); font-size: var(--text-xs); font-weight: 600; text-align: left; color: var(--color-text-subtle); background: none; }
+/* VE-147: suburb and postcode matches sit above the seat table, one sentence per place; a split place adds a small button per other seat. */
+.rail__places { flex: none; margin: 0 var(--space-2) var(--space-2); padding: var(--space-1) var(--space-2) var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-alt); }
+.rail__placehead { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.rail__placetitle { font-size: var(--text-xs); font-weight: 600; color: var(--color-text-subtle); text-transform: uppercase; letter-spacing: 0.04em; }
+.rail__placelist { list-style: none; margin: 0; padding: 0; max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-1); }
+.rail__place { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); align-items: center; }
+.rail__placebtn { flex: 1 1 100%; min-height: 44px; padding: var(--space-1) var(--space-2); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-sm); text-align: left; cursor: pointer; }
+.rail__placealt { min-height: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: 999px; background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-xs); cursor: pointer; }
+/* VE-215 A7: the chevron says the match can be tapped. */
+.rail__placebtn { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.rail__placego { font-size: var(--text-lg); line-height: 1; color: var(--color-text-subtle); }
+.rail__placebtn:hover, .rail__placealt:hover { border-color: var(--color-navy); }
+.rail__placebtn:focus-visible, .rail__placealt:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+/* Rows are 52 px: a 44 px button and the 8 px gap Simon asked for between controls. */
+.railtable { table-layout: fixed; font-size: var(--text-xs); }
+.railtable th, .railtable td { padding: 0 4px; height: 34px; }
+.railtable thead th { z-index: 1; font-size: 10px; letter-spacing: 0; }
+.railtable tbody th { padding-left: 8px; font-weight: 400; overflow: hidden; }
+.railtable tbody tr { scroll-margin-top: 34px; cursor: pointer; }
+.railtable tbody tr:hover { background: var(--color-selected-row); }
+.railtable th:nth-child(2), .railtable td:nth-child(2) { width: 64px; }
+.railtable th:nth-child(3), .railtable td:nth-child(3) { width: 58px; }
+.railtable .is-num { text-align: right; font-variant-numeric: tabular-nums; }
+.railtable .is-spark { padding: 0 4px; line-height: 0; }
+.railtable thead .is-spark { line-height: normal; }
+/* Seat names read as body text, not links. On a mouse the row is 34 px and the whole row takes the click (SeatsRail);
+   on touch the rows stay 44 px. */
+.railtable .link-btn { width: 100%; text-align: left; min-width: 44px; min-height: 0; height: 100%; color: var(--color-text); }
+@media (pointer: coarse) {
+  .railtable th, .railtable td { height: 52px; }
+  .railtable tbody tr { scroll-margin-top: 52px; }
+  .railtable .link-btn { min-height: 44px; }
+}
+.railtable .link-btn .sq { margin-right: 6px; }
+.rail__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.railtable tr.is-selected { box-shadow: inset 3px 0 0 var(--map-selected); }
+.sortbtn { display: inline-flex; gap: 3px; align-items: center; width: 100%; min-width: 44px; min-height: 44px; padding: 0; border: none; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+.railtable .is-num .sortbtn { justify-content: flex-end; }
+.sortbtn__arrow { display: inline-block; min-width: 8px; font-size: 8px; }
+/* The count pulse: the 2022 holder's margin over the night. The dashed line is zero (level); under it the holder trails. */
+.spark { display: block; overflow: visible; }
+.spark__mid { stroke: var(--color-border-strong); stroke-width: 1; stroke-dasharray: 2 2; }
+.spark__line { fill: none; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+
+/* District panel */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  /* Over the rail, same width, so the stage never changes size when a seat is chosen. */
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  width: var(--rail-w);
+  padding: var(--space-3) var(--space-4);
+  overflow: auto;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+}
+.panel__grip { display: none; }
+.panel__body { display: flex; flex-direction: column; gap: var(--space-3); flex: 1; }
+.panel__head { display: flex; align-items: center; justify-content: space-between; }
+.panel__head h2 { font-size: var(--text-xl); color: var(--color-navy); }
+.panel__lead { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-weight: 700; }
+.panel__note { font-size: var(--text-xs); color: var(--color-text-subtle); }
+.panel__foot { margin-top: auto; font-size: var(--text-xs); color: var(--color-text-subtle); }
+.flag { margin-left: 6px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--marker-bg); color: var(--marker-text); font-size: var(--text-2xs); }
+.gauge__head { display: flex; justify-content: space-between; font-size: var(--text-xs); color: var(--color-text-subtle); }
+.gauge__head b { color: var(--color-text); }
+.gauge__bar { position: relative; display: flex; height: 10px; margin-top: 3px; background: var(--color-surface-alt); border-radius: 2px; overflow: hidden; }
+.gauge__bar > span:not(.gauge__mark) { height: 100%; transition: width 400ms ease; }
+.gauge__mark { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--color-text); }
+.cands { list-style: none; display: grid; gap: 4px; font-size: var(--text-sm); }
+.cands li { display: flex; align-items: center; }
+.cands__name { flex: 1; }
+.cands__v { font-weight: 700; }
+/* VE-90: the two-candidate head, the measures lines, the night line and the first-preference disclosure. */
+.tc { display: grid; gap: 6px; }
+.tc__row { display: flex; justify-content: space-between; gap: var(--space-3); }
+.tc__side { display: flex; flex-direction: column; min-width: 0; }
+.tc__side--end { align-items: flex-end; text-align: right; }
+.tc__name { font-size: var(--text-sm); overflow-wrap: anywhere; }
+.tc__party, .tc__votes { font-size: var(--text-xs); color: var(--color-text-subtle); }
+.tc__pct { font-size: var(--text-xl); font-weight: 700; line-height: 1.1; }
+.tc__bar { position: relative; display: flex; height: 14px; background: var(--color-surface-alt); border-radius: 2px; overflow: hidden; }
+.tc__bar > span:not(.gauge__mark) { height: 100%; transition: width 400ms ease; }
+.panel__line { font-size: var(--text-sm); }
+.night { margin: 0; }
+.night svg { display: block; width: 100%; height: 44px; overflow: visible; }
+.night__line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.night .spark__mid { vector-effect: non-scaling-stroke; }
+.night figcaption { display: flex; justify-content: space-between; gap: 4px; font-size: var(--text-xs); color: var(--color-text-subtle); }
+.panel__fp summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-size: var(--text-sm); font-weight: 700; }
+.panel__fp .cands { margin-top: 4px; }
+
+/* The bottom strip holds Rewind and the theme emblem (about 30 px). The attribution moved behind the "i" (ADR 0017).
+   The Rewind controls are 44 px tall, so they stand up from the strip over the bottom edge of the viz (transparent
+   there); the visible pill stays in the strip. The open panel rises above the strip, over the viz, so the panes
+   never change size. The strip stays rather than floating Rewind over the viz: the zoom buttons and the table
+   lens sit bottom left, and a floating pill would fight them for the same corner. */
+.footer {
+  position: relative;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  --pill-t: 17px;
+  --pill-b: 3px;
+}
+.footer__fill { flex: 1; min-width: 0; }
+.rewind { display: contents; }
+.rewind__bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  align-self: flex-end;
+  gap: var(--space-2);
+  height: 44px;
+}
+.rewind__bar > * { align-self: flex-end; }
+.footer .rewind__handle, .footer .btn-ghost { padding-top: 14px; } /* centres the label in the visible pill, not the taller box */
+.rewind__handle { padding: 0 12px; font-weight: 600; color: var(--color-navy); }
+.rewind__icon { flex-shrink: 0; color: var(--color-text-subtle); }
+/* While rewinding (ADR 0024) the button reads "Back to now" (or "Back to final") in the rewind violet, white text. */
+.rewind__back { --pill-bg: var(--rewind); --pill-bd: var(--rewind); --pill-fg: #fff; color: #fff; font-weight: 600; }
+.rewind__back .rewind__icon { color: inherit; }
+.rewind__panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) 22px; /* the bottom clears the handle's taller hit area */
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  --pill-t: 8px;
+  --pill-b: 8px;
+}
+.rewind__play { font-size: 12px; line-height: 1; }
+.rewind__track { position: relative; flex: 1; min-width: 0; }
+.rewind__spark { position: absolute; left: 0; right: 0; top: 10px; width: 100%; height: 24px; }
+.rewind__spark path { fill: var(--color-blue-light); stroke: var(--color-blue-mid); stroke-width: 0.6; vector-effect: non-scaling-stroke; }
+.rewind__track input { position: relative; display: block; width: 100%; height: 44px; margin: 0; background: transparent; accent-color: var(--color-navy); }
+/* Rewinding: the top band, the Rewind panel and the bottom bar take the violet wash. Chrome only: the map and hex are not
+   washed, as party ink and pale versus strong are the data (ADR 0024). */
+.app[data-time="rewinding"] .band,
+.app[data-time="rewinding"] .footer,
+.app[data-time="rewinding"] .rewind__panel { background: var(--rewind-wash); }
+.app[data-time="rewinding"] .rewind__track input { accent-color: var(--rewind); }
+.app[data-time="rewinding"] .rewind__spark path { fill: color-mix(in srgb, var(--rewind) 18%, transparent); stroke: var(--rewind); }
+.band, .footer, .rewind__panel { transition: background-color var(--motion-content) var(--ease-standard); }
+:root[data-motion="off"] :is(.band, .footer, .rewind__panel) { transition: none; }
+.rewind__ends { position: relative; display: flex; justify-content: space-between; margin-top: -8px; font-size: var(--text-2xs); color: var(--color-text-subtle); }
+/* VE-168: hour labels sit between the ends, each centred under the slider step where that hour's first tick is, with a short tick above. */
+.rewind__hour { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.rewind__hour::before { content: ""; position: absolute; left: 50%; bottom: 100%; width: 1px; height: 4px; background: currentColor; opacity: 0.6; }
+
+/* The floating controls (narrow screens only): the "i" over the stage. */
+.float { display: none; }
+
+/* ── Narrow screens: the stage fills the width, the rail is a bottom sheet that peeks, the panel a sheet over it ──── */
+@media (max-width: 1023px) {
+  .float {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    z-index: 30;
+    display: flex;
+    pointer-events: none;
+  }
+  .float > * { pointer-events: auto; }
+  /* VE-149: an open lens covers the stage and carries its own "i" in the same corner (with the provisional notice and attribution), so the stage's one steps aside: one "i" on screen and in the tree. */
+  .app[data-explore="true"] .float { display: none; }
+  /* The rail peeks over the stage's bottom edge (handle plus clearance), so the chips ride above it. */
+  /* One View button instead of the shape control (direct child of the stage only; the sheet holds a copy). The colour chips stay, as a strip (below). */
+  .stage > .stage-controls { display: none; }
+  .view-sheet { display: block; position: absolute; top: var(--space-2); left: var(--space-2); z-index: 31; }
+
+  /* Peeking: just the handle and the 22 px the Rewind handle's hit area needs. Open: most of the stage's height. */
+  .rail {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-panel);
+    flex: none;
+    width: auto;
+    max-height: 60%;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: var(--shadow-md);
+  }
+  .rail__handle {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--color-navy);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .rail__grip { position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--color-border-strong); }
+  .rail[data-open="false"] .rail__body { display: none; }
+  .rail[data-open="false"] { padding-bottom: 22px; }
+  .rail[data-open="true"] { height: 60%; }
+  .panel {
+    padding-bottom: 22px;
+    position: absolute;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-panel) + 1);
+    width: auto;
+    max-height: 55%;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: var(--shadow-md);
+  }
+  /* The sheet's drag handle: pull down to dismiss (the close button stays for everyone else). */
+  /* VE-227 (finding 7): a 44 px target (it was 16), the look and the net height unchanged. It starts at the sheet's top edge (the
+     panel clips above that), and it stops short of the corners so the close and info buttons keep their taps. */
+  .panel__grip { display: block; flex: none; width: calc(100% - 216px); height: 44px; margin: -12px auto -28px; padding: 0; border: 0; background: transparent; position: relative; z-index: 1; touch-action: none; cursor: grab; }
+  .panel__grip::after { content: ""; position: absolute; top: 9px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--color-border-strong); }
+  .panel__grip:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
+  /* The open Rewind panel covers the bottom of the stage, so the sheets underneath step out of the way. */
+  .app[data-rewind="open"] .rail, .app[data-rewind="open"] .panel { visibility: hidden; }
+  .footer { padding-left: var(--space-2); }
+}
+
+/* ── VE-228 (ADR 0035): one bottom sheet for every phone panel ──────────────────────────────────────────────────────────
+   useSheet (components/sheet) sets data-detent only where a panel is a bottom sheet, and moves it through two variables: its
+   height (--sheet-px) and how far it has slid below peek (--sheet-drop). So none of this applies on a desktop or a phone held
+   sideways. Settling eases in 250 ms; under the finger there is no easing; with Animations off it jumps. */
+.panel[data-detent], .rail[data-detent] {
+  height: var(--sheet-px); max-height: none; overflow: hidden; transform: translateY(var(--sheet-drop, 0px));
+  transition: height 250ms var(--ease-standard), transform 250ms var(--ease-standard), opacity var(--motion-exit) var(--ease-standard);
+}
+[data-detent][data-dragging] { transition: none; }
+:root[data-motion="off"] [data-detent] { transition: none; }
+/* The handle and the header row take the drag; the content keeps its own scrolling (never touch-action there). */
+.panel[data-detent] .panel__head, .rail[data-detent] .rail__top { touch-action: none; }
+.panel[data-detent] .panel__body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.rail[data-detent] .rail__scroll { overscroll-behavior: contain; }
+/* At rest at peek the Seats list's body is not drawn (as before); a drag up from peek lays it out under the finger. */
+.rail[data-detent][data-dragging] .rail__body:not([hidden]) { display: flex; }
+/* The key and the closest-seat cards step aside under a list being dragged up, as they do under the open list. */
+.workspace:has(.rail[data-dragging]) .stage > .colour-chips, .workspace:has(.rail[data-dragging]) .closest { display: none; }
+/* At peek only the headline shows; what is below it is out of sight and out of the tab order until the sheet rises. */
+.panel[data-detent="peek"]:not([data-dragging]) .panel__body > :not(:first-child) { visibility: hidden; }
+
+/* The open Rewind panel rises over the bottom of the page, so the workspace (stage and rail) makes room for it: the map
+   refits the shorter stage, and the zoom buttons and colour chips stay clear instead of sitting under the panel.
+   The room is given once the panel has landed (the delay), because a MapView resize mid-motion drops frames; the map
+   keeps its top left (MapPane) and glides to the new fit. On close the room comes back at once, under the leaving panel. */
+.app[data-rewind="open"] .workspace { padding-bottom: var(--rewind-panel-h); transition: padding-bottom 0s linear var(--motion-enter); }
+
+/* The district panel covers the rail while a seat is selected, so the rail's controls leave the screen and the tab order
+   with it. The rail fades under the sliding panel instead of vanishing; it comes back at once on close so focus can return. */
+.rail { transition: opacity var(--motion-exit) var(--ease-standard); }
+.app[data-selected="true"] .rail { opacity: 0; visibility: hidden; transition: opacity var(--motion-exit) var(--ease-standard), visibility 0s linear var(--motion-exit); }
+
+/* ── Panel motion (VE-67, FB-48). Tokens and sources are in tokens.css. ─────────────────────────────────────────────
+   District panel: shared axis X (slides in from the edge it sits on, fading), a phone sheet rises on Y. Rewind: shared
+   axis Y. Enter decelerates, leave accelerates and is shorter. Switching seats only cross-fades the content. */
+.panel[data-motion="full"] { animation: panel-in var(--motion-enter) var(--ease-decelerate) backwards; }
+.panel[data-motion="full"][data-state="closing"] { animation: panel-out var(--motion-exit) var(--ease-accelerate) forwards; }
+.panel[data-motion="full"] .panel__body, .panel[data-motion="full"] .panel__head h2 { animation: content-in var(--motion-content) var(--ease-standard) backwards; }
+.rewind__panel[data-motion="full"] { animation: rewind-in var(--motion-enter) var(--ease-decelerate) backwards; }
+.rewind__panel[data-motion="full"][data-state="closing"] { animation: rewind-out var(--motion-exit) var(--ease-accelerate) forwards; }
+@keyframes panel-in { from { transform: translateX(var(--motion-shift-x)); opacity: 0; } }
+@keyframes panel-out { to { transform: translateX(var(--motion-shift-x)); opacity: 0; } }
+@keyframes sheet-in { from { transform: translateY(100%); } }
+@keyframes sheet-out { to { transform: translateY(100%); } }
+@keyframes content-in { from { opacity: 0; } }
+@keyframes rewind-in { from { transform: translateY(var(--motion-shift-y)); opacity: 0; } }
+@keyframes rewind-out { to { transform: translateY(var(--motion-shift-y)); opacity: 0; } }
+
+@media (max-width: 1023px) {
+  .panel[data-motion="full"] { animation-name: sheet-in; }
+  .panel[data-motion="full"][data-state="closing"] { animation-name: sheet-out; }
+}
+
+:root[data-motion="off"] :is(.hex, .gauge__bar > span, .tc__bar > span, .rail, .app[data-selected="true"] .rail, .app[data-rewind="open"] .workspace) { transition: none; }
+
+/* ── The transition overlay (VE-47b) ──────────────────────────────────── */
+/* The overlay canvas draws the flying shapes; while it is active the real views' shapes hide underneath. */
+.transition-overlay { z-index: 12; }
+.app[data-morph="true"] .hex, .app[data-morph="true"] .hex-outline, .app[data-morph="true"] .hex-pick { visibility: hidden; }
+
+/* No flight (reduced motion, or the map or geometry not ready): the new shape fades in over the old one in 150 ms (VE-103).
+   The outgoing pane stays up underneath until the fade ends, so no frame is ever empty; only the incoming pane's opacity moves. */
+@keyframes pane-fade-a { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pane-fade-b { from { opacity: 0; } to { opacity: 1; } }
+.pane[data-leaving="true"] { visibility: visible; }
+.panes--fade-a .pane[data-active="true"] { z-index: 1; animation: pane-fade-a 150ms ease-out both; }
+.panes--fade-b .pane[data-active="true"] { z-index: 1; animation: pane-fade-b 150ms ease-out both; }
+
+/* Since VE-121 the open Rewind panel sits under the stage on desktop, not over it, so the chips stay where they are
+   (lifting them put them over the seats, where they took the clicks meant for the hexes). */
+
+/* VE-106, phone: the three colour chips are one line just above the Seats handle (the rail peeks 44 px of handle plus
+   22 px of clearance), with the key line under them. Hidden while the seat sheet or the Seats sheet is open, as both
+   cover that corner; Rewind open lifts it clear of the panel, as on desktop. */
+@media (max-width: 1023px) {
+  .stage > .colour-chips { bottom: 72px; right: var(--space-2); max-width: none; }
+  .stage > .colour-chips .colour-key { max-width: 100%; }
+  .app[data-rewind="open"] .stage > .colour-chips { bottom: 12px; }
+  .app[data-selected="true"] .stage > .colour-chips, .workspace:has(.rail[data-open="true"]) .stage > .colour-chips { display: none; }
+}
+
+/* VE-109: the panel's "i" and close sit together; the first-preferences fold shows a chevron so it reads as a control. */
+.panel__tools { display: inline-flex; align-items: center; gap: 8px; }
+.panel__fp summary { list-style: none; gap: 6px; }
+.panel__fp summary::-webkit-details-marker { display: none; }
+.panel__fp summary::after { content: ""; width: 8px; height: 8px; margin-left: auto; border-right: 2px solid var(--color-text-subtle); border-bottom: 2px solid var(--color-text-subtle); transform: translateY(-2px) rotate(45deg); transition: transform 120ms ease; }
+.panel__fp[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+/* The night-line "i" opens across the head row, as the profile's does, so the panel's scroll area cannot clip it. */
+.panel__head { position: relative; }
+.panel__tools .info { position: static; }
+.panel__tools .info__pop { left: 0; right: 0; width: auto; }
+
+/* The Hex hover label (VE-107): the lens pick pill's look, small, and never taking the pointer. */
+.hexlabel {
+  position: absolute; z-index: 5; display: flex; flex-direction: column; gap: 1px; width: max-content; max-width: 60%; padding: 4px var(--space-2);
+  background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-md);
+  font-size: var(--text-xs); line-height: 1.3; pointer-events: none;
+}
+.hexlabel__name { font-size: var(--text-sm, 0.875rem); }
+.hexlabel__lead { display: inline-flex; align-items: center; gap: 5px; }
+.hexlabel__dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.hexlabel__extra { color: var(--color-text-subtle); }
+
+/* VE-111: the In doubt row's lead and votes-left bars, and the panel's candidate rows. */
+.rail__key { padding: 0 var(--space-2) var(--space-1); font-size: var(--text-xs); color: var(--color-text-subtle); }
+/* The name button fills the cell, so the bars are laid over its lower edge and the name rides above them. */
+.railtable tbody th:has(.dbars) { position: relative; height: 46px; }
+.railtable tbody th:has(.dbars) .link-btn { padding-bottom: 12px; }
+.dbars { position: absolute; left: 22px; right: 8px; bottom: 5px; display: block; height: 10px; }
+.dbars__lead, .dbars__left { position: absolute; left: 0; height: 6px; border-radius: 1px; min-width: 1px; }
+.dbars__lead { top: 4px; height: 6px; z-index: 1; }
+.dbars__left { top: 4px; height: 6px; background: var(--color-border-strong); }
+.dbars--none { height: auto; font-size: var(--text-xs); color: var(--color-text-subtle); line-height: 1; }
+.cands .cand { display: block; }
+.cand__top { display: flex; align-items: baseline; gap: 8px; }
+.cand__party { display: block; font-size: var(--text-xs); color: var(--color-text-subtle); }
+.cand__pair { margin: 2px 0 0; display: inline-block; }
+.cand__votes { min-width: 52px; text-align: right; font-size: var(--text-xs); color: var(--color-text-subtle); font-variant-numeric: tabular-nums; }
+.cand__bar { display: block; height: 4px; margin-top: 2px; background: var(--color-surface-alt); border-radius: 2px; overflow: hidden; }
+.cand__bar > span { display: block; height: 100%; }
+
+/* VE-185: on a portrait phone the panel is two rows: Play and the track take the first (the track gets all the width left, so
+   the hour marks have room), the speeds sit right-aligned under them. Targets stay 44 px. Landscape phones and desktop keep the one row. */
+@media (orientation: portrait) and (max-width: 1023px) {
+  .workspace { --rewind-panel-h: 146px; }
+  .rewind__panel { flex-wrap: wrap; row-gap: var(--space-2); /* 8 px between the slider and the speeds */ }
+  .rewind__panel .rewind__track { flex: 1 1 0; }
+  .rewind__panel .segmented { flex-basis: 100%; justify-content: flex-end; }
+}
+
+/* VE-121 (FB-124): on desktop the open Rewind panel is a compact card under the stage (the map), left-aligned with it,
+   rather than a bar across the page and under the seats rail. Its room is still taken from the workspace above, so the
+   map refits as before. Phones keep the full-width panel (the stage is the page there). */
+@media (min-width: 1024px) {
+  .rewind__panel {
+    right: auto;
+    width: min(680px, calc(100vw - clamp(260px, 20vw, 340px)));
+    border-right: 1px solid var(--color-border);
+    border-radius: 0 var(--radius-lg) 0 0;
+  }
+}
+
+/* VE-121 (FB-131): no Rewind while an Explore lens is open. The panel is closed by state; this hides the handle and any
+   leftover panel at once. When the viewer is already rewound, "Back to now" stays so they are never stranded behind it. */
+.app[data-explore="true"] .rewind__panel,
+.app[data-explore="true"] .rewind__handle:not(.rewind__back) { display: none; }
+/* The panel no longer reaches under the rail, so the rail keeps its full height: it takes back the room the workspace
+   gave the stage (a negative margin into that padding) and its bottom rows stay visible. */
+@media (min-width: 1024px) {
+  .app[data-rewind="open"] .rail { margin-bottom: calc(-1 * var(--rewind-panel-h)); }
+}
+
+/* ── VE-91 (FB-78): a phone held sideways ──────────────────────────────────────────────────────────────────────────────
+   Height is the scarce thing (about 360 to 390 px), so the chrome gives it back: the band is one line (title, Replay marker
+   and state pill beside the tally bar; the headline is read aloud but not drawn, as the bar and its key say the same), the
+   three colour chips and their key stand in a column down the right edge rather than under the map, and the seat panel and
+   the Seats sheet open from the right edge so the map stays in view on the left. Portrait phones and desktop are untouched
+   (the max-height guard keeps a small landscape tablet window on the portrait rules). */
+@media (max-width: 1023px) and (orientation: landscape) and (max-height: 500px) {
+  .app .band { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: var(--space-3); padding-block: 2px; }
+  .band > .band__top { grid-column: 1; grid-row: 1; height: auto; padding: 0 0 0 var(--space-3); }
+  .band > .tl { grid-column: 2; grid-row: 1; min-width: 0; }
+  .band .band__headline { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .band__title { font-size: var(--text-md); }
+
+  /* Colour chips: the box becomes a grid over the whole stage (it takes no clicks itself). The three pills stand in a column down the
+     right edge, under the "i" and the in-doubt pill; the key lines stack bottom left, clear of the Seats handle on the right. The
+     Explore card moves to the top row beside View. */
+  .stage > .colour-chips {
+    inset: 0; max-width: none; display: grid; grid-template-columns: minmax(0, 230px) 1fr; grid-template-rows: 1fr auto auto auto;
+    padding: 0 var(--space-2) var(--space-2); pointer-events: none;
+  }
+  .stage > .colour-chips > * { pointer-events: auto; }
+  .stage > .colour-chips .colour-chips__row { grid-column: 2; grid-row: 1 / -1; align-self: start; justify-self: end; margin-top: 52px; flex-direction: column; align-items: flex-end; gap: 0; width: max-content; }
+  .stage > .colour-chips .segmented { flex-direction: column; align-items: stretch; overflow: visible; }
+  .stage > .colour-chips .colour-key { grid-column: 1; grid-row: 2; justify-self: start; }
+  .stage > .colour-chips .colour-key--why { grid-row: 3; }
+  .stage > .colour-chips .colour-key--still { grid-row: 4; }
+  .app .workspace .stage .explore-peek, .app .workspace .stage .explore-more { top: var(--space-2); bottom: auto; left: 108px; right: auto; transform: none; }
+  .app[data-rewind="open"] .stage > .colour-chips { bottom: 0; }
+  .app[data-selected="true"] .stage > .colour-chips { display: none; }
+
+  /* The Seats sheet: the right-hand half, so the map stays in view beside it. */
+  .rail { left: auto; width: min(380px, 50%); border-left: 1px solid var(--color-border); border-radius: var(--radius-lg) 0 0 0; }
+  .rail[data-open="true"] { height: 100%; max-height: none; border-radius: 0; }
+  /* Peeking, it is only a tab: the rest of the bottom edge stays map. */
+  .rail[data-open="false"] { width: min(200px, 40%); padding-bottom: 0; } /* the Rewind handle is at the left, so no clearance needed */
+
+  /* The in-doubt pill hides while a seat is open (the panel covers its corner); the "i" steps left of the panel. */
+  .app[data-selected="true"] .band__doubt-pill, .app:has(.rail[data-open="true"]) .band__doubt-pill { display: none; }
+  .app[data-selected="true"] .float, .app:has(.rail[data-open="true"]) .float { right: calc(min(380px, 50%) + var(--space-2)); }
+  .app[data-selected="true"] .view-sheet { display: none; }
+}
+
+/* ── VE-144a (FB-179), phone: map first, one sheet ───────────────────────────────────────────────────────────────────────
+   What is dropped from the screen at rest is moved, not lost: the colour chips, More ways and Rewind are in the View sheet; the
+   headline sentence is the sheet handle's short line (the full one is still read aloud); the in-doubt button is in the handle;
+   "votes to come" is the first line of the "i"; zoom is pinch and double-tap. Desktop is untouched. */
+@media (max-width: 1023px) {
+  .app .map-zoom { display: none; }
+  .app .stage > .colour-chips .colour-chips__row, .app .colour-key--still, .app .colour-key--why { display: none; }
+  /* VE-167: under Polling places the chips stay in View, as for the other colours; View stays on screen, so Polling places turns off there. */
+  /* The replay marker is one word beside View (it was cut off behind the button); the full wording is still read aloud. */
+  .app .places-marker { left: 96px; max-width: calc(100% - 96px - 56px); font-size: 0; }
+  .app .places-marker::before { content: attr(data-short); font-size: var(--text-xs); }
+  /* The footer strip is only there while Rewind is in use: its panel, and "Back to now" when the viewer is behind the latest figures. */
+  .app:not([data-rewind="open"]):not([data-time="rewinding"]) .footer { display: none; }
+  /* The key is the one line of words left on the map, above the sheet's handle (52 px). */
+  .stage > .colour-chips { bottom: 62px; }
+  .app[data-rewind="open"] .stage > .colour-chips { bottom: 12px; }
+  .app .rail[data-open="false"] { padding-bottom: 0; }
+  .app[data-rewind="open"] .rail[data-open="false"], .app[data-time="rewinding"] .rail[data-open="false"] { padding-bottom: 22px; }
+
+  /* The handle: short headline, the in-doubt button, "Seats". The lens summary and "Hide seats" keep the old centred look. */
+  .rail__top { display: flex; align-items: center; gap: var(--space-2); padding-right: var(--space-2); }
+  .rail__top > .rail__handle { flex: 1; min-width: 0; }
+  .rail__handle { min-height: 52px; }
+  .rail__handle:has(.rail__lead) { justify-content: flex-start; padding: 6px 0 0 var(--space-4); text-align: left; }
+  .rail__text { min-width: 0; display: block; }
+  .rail__lead { min-width: 0; font-weight: 400; line-height: 1.2; color: var(--color-text); }
+  .rail__lead b { font-weight: 700; }
+  .rail__counted { display: block; font-size: var(--text-xs); font-weight: 400; color: var(--color-text-subtle); }
+  .rail__seats { flex: none; min-width: 44px; min-height: 44px; margin-top: 6px; padding: 0 var(--space-2); border: 0; background: none; font: inherit; font-size: var(--text-sm); font-weight: 700; color: var(--color-navy); cursor: pointer; }
+  .rail__seats:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+  .rail__doubt {
+    flex: none; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-top: 6px; padding: 0 var(--space-3);
+    border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text);
+    font: inherit; font-size: var(--text-sm); white-space: nowrap; cursor: pointer;
+  }
+  .rail__doubt b { font-weight: 700; }
+  .rail__doubt:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+}
+@media (max-width: 1023px) and (orientation: landscape) and (max-height: 500px) {
+  /* Closed, the sheet is as wide as the open one (380 px) so the one row fits. */
+  .rail[data-open="false"] { width: min(380px, 50%); }
+}
+
+/* The View sheet's contents (phone). */
+.view-sheet__h { margin: 0; font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--label-tracking); color: var(--color-text-subtle); }
+.view-sheet__h:not(:first-child) { margin-top: calc(-1 * var(--space-1)); }
+.view-sheet__colour { display: flex; flex-direction: column; gap: 2px; }
+.view-sheet__colour .colour-chips__row { flex-wrap: wrap; }
+.view-sheet__more { display: flex; flex-direction: column; gap: var(--space-2); align-self: stretch; }
+.view-sheet__act {
+  min-height: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); background: var(--color-surface);
+  color: var(--color-text); font: inherit; font-size: var(--text-sm); text-align: left; cursor: pointer;
+}
+.view-sheet__act:hover { border-color: var(--color-navy); }
+.view-sheet__act:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+.view-sheet__pop { max-height: calc(100dvh - 120px); overflow-y: auto; }
+@media (min-width: 1024px) { .rail__top { display: contents; } }
+.rail__doubt, .rail__seats { display: none; }
+@media (max-width: 1023px) { .rail__doubt, .rail__seats { display: inline-flex; align-items: center; } }
+/* A phone held sideways is wider than 640 px but is still a phone: the Leader key keeps its three steps on one line. */
+@media (max-width: 1023px) and (orientation: landscape) and (max-height: 500px) {
+  .colour-key:has(.lkey__step) { flex-wrap: nowrap; }
+  /* VE-227 (finding 16): sideways, the map is height-limited and leaves a margin each side, and the one-line key ran across Glenelg.
+     Stacked, the key stays inside the left margin (about 130 px wide against a margin of 165 px or more). */
+  .colour-key:has(.lkey__step) { flex-direction: column; align-items: flex-start; gap: 1px; }
+}
+
+/* Gains (VE-156, FB-190): a seat that changed hands wears the pick ink at about twice the ordinary seat edge (2 px
+   against 1 on the Map, 2.4 against 1.2 units on the Hex) and sits above its neighbours with a soft lift (the filter
+   on the layer or polygon). --pick-ink is near black, which reads on every party colour in the one (civic) theme; the
+   keyboard focus ring and the selection outline still win on a focused or picked seat. */
+.map-gain { stroke: var(--pick-ink); stroke-width: 2; stroke-linejoin: round; }
+.hex--gain:not(.hex--sel):not(:focus-visible) { stroke: var(--pick-ink); stroke-width: 2.4; }
+.svgmap.is-moving [data-layer="gains"] { filter: none; }
+
+/* Gains' key (VE-156): the net change per party, one button each (tap keeps only that party's gains). It reuses the key
+   line's flex row (lkey__item); the sign is plain bold ink, never red or green, which are party colours here. */
+.gkey__lead { font-weight: 700; }
+.gkey__note { color: var(--color-text-subtle); white-space: normal; }
+.gnet { position: relative; font: inherit; color: var(--color-text); cursor: pointer; padding: 1px 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); background: var(--color-surface); }
+.gnet b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.gnet[aria-pressed="true"] { background: var(--color-navy); border-color: var(--color-navy); color: var(--color-text-on-brand); }
+.gnet:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+@media (pointer: coarse) {
+  .gnet { min-height: 40px; }
+}
+
+/* Gains cards (VE-156): the shared lens panel as one card per seat that changed hands. */
+.lenspanel--cards .lenspanel__list { padding: 0 var(--space-2) var(--space-2); display: grid; gap: var(--space-1); }
+.lenspanel--cards .lenspanel__row { border: 1px solid var(--color-border); border-radius: var(--radius-md, 8px); overflow: hidden; }
+.lenspanel--cards .lenspanel__row button { grid-template-columns: auto minmax(0, 1fr); column-gap: var(--space-3); padding: var(--space-2) var(--space-3); min-height: 48px; }
+.gcard__ft { display: inline-flex; align-items: center; gap: 4px; }
+.gcard__sw { display: inline-block; width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0, 0, 0, 0.18); }
+.gcard__arrow { color: var(--color-text-subtle); font-weight: 700; }
+.gcard__txt { display: flex; flex-direction: column; min-width: 0; }
+.gcard__txt .lenspanel__name { font-weight: 700; font-size: var(--text-sm); }
+.gcard__sub { font-size: var(--text-xs); color: var(--color-text-subtle); }
+
+/* ── VE-168, phone ───────────────────────────────────────────────────────────────────────────────────────────────────────
+   Hex (finding 18): on a portrait phone the hexes sit against the key line at the bottom of the stage instead of floating in
+   the middle with blank space above and below. The svg takes the height its picture needs (never more than the stage) and
+   the key's room is its bottom padding: the key is 62 px above the stage's foot and about one line tall (a row of 44 px chips
+   under Gains). The morph reads the padded box, so it still lands exactly. */
+@media (max-width: 1023px) and (orientation: portrait) {
+  .hexes { flex: none; height: auto; max-height: 100%; margin-top: auto; padding-bottom: 90px; }
+  .app[data-colour="gains"] .hexes { padding-bottom: 122px; }
+  .app[data-rewind="open"] .hexes { padding-bottom: 40px; }
+}
+/* Gains (finding 19, reworked in VE-178): the net chips used to be one row that scrolled sideways, which hid the last chips (and the
+   biggest loss) off the edge. They now wrap under their label, so every chip is on screen at once; each keeps a 44 px target
+   (VE-106). The label takes its own line on a portrait phone; a landscape phone keeps its VE-170 rule below. */
+@media (max-width: 1023px) {
+  .colour-key:has(.gnet) { flex-wrap: wrap; align-items: center; gap: 0 var(--space-2); max-width: 100%; }
+  .colour-key:has(.gnet) > * { flex: none; }
+  .gnet { min-height: 44px; }
+}
+@media (max-width: 1023px) and (orientation: portrait) {
+  .colour-key:has(.gnet) > .gkey__lead { flex: 0 0 100%; }
+  /* The key is now a label line plus up to two or three chip rows, so the Explore card rides above all of it (Map; the Hex puts it beside View). */
+  .app[data-colour="gains"] .explore-peek, .app[data-colour="gains"] .explore-more { bottom: 232px; }
+}
+
+/* VE-178, desktop and tablet: the Explore card sits bottom right of the stage and used to cover the last chip. The key box stops
+   short of the card's left edge (the card's width at each size, with its 72 px inset from the right and a little air) and the
+   chips wrap onto a second line instead, label first. The card's open width is used whatever its state, so the key never moves
+   when the card is minimised or dismissed. */
+@media (min-width: 1024px) {
+  .stage { --peek-w: 300px; }
+  .stage > .colour-chips { --chips-room: calc(100% - 72px - var(--peek-w) - 24px); }
+  .app[data-colour="gains"] .stage > .colour-chips { max-width: var(--chips-room); }
+  .colour-key:has(.gnet) { row-gap: 4px; }
+}
+@media (min-width: 1300px) and (max-width: 1439px) { .stage { --peek-w: 440px; } }
+@media (min-width: 1440px) { .stage { --peek-w: 510px; } }
+
+/* VE-170 (review finding 4): a phone held sideways. The Gains key was boxed into the 230 px column and the net chips were cut at its
+   edge. The free width is everything left of the Seats sheet (min(380px, 50%) from the right), so the key takes that and wraps onto
+   a second line if it must: every chip is whole, none runs under the sheet, each keeps its 44 px target. Portrait is untouched. */
+@media (max-width: 1023px) and (orientation: landscape) and (max-height: 500px) {
+  .stage > .colour-chips .colour-key:has(.gnet) {
+    grid-column: 1 / -1; flex-wrap: wrap; overflow: visible;
+    max-width: calc(100% - min(380px, 50%) - var(--space-2));
+  }
+}
+
+/* ── VE-177 (FB-205, FB-206), portrait phone: the Hex at the top, then its key, then the closest seats ────────────────────────
+   VE-168 pushed the hexes down against the key at the foot of the stage, which left 300 to 450 px empty above a width-bound
+   Victoria and put the picture at the bottom. Now the hexes start straight under the View row and the key follows them: the
+   hexes' bottom edge is measured (ClosestSeats sets --hex-bottom and data-hexfit on the stage), the chips start there, and the
+   cards start under the chips. The morph reads the hexes' box, which is now the picture's own, so it still lands exactly. */
+@media (max-width: 1023px) and (orientation: portrait) {
+  .hexes { margin-top: 0; padding-bottom: 6px; }
+  .app[data-colour="gains"] .hexes, .app[data-rewind="open"] .hexes { padding-bottom: 6px; }
+  .app[data-shape="hex"] .stage[data-hexfit] > .colour-chips { top: var(--hex-bottom); bottom: auto; }
+  /* The Explore card cannot sit at the foot of the stage now (the cards and the key own the middle): it joins the View row, as on a landscape phone. */
+  .app[data-shape="hex"] .workspace .stage[data-hexfit] .explore-peek, .app[data-shape="hex"] .workspace .stage[data-hexfit] .explore-more {
+    top: var(--space-2); bottom: auto; left: 108px; right: auto; transform: none;
+  }
+
+  .closest { position: absolute; left: var(--space-2); right: var(--space-2); z-index: 29; }
+  .app[data-selected="true"] .closest, .workspace:has(.rail[data-open="true"]) .closest { display: none; }
+  .closest__h { margin: 0 0 6px; font-size: var(--text-xs); line-height: 14px; font-weight: 700; letter-spacing: 0.02em; color: var(--color-text-subtle); }
+  .closest__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .closest__card {
+    box-sizing: border-box; min-height: 48px; display: flex; align-items: stretch; padding: 0; text-align: left; font: inherit; cursor: pointer;
+    background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; -webkit-tap-highlight-color: transparent;
+  }
+  .closest__card[data-ringed] { border-color: var(--color-navy); box-shadow: 0 0 0 1px var(--color-navy); }
+  .closest__card:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+  .closest__stripe { flex: 0 0 6px; }
+  .closest__body { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 6px 8px; }
+  .closest__name { font-size: 14px; line-height: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .closest__line { font-size: 13px; line-height: 18px; color: var(--color-text-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (min-width: 1024px), (orientation: landscape) { .closest { display: none; } }
+
+/* VE-227 (finding 6): Victoria's outline while the stage loads, so the screen is not blank paper. */
+.holding--loading { flex-direction: column; gap: var(--space-3); }
+.holding__outline { width: min(60vw, 300px); height: auto; fill: var(--color-surface-alt); stroke: var(--color-border-strong); stroke-width: 0.12; stroke-linejoin: round; }
+
+/* VE-227 (finding 8), phones: nothing under 12 px, and 13 px for the colour key and the handle's "% counted" line. The band's party
+   row stays at 11 px: 12 px does not fit Labor, Greens, Ind, Coalition, Nats and Lib on one line at 375. The scale's two small
+   steps lift together, so every label that used them follows without its own rule. Sideways phones keep their tight keys (VE-137). */
+@media (max-width: 699px) and (orientation: portrait) {
+  :root { --text-2xs: 12px; --text-xs: 12px; }
+  .tl__key { font-size: 11px; }
+  .app .colour-key { font-size: 13px; }
+  .rail__counted { font-size: 13px; }
+  .railtable thead th { font-size: 12px; }
+}

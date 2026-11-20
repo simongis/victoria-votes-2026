@@ -1,0 +1,41 @@
+/* Leader's key (VE-127): three steps of one party ramp (the party swatches left in VE-166). */
+.lkey__step b, .lkey__tick b { font-weight: 700; }
+
+/* Phones keep the three steps on one line. */
+@media (max-width: 640px) {
+  .colour-key:has(.lkey__step) { flex-wrap: nowrap; }
+}
+
+/* VE-167: on a phone Polling places names its party colours on one line; the faint line moves behind the "i" (PlacesInfo).
+   VE-215 A12: the size line stays, with "Tap a dot", and wraps to a second line when the colours leave no room. */
+@media (max-width: 1023px) {
+  .colour-key:has(.lkey__party) { flex-wrap: wrap; }
+  .colour-key .lkey__extra { display: none; }
+  /* VE-221 (B11): the colour rule gets the first line, so the party colours below still sit on one line. */
+  .colour-key .lkey__colour { flex-basis: 100%; }
+}
+
+/* The tally bar's three parts per party (early, likely, solid), side by side inside one segment. */
+.tl__seg.tl__seg--steps { display: flex; padding: 0; overflow: hidden; }
+.tl__step { display: block; height: 100%; min-width: 0; }
+
+/* VE-215 A18: the stage key faded into a red map once a seat was open. A paper backing (about 90% opaque, a 2px margin and no padding: as small as it reads) keeps its text at 4.5:1 over any seat colour. */
+.colour-key:not(:empty) { width: fit-content; max-width: 100%; border-radius: 4px; background: color-mix(in srgb, var(--map-paper) 90%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--map-paper) 90%, transparent); color: color-mix(in srgb, var(--color-text-subtle) 60%, var(--color-text)); }
+
+/* VE-215 A12: "Tap a dot" made the Polling places key longer; a tighter gap keeps it clear of the More ways peek on a desktop. */
+@media (min-width: 1024px) {
+  /* VE-221 (B11): "Colour: most number 1 votes" lengthens the key, so it wraps inside 600 px and stays clear of the More ways peek. */
+  .colour-key:has(.lkey__party) { column-gap: var(--space-2); flex-wrap: wrap; max-width: 600px; }
+}
+
+/* VE-227 (finding 13): on the Hex the "Number: % counted" item joins the Leader key. The key's steps stay on one line
+   (above), and this item wraps under them rather than running off the screen. Two :has() out-rank the nowrap rules, in either order. */
+@media (max-width: 1023px) {
+  .colour-key:has(.lkey__step):has(.lkey__hexnum) { flex-wrap: wrap; }
+}
+
+/* VE-227 (finding 7): the segment's own overflow:hidden clipped the 44 px touch target the bar was given in VE-93 (app.css), so a
+   tap only landed on the 18 px bar. The steps are flex children with no rounding to clip, so on touch the target may overflow. */
+@media (pointer: coarse) {
+  .tl__seg.tl__seg--steps { overflow: visible; }
+}

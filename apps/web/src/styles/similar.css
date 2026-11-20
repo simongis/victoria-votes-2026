@@ -1,0 +1,224 @@
+/* VE-209 (FB-243): "Which places are alike, far apart?" The Threads lens, ported from the VE-205 prototype (variant C).
+   VE-209c (FB-246): back on the app's own light paper, so it sits with the other lenses instead of a dark slab. On paper a
+   glow does not read, so the five are lifted the way a cartographer lifts figures in daylight: a crisp ink edge over a soft
+   shadow (or a warm halo), the rest faded to the app's no-result grey with white edges, and threads in deep ink with a
+   white casing so they cross seats cleanly. The picked seat wears the app's selection outline (--map-selected), never a
+   party colour. Three looks, set by data-look on the stage (SimilarLens LOOK): "sand" (the app's), "ink" and "slate".
+   Colour checks (CIEDE2000 to every party colour in tokens.css): sand #ead9b0 nearest Others 21, One Nation 25 (round 1
+   gold was 11); sepia ink #3b2f20 nearest Nationals 25; ink #1a1a1a nearest Nationals 21; white nearest Others 23; slate
+   ink #33414f is 11.5 from the selection navy and 17.5 from Liberal, which is why slate is not the default.
+   Contrast (WCAG, sand): threads 9.3:1 or more on every seat they cross, the five's edge 8.4:1 on the faded seats, badge
+   numerals 12.5:1 on their discs, badge ring 7.8:1 on sand and 10:1 on paper. The sand fill itself is only a hue step
+   (1.1:1), so the edge and halo carry the figure. */
+.similar { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.similar__body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) var(--rail-w, 320px); }
+
+.similar__stage {
+  /* The ground and the faded seats are the app's own: the paper every lens stands on, and its no-result grey lifted half
+     a step towards the paper, so the seats recede without going white. Edges are the app's white seat lines. */
+  --s-ground: var(--map-paper); --s-seat: color-mix(in srgb, var(--map-no-result) 55%, var(--map-paper)); --s-seat2: color-mix(in srgb, var(--map-no-result) 80%, var(--map-paper));
+  --s-edge: var(--map-edge); --s-sub: var(--color-text-subtle); --s-hover: var(--color-text);
+  --s-pick: #ffffff; --s-pick-edge: var(--map-selected);
+  /* Ink: paper cut-outs. The five are white, ink-edged, and cast a soft shadow; threads cast a fainter one. */
+  --s-ink: #1a1a1a; --s-case: #ffffff;
+  --s-lift: #ffffff; --s-lift-edge: #1a1a1a;
+  --s-shadow: #1a1a1a; --s-shadow-op: 0.4; --s-drop: 3; --s-spread: 0;
+  --s-halo: #1a1a1a; --s-halo-op: 0.22; --s-halo-k: 0.6; --s-halo-drop: 2;
+  --s-badge-bg: #1a1a1a; --s-badge-ink: #ffffff; --s-badge-edge: #ffffff;
+  --s-sw-shadow: 0 1px 2px rgba(26, 26, 26, 0.45);
+  position: relative; min-height: 0; background: var(--s-ground); color: var(--s-sub); overflow: hidden;
+}
+/* Sand: the five in a warm sand that a daylight halo blooms round (no shadow); threads in deep sepia ink. */
+.similar__stage[data-look="sand"] {
+  --s-seat2: color-mix(in srgb, #ead9b0 30%, var(--s-seat));
+  --s-ink: #3b2f20; --s-case: #fffaf0;
+  --s-lift: #ead9b0; --s-lift-edge: #4a3a22;
+  --s-shadow: #d6b871; --s-shadow-op: 1; --s-drop: 0; --s-spread: 5;
+  --s-halo: #d6b871; --s-halo-op: 0.6; --s-halo-k: 1.4; --s-halo-drop: 0;
+  --s-badge-bg: #fffaf0; --s-badge-ink: #3b2f20; --s-badge-edge: #4a3a22;
+  --s-sw-shadow: 0 0 5px 2px rgba(214, 184, 113, 0.8);
+}
+/* Slate: a cool slate wash with slate ink and a soft shadow. Nearest the selection navy of the three. */
+.similar__stage[data-look="slate"] {
+  --s-ink: #33414f; --s-case: #ffffff;
+  --s-lift: #dde3ea; --s-lift-edge: #33414f;
+  --s-shadow: #33414f; --s-shadow-op: 0.32;
+  --s-halo: #33414f; --s-halo-op: 0.2;
+  --s-badge-bg: #33414f; --s-badge-ink: #ffffff; --s-badge-edge: #ffffff;
+  --s-sw-shadow: 0 1px 2px rgba(51, 65, 79, 0.45);
+}
+.similar__svg, .similar__stage > svg.ov { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.similar__seat { fill: var(--s-seat); stroke: var(--s-edge); stroke-width: 1px; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill 0.3s; }
+/* Every band reads as ground except the faint second band (ranks 6 to 20); the five are lifted, not filled. */
+.similar__seat[data-band="2"] { fill: var(--s-seat2); }
+.similar__seat:hover { stroke: var(--s-hover); stroke-width: 1.2px; }
+.similar__hover { position: absolute; left: var(--space-2); top: var(--space-2); margin: 0; font-size: var(--text-sm, 12px); color: var(--color-text); pointer-events: none; min-height: 1em; text-shadow: 0 0 3px var(--map-paper), 0 0 3px var(--map-paper); }
+.similar__legend { position: absolute; left: var(--space-2); bottom: var(--space-2); display: flex; flex-wrap: wrap; gap: 2px var(--space-3); margin: 0; padding: 0; list-style: none; font-size: var(--text-xs, 11px); color: var(--color-text-subtle); pointer-events: none; text-shadow: 0 0 3px var(--map-paper); }
+.similar__legend li { display: inline-flex; align-items: center; gap: 5px; }
+.similar__sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; box-sizing: border-box; }
+.similar__sw--pick { background: var(--s-pick); border: 2px solid var(--s-pick-edge); }
+.similar__sw--lead { border: 1px solid rgba(0, 0, 0, 0.25); }
+.similar__sw--glow { background: var(--s-lift); border: 1px solid var(--s-lift-edge); box-shadow: var(--s-sw-shadow); }
+
+/* Overlays: the same viewBox stacked over the seats. The shadow overlay is its own element so its slow breathing is one
+   composited opacity change, with no repaint of the blur. */
+.similar__stage > svg.ov { max-height: none; pointer-events: none; }
+.ov--glow { animation: sim-breathe 8s ease-in-out 1.6s infinite; will-change: opacity; }
+@keyframes sim-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.72; } }
+
+/* A generation: one picked seat's set. The old one fades in about 200 ms while the new one starts drawing. */
+.similar .gen { transition: opacity 0.2s ease-in; }
+.similar .gen--out { opacity: 0; }
+.similar .ov g[data-id] { transition: opacity 0.15s ease-out; }
+.similar .ov.has-hot .gen g[data-id]:not(.is-hot) { opacity: 0.25; }
+
+/* Shadows fall a few screen pixels down the page (--px is viewBox units per pixel, set by the lens). */
+.c-glow { fill: var(--s-shadow); stroke: var(--s-shadow); stroke-width: calc(var(--px, 1) * var(--s-spread) * 1px); stroke-linejoin: round; opacity: var(--s-shadow-op); transform: translate(0, calc(var(--px, 1) * var(--s-drop) * 1px)); }
+/* The picked seat casts a plain ink shadow in every look, so it reads as lifted but never as one of the five. */
+.c-glowpick { fill: #1a1a1a; opacity: 0.3; transform: translate(0, calc(var(--px, 1) * 3px)); }
+.c-pick { fill: var(--s-pick); stroke: var(--s-pick-edge); stroke-width: 2.5px; vector-effect: non-scaling-stroke; transition: fill 500ms ease; }
+.c-lift { fill: var(--s-lift); stroke: var(--s-lift-edge); stroke-width: 1.2px; stroke-linejoin: round; vector-effect: non-scaling-stroke; transition: stroke-width 0.15s, fill 500ms ease; }
+.is-hot .c-lift { stroke-width: 2px; }
+.c-halo { fill: none; stroke: var(--s-halo); stroke-linecap: round; opacity: var(--s-halo-op); stroke-dasharray: 1 1; stroke-dashoffset: 0;
+  stroke-width: calc(var(--w) * var(--s-halo-k) * var(--px, 1) * 1px); transform: translate(0, calc(var(--px, 1) * var(--s-halo-drop) * 1px));
+  transition: opacity 0.15s, stroke-width 0.15s; }
+.c-reveal { fill: none; stroke: #fff; stroke-width: calc(var(--rw, 20) * 1px); stroke-dasharray: 1 1; stroke-dashoffset: 0; }
+.c-case { fill: var(--s-case); stroke: var(--s-case); stroke-width: 0; stroke-linejoin: round; transition: stroke-width 0.15s; }
+.c-core { fill: var(--s-ink); stroke: var(--s-ink); stroke-width: 0; stroke-linejoin: round; transition: stroke-width 0.15s; }
+.item.is-hot .c-halo { opacity: calc(var(--s-halo-op) * 1.6); stroke-width: calc(var(--w) * var(--s-halo-k) * var(--px, 1) * 1.5px); }
+.item.is-hot .c-core { stroke-width: calc(var(--px, 1) * 1.2px); }
+.item.is-hot .c-case { stroke-width: calc(var(--px, 1) * 3.4px); }
+.c-badge { transform-box: fill-box; transform-origin: center; }
+.c-badge circle { fill: var(--s-badge-bg); stroke: var(--s-badge-edge); stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+.c-badge text { fill: var(--s-badge-ink); font-weight: 600; font-family: inherit; font-variant-numeric: tabular-nums; }
+.is-hot .c-badge circle { stroke-width: 2.5px; }
+.c-source { fill: var(--s-pick-edge); stroke: #ffffff; stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+.c-ripple { fill: none; stroke: var(--s-pick-edge); stroke-width: 1.5px; vector-effect: non-scaling-stroke; opacity: 0; transform-box: fill-box; transform-origin: center; }
+
+/* The draw. Delays come from inline styles (threads.ts sets the stagger); these are the shapes of the moves. */
+.gen--in .c-pick, .gen--in .c-source { animation: sim-fade 0.26s ease-out both; }
+.gen--in .c-glowpick { animation: sim-fade 0.4s ease-out both; }
+.gen--in .c-halo, .gen--in .c-reveal { animation: sim-draw 0.42s cubic-bezier(0.22, 0.7, 0.3, 1) both; }
+.gen--in .c-glow { animation: sim-bloom 0.42s ease-out both; }
+.gen--in .c-lift { animation: sim-fade 0.3s ease-out both; }
+.gen--in .c-badge { animation: sim-pop 0.26s cubic-bezier(0.3, 1.45, 0.55, 1) both; }
+.gen--in .c-ripple { animation: sim-ripple 0.9s ease-out both; }
+@keyframes sim-fade { from { opacity: 0; } }
+@keyframes sim-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+/* The shadow grows from flat to its resting depth as the seat lifts (opacity is the shadow's own, from --s-shadow-op). */
+@keyframes sim-bloom { 0% { opacity: 0; transform: translate(0, 0); } 60% { opacity: calc(var(--s-shadow-op) * 1.15); } }
+@keyframes sim-pop { from { opacity: 0; transform: scale(0.55); } to { opacity: 1; transform: scale(1); } }
+@keyframes sim-ripple { from { opacity: 0.7; transform: scale(0.35); } to { opacity: 0; transform: scale(1.5); } }
+
+/* ── The panel: quiet and typographic, in the app's own tokens ── */
+.similar__panel { min-width: 0; overflow: auto; padding: var(--space-3) var(--space-3) var(--space-4); border-left: 1px solid var(--color-border); display: flex; flex-direction: column; gap: var(--space-2); background: var(--color-surface); color: var(--color-text); }
+.similar__pick { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm, 12px); color: var(--color-text-subtle); }
+.similar__select { flex: 1; min-width: 0; min-height: 44px; padding: var(--space-1) var(--space-2); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md, 8px); background: var(--color-surface); color: var(--color-text); font: inherit; }
+.similar__head { margin: var(--space-1) 0 0; font-size: 18px; line-height: 1.2; font-weight: 600; }
+.similar__lead { margin: 0; font-size: var(--text-sm, 12px); color: var(--color-text-subtle); }
+.similar__locate { align-self: flex-start; min-height: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill, 999px); background: var(--color-surface); color: var(--color-navy); font: inherit; font-size: var(--text-sm, 13px); font-weight: 600; cursor: pointer; }
+.similar__locate:disabled { opacity: 0.6; cursor: progress; }
+.similar__locate:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+.similar__list { list-style: none; margin: 0; padding: 0; }
+.similar__list li + li { border-top: 1px solid var(--color-border); }
+.similar__row { display: flex; align-items: center; gap: var(--space-3); width: 100%; padding: 7px var(--space-1); border: 0; border-radius: var(--radius-md, 8px); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background-color 0.15s; }
+.similar__row:hover, .similar__row.is-hot { background: var(--color-surface-alt); }
+.similar__n { flex: none; width: 28px; font-size: 24px; line-height: 1; font-weight: 300; text-align: center; font-variant-numeric: tabular-nums; transition: transform 0.15s; }
+.similar__row.is-hot .similar__n { transform: scale(1.15); }
+.similar__t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.similar__name { font-weight: 600; }
+.similar__status { display: flex; align-items: center; gap: 6px; font-size: var(--text-sm, 12px); color: var(--color-text); }
+.similar__dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--color-border-strong); }
+.similar__dot[data-none] { background: transparent; border: 1.5px solid var(--color-border-strong); box-sizing: border-box; }
+.similar__muted { font-size: var(--text-sm, 12px); color: var(--color-text-subtle); }
+.similar__picked { margin: 0; font-weight: 600; font-size: var(--text-sm, 13px); }
+.similar__sub { font-size: var(--text-sm, 12px); color: var(--color-text-subtle); }
+.similar__note { margin: 0; font-size: var(--text-xs, 11px); color: var(--color-text-subtle); }
+.similar__src { margin: var(--space-1) 0 0; font-size: var(--text-xs, 11px); }
+.similar__src a { color: var(--color-text-subtle); text-decoration: underline; text-decoration-color: var(--color-border-strong); text-underline-offset: 2px; }
+.similar__src a:hover { color: var(--color-text); text-decoration-color: currentColor; }
+.similar__info p { margin: 0 0 var(--space-2); }
+.similar__credit { color: var(--color-text-subtle); font-size: var(--text-xs, 11px); }
+/* The rows arrive on the same stagger as their threads (--lead is the old set's fade, set by the lens). */
+.similar__list li.enter { animation: sim-row 0.36s ease-out both; }
+@keyframes sim-row { from { opacity: 0; transform: translateX(10px); } }
+
+/* VE-218 (FB-255): desktop keeps the rail; the handle and the peek/open wrapper only matter on a phone. */
+.similar__grip { display: none; }
+.similar__more { display: contents; }
+.similar__body { position: relative; }
+
+@media (max-width: 699px) {
+  /* Phone: the map fills the stage and the words ride in the shared bottom sheet (useSheet, ADR 0035; app.css .panel, sheet-in).
+     Peek: the picker and the headline. Half and full: what they share and the rows. Closed: just the handle. */
+  .similar__body { display: block; }
+  .similar__stage { position: absolute; inset: 0; height: auto; min-height: 0; }
+  /* The map keeps clear of the sheet at peek (--sheet-h, set by the lens); the open sheet overlays it. */
+  /* VE-227 (finding 12): and below the key, whose height the lens publishes as --legend-h. */
+  .similar__svg, .similar__stage > svg.ov { top: var(--legend-h, 0px); height: calc(100% - var(--sheet-h, 0px) - var(--legend-h, 0px)); }
+  .similar__panel {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; max-height: 60%; box-sizing: border-box;
+    padding: var(--space-3) var(--space-4) 22px; border-left: 0; border-top: 1px solid var(--color-border);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-md);
+  }
+  .similar__grip {
+    display: block; flex: none; width: 100%; height: 44px; margin: -12px 0 -20px; padding: 0; position: relative; z-index: 1; border: 0; background: transparent; /* VE-227 (finding 7): 44 px, net height unchanged */
+    touch-action: none; cursor: grab;
+  }
+  .similar__grip::after { content: ""; position: absolute; top: 9px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--color-border-strong); }
+  .similar__grip:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
+  .similar__panel { animation: sheet-in var(--motion-enter) var(--ease-decelerate) backwards; }
+  :root[data-motion="off"] .similar__panel { animation: none; }
+  /* The key and the zoom button ride at the top of the map, so the open sheet never covers them. */
+  .similar__legend { top: var(--space-2); bottom: auto; max-width: calc(100% - 150px); }
+  .similar__stage .similar__fit { top: var(--space-2); bottom: auto; }
+  .similar__hover { display: none; }
+}
+@media (max-width: 699px) and (prefers-reduced-motion: reduce) { .similar__panel { animation: none; } }
+/* VE-228: the sheet's heights (useSheet sets data-detent only under the phone query above). The picker and headline stay put and
+   the rest scrolls under them; at peek and closed what is below is out of sight and out of the tab order. */
+.similar__panel[data-detent] {
+  height: var(--sheet-px); max-height: none; overflow: hidden; transform: translateY(var(--sheet-drop, 0px));
+  transition: height 250ms var(--ease-standard), transform 250ms var(--ease-standard);
+}
+.similar__panel[data-detent][data-dragging] { transition: none; }
+.similar__panel[data-detent] > * { flex: none; }
+.similar__panel[data-detent] .similar__more { display: flex; flex-direction: column; gap: var(--space-2); flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.similar__panel[data-detent] .similar__pick { touch-action: none; }
+/* At rest at peek and closed what is below is not drawn (as before VE-228); a drag lays it out under the finger, and the hook
+   lays it out for the instant it measures the heights (data-measuring, never painted). */
+.similar__panel[data-detent="peek"]:not([data-dragging]):not([data-measuring]) .similar__more,
+.similar__panel[data-detent="closed"]:not([data-dragging]):not([data-measuring]) > :not(.similar__grip) { display: none; }
+
+
+/* Reduced motion (the device setting, or the app's Animations switch): no drawing, no pulse, no slide. One short fade only. */
+:root[data-motion="off"] .similar .gen--in *, :root[data-motion="off"] .similar .ov--glow, :root[data-motion="off"] .similar__list li.enter { animation: none; }
+:root[data-motion="off"] .similar .gen { transition-duration: 0.15s; }
+:root[data-motion="off"] .similar__row, :root[data-motion="off"] .similar__n { transition: none; }
+@starting-style { :root[data-motion="off"] .similar .gen--in { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .similar .gen--in *, .similar .ov--glow, .similar__list li.enter { animation: none; }
+  .similar .gen { transition-duration: 0.15s; }
+  @starting-style { .similar .gen--in { opacity: 0; } }
+}
+
+/* The picked seat and the five ease from Sand into their leader colour (VE-212); instant for reduced motion. */
+:root[data-motion="off"] .c-lift, :root[data-motion="off"] .c-pick { transition: none; }
+@media (prefers-reduced-motion: reduce) { .c-lift, .c-pick { transition: none; } }
+
+/* VE-213: the one "What they share" line under the headline, and its table behind the "i". */
+.similar__share { margin: 0; font-size: var(--text-sm, 13px); color: var(--color-text-subtle); }
+.similar__shared { width: 100%; border-collapse: collapse; margin: 0 0 var(--space-2); font-size: var(--text-xs, 11px); }
+.similar__shared th, .similar__shared td { padding: 3px 4px; text-align: left; border-bottom: 1px solid var(--color-border); font-weight: 400; vertical-align: top; }
+.similar__shared thead th { color: var(--color-text-subtle); }
+.similar__shared tbody th { font-weight: 600; }
+.similar__shared td { font-variant-numeric: tabular-nums; }
+/* VE-213 (FB-252): a match changing hands gets the Gains ring, the same near-black 2 px edge as the main map (.map-gain). */
+.c-lift.is-gain { stroke: var(--pick-ink); stroke-width: 2px; }
+.similar__sw--gain { background: var(--s-lift); border: 2px solid var(--pick-ink); }
+
+/* VE-213: "All of Victoria" zooms the Map out from the framed six (the same solid silhouette as the main map's full-extent button). */
+.similar__fit { position: absolute; right: var(--space-2); bottom: var(--space-2); display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 8px; min-height: 32px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-xs, 11px); cursor: pointer; }
+.similar__fit svg { width: 22px; height: auto; fill: currentColor; stroke: none; }
+.similar__fit:focus-visible { outline: var(--focus-ring); }
+.similar__fit:active { filter: brightness(0.9); }

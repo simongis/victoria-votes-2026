@@ -1,0 +1,67 @@
+# Deploys the app to GitHub Pages (VE-148). Written in the private repo and copied unchanged into the public one by
+# publish/export.mjs. The job runs only in the public repo, so a push to Forgejo (if it ever runs Actions) does nothing.
+#
+# One-time setup in the public repo: Settings > Pages > Source: GitHub Actions.
+# Repository variables (Settings > Secrets and variables > Actions > Variables), all public values:
+#   VITE_LATEST_URL  optional, the static latest.json pointer (ADR 0016); empty means the app polls the AGOL status row alone
+#   VITE_AGOL_VIEW_URL  required, the LIVE public view's FeatureServer URL (ADR 0030). The build refuses (BASE_PATH set) if it is
+#                       missing or names anything but vic26election_live_view, the dev view and dev service included.
+#   VITE_FORECAST_URL  optional, an https forecast site the Explore sheet links to; empty hides the Polling model card (VE-200)
+#   VITE_CF_BEACON_TOKEN  optional, the Cloudflare Web Analytics site token (public, 32 lowercase hex, VE-187); empty means no analytics.
+#                       A value that is not 32 lowercase hex fails the public build.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event.repository.name == 'victoria-votes-2026'
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned by full commit SHA (a tag can be moved), 13 Nov 2026 (VE-188). To update: `git ls-remote --tags
+      # https://github.com/<owner>/<repo>.git 'refs/tags/v4*'`, take the newest release's commit, keep the tag comment.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: Build
+        run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_LATEST_URL: ${{ vars.VITE_LATEST_URL }}
+          VITE_AGOL_VIEW_URL: ${{ vars.VITE_AGOL_VIEW_URL }}
+          VITE_CF_BEACON_TOKEN: ${{ vars.VITE_CF_BEACON_TOKEN }}
+          VITE_FORECAST_URL: ${{ vars.VITE_FORECAST_URL }}
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

@@ -1,0 +1,146 @@
+/*
+  Update effects (VE-60). Tokens are in tokens.css (--fx-*). Overlays exist only while an update is fresh (the shell
+  mounts them keyed by the step, so each step restarts its animation) and never take pointer events.
+  Animations off (the switch, or ?motion=0): the shell mounts no overlay at all (the new colour and the "+n" chip say it; VE-93) and the keyframes here
+  never run (see the :root[data-motion="off"] rules at the foot).
+  One meaning per mark (VE-75b): the dark outline is the selected seat and nothing else. Recency is said in words in
+  the live-region announcer; a declared seat wears a tick (.fx-tick) and "Won" in the rail.
+*/
+
+.app { --fx-scale: 1; }
+
+/* ── Hex ────────────────────────────────────────────────────────────────── */
+.fx-hex { pointer-events: none; }
+.app[data-morph="true"] .fx-hex { visibility: hidden; }
+.fx-hex polygon, .fx-hex circle { pointer-events: none; }
+
+/* New counts: a neutral ink wash that rises and fades. No blur, no scale. */
+@keyframes fx-tint {
+  0% { opacity: 0; }
+  20% { opacity: var(--fx-tint-alpha); }
+  100% { opacity: 0; }
+}
+.fx-tint {
+  fill: var(--fx-ink);
+  opacity: 0;
+  animation: fx-tint calc(var(--fx-count-ms) * var(--fx-scale)) var(--fx-ease-out) both;
+}
+
+/* Flip: the old leader colour wipes away left to right, revealing the true new colour that is already underneath. */
+@keyframes fx-wipe {
+  from { clip-path: inset(0 0 0 0) fill-box; }
+  to { clip-path: inset(0 0 0 100%) fill-box; }
+}
+.fx-wipe {
+  animation: fx-wipe calc(var(--fx-flip-wipe-ms) * var(--fx-scale)) var(--fx-ease-wipe) both;
+}
+
+/* One thin halo after the wipe, in the new party colour. */
+@keyframes fx-halo {
+  from { opacity: 0; transform: scale(1); }
+  1% { opacity: 0.9; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.7); }
+}
+.fx-halo {
+  fill: none;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fx-halo calc(var(--fx-flip-halo-ms) * var(--fx-scale)) var(--fx-ease-out) calc(var(--fx-flip-halo-delay-ms) * var(--fx-scale)) both;
+}
+
+/* Declared (VE-75b): a small tick at the seat's centre, in the ink that reads on its fill (set inline). A newly
+   declared seat's tick settles in from 1.25x. It is a mark, not an outline, so the dark outline stays "selected". */
+.fx-tick {
+  fill: none;
+  stroke-width: 2.25px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+@keyframes fx-settle {
+  from { opacity: 0; transform: scale(1.25); }
+  to { opacity: 1; transform: scale(1); }
+}
+.fx-tick--new { transform-box: fill-box; transform-origin: center; animation: fx-settle calc(var(--fx-declared-ms) * var(--fx-scale)) var(--fx-ease-out) both; }
+
+/* ── Numbers and the "+n" chip ──────────────────────────────────────────── */
+.fx-chip {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-blue);
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  pointer-events: none;
+}
+.tl__chip .fx-chip { color: inherit; margin-left: 0; font-size: 12px; }
+
+/* ── Seats rail ─────────────────────────────────────────────────────────── */
+@keyframes fx-row-a { 0% { background-color: transparent; } 20% { background-color: color-mix(in srgb, var(--fx-ink) calc(var(--fx-tint-alpha) * 50%), transparent); } 100% { background-color: transparent; } }
+@keyframes fx-row-b { 0% { background-color: transparent; } 20% { background-color: color-mix(in srgb, var(--fx-ink) calc(var(--fx-tint-alpha) * 50%), transparent); } 100% { background-color: transparent; } }
+.railtable tr[data-fx="a"] { animation: fx-row-a calc(var(--fx-count-ms) * var(--fx-scale)) var(--fx-ease-out) both; }
+.railtable tr[data-fx="b"] { animation: fx-row-b calc(var(--fx-count-ms) * var(--fx-scale)) var(--fx-ease-out) both; }
+
+@keyframes fx-chip-in {
+  0% { opacity: 0; transform: translateY(4px); }
+  20% { opacity: 1; transform: translateY(0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.fx-chip--css { animation: fx-chip-in calc(var(--fx-chip-ms) * var(--fx-scale)) ease-out both; }
+.railtable td.is-num { position: relative; }
+.railtable .fx-chip { position: absolute; right: 4px; top: 1px; margin: 0; font-size: 9px; }
+
+.sqwrap { position: relative; display: inline-flex; flex-shrink: 0; }
+.sqwrap .sq { margin-right: 6px; }
+/* The old swatch colour wipes off the swatch on a flip. */
+@keyframes fx-sq-wipe { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 0 0 100%); } }
+.sq--old { position: absolute; left: 0; top: 1px; margin: 0; animation: fx-sq-wipe calc(var(--fx-flip-wipe-ms) * var(--fx-scale)) var(--fx-ease-wipe) both; }
+/* A declared seat says "Won" after its name; a newly declared one settles in. */
+.rail__won {
+  flex-shrink: 0;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-chip-ground);
+  color: var(--color-text);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  line-height: 16px;
+}
+.rail__won--new { animation: fx-settle calc(var(--fx-declared-ms) * var(--fx-scale)) var(--fx-ease-out) both; }
+
+/* The in-doubt pick (VE-105): each picked seat's outline grows and settles back once, staggered by --pop-delay. The
+   outline is the pick's own mark (ADR 0023), so nothing new is drawn. transform-box makes the grow about its own centre. */
+@keyframes pick-pop { 0% { transform: scale(1); } 35% { transform: scale(var(--pop-scale, 1.15)); } 100% { transform: scale(1); } }
+.pick-pop { transform-box: fill-box; transform-origin: center; animation: pick-pop 400ms var(--fx-ease-out, ease-out) var(--pop-delay, 0ms) backwards; }
+
+/* ── Reduced motion: still-frame versions only ─────────────────────────── */
+:root[data-motion="off"] .pick-pop { animation: none; }
+:root[data-motion="off"] .fx-tint,
+:root[data-motion="off"] .fx-wipe,
+:root[data-motion="off"] .fx-halo,
+:root[data-motion="off"] .sq--old { display: none; }
+:root[data-motion="off"] .fx-tick--new,
+:root[data-motion="off"] .rail__won--new,
+:root[data-motion="off"] .railtable tr[data-fx] { animation: none; }
+/* Reduced: the chip is held still for the whole hold instead of moving in and out. */
+:root[data-motion="off"] .fx-chip--css { animation: none; opacity: 1; }
+
+/* Poll note (VE-75): small and muted inside the "i"; nothing when empty. */
+.key__poll { font-size: var(--text-xs); color: var(--color-text-subtle); }
+
+
+/* The "i": a tick beside "Won" in its key. */
+.key__tick { display: inline-block; width: 12px; text-align: center; font-weight: 700; }
+
+/* The colour key under the chips: one plain line that explains the fills at rest (VE-75b). */
+.colour-key { margin: 0; font-size: var(--text-xs); color: var(--color-text-subtle); text-shadow: 0 0 3px var(--map-paper); }
+
+/* VE-92: the still-to-come line sits directly under the How sure key. */
+.colour-key--still { margin-top: 2px; }

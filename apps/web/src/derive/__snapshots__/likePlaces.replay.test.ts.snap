@@ -1,0 +1,142 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`seats like yours across the 2022 replay > Hawthorn: headline and rows at each tick 1`] = `
+"6:30 pm
+In 2022, 5 of the 5 seats most like Hawthorn were won by the Liberals.
+-
+Malvern: Not counted yet (Held by Liberal)
+Brighton: Not counted yet (Held by Liberal)
+Caulfield: Not counted yet (Held by Liberal)
+Kew: Not counted yet (Held by Liberal)
+Sandringham: Not counted yet (Held by Liberal)
+
+8 pm
+The Liberals lead in 5 of the 5 seats most like Hawthorn.
+Hawthorn: Independent leading
+Malvern: Liberal leading, 58% · keeps it
+Brighton: Liberal leading, 58% · keeps it
+Caulfield: Liberal leading, 35% · keeps it
+Kew: Liberal leading, 53% · keeps it
+Sandringham: Liberal leading, 56% · keeps it
+
+9 pm
+The Liberals lead in 4 of the 5 seats most like Hawthorn.
+Hawthorn: Independent leading
+Malvern: Liberal leading, 55% · keeps it
+Brighton: Liberal leading, 56% · keeps it
+Caulfield: Labor leading, 55%
+Kew: Liberal leading, 51% · keeps it
+Sandringham: Liberal leading, 53% · keeps it
+
+midnight
+The Liberals lead in 5 of the 5 seats most like Hawthorn.
+Hawthorn: Independent leading
+Malvern: Liberal leading, 58% · keeps it
+Brighton: Liberal leading, 57% · keeps it
+Caulfield: Liberal leading, 51% · keeps it
+Kew: Liberal leading, 52% · keeps it
+Sandringham: Liberal leading, 55% · keeps it
+
+final
+The Liberals won 5 of the 5 seats most like Hawthorn. Hawthorn went to the Liberals.
+-
+Malvern: Liberal won, 58% · keeps it
+Brighton: Liberal won, 54% · keeps it
+Caulfield: Liberal won, 52% · keeps it
+Kew: Liberal won, 54% · keeps it
+Sandringham: Liberal won, 55% · keeps it"
+`;
+
+exports[`seats like yours across the 2022 replay > Lowan: headline and rows at each tick 1`] = `
+"6:30 pm
+The Nationals lead in 4 of the 5 seats most like Lowan.
+Lowan: Nationals leading
+Ovens Valley: Nationals leading, 38% · keeps it
+Murray Plains: Nationals leading, 84% · keeps it
+Gippsland East: Nationals leading, 73% · keeps it
+Gippsland South: Nationals leading, 60% · keeps it
+Ripon: Liberal leading, 41%
+
+8 pm
+The Nationals lead in 4 of the 5 seats most like Lowan.
+Lowan: Nationals leading
+Ovens Valley: Nationals leading, 68% · keeps it
+Murray Plains: Nationals leading, 79% · keeps it
+Gippsland East: Nationals leading, 75% · keeps it
+Gippsland South: Nationals leading, 67% · keeps it
+Ripon: Labor leading, 55% · keeps it
+
+9 pm
+The Nationals lead in 4 of the 5 seats most like Lowan.
+Lowan: Nationals leading
+Ovens Valley: Nationals leading, 69% · keeps it
+Murray Plains: Nationals leading, 76% · keeps it
+Gippsland East: Nationals leading, 75% · keeps it
+Gippsland South: Nationals leading, 65% · keeps it
+Ripon: Labor leading, 54% · keeps it
+
+midnight
+The Nationals lead in 4 of the 5 seats most like Lowan. 4 of the 5 have swung away from Labor since 2022.
+Lowan: Nationals leading. It has swung away from Labor too.
+Ovens Valley: Nationals leading, 69% · keeps it
+Murray Plains: Nationals leading, 74% · keeps it
+Gippsland East: Nationals leading, 74% · keeps it
+Gippsland South: Nationals leading, 67% · keeps it
+Ripon: Labor leading, 54% · keeps it
+
+final
+The Nationals won 4 of the 5 seats most like Lowan. Lowan went to the Nationals.
+-
+Ovens Valley: Nationals won, 68% · keeps it
+Murray Plains: Nationals won, 73% · keeps it
+Gippsland East: Nationals won, 74% · keeps it
+Gippsland South: Nationals won, 65% · keeps it
+Ripon: Labor won, 53% · keeps it"
+`;
+
+exports[`seats like yours across the 2022 replay > Ripon: headline and rows at each tick 1`] = `
+"6:30 pm
+The Nationals lead in 5 of the 5 seats most like Ripon.
+Ripon: Liberal leading
+Gippsland South: Nationals leading, 60% · keeps it
+Euroa: Nationals leading, 79% · keeps it
+Ovens Valley: Nationals leading, 38% · keeps it
+Gippsland East: Nationals leading, 73% · keeps it
+Murray Plains: Nationals leading, 84% · keeps it
+
+8 pm
+The Nationals lead in 5 of the 5 seats most like Ripon.
+Ripon: Labor leading
+Gippsland South: Nationals leading, 67% · keeps it
+Euroa: Nationals leading, 66% · keeps it
+Ovens Valley: Nationals leading, 68% · keeps it
+Gippsland East: Nationals leading, 75% · keeps it
+Murray Plains: Nationals leading, 79% · keeps it
+
+9 pm
+The Nationals lead in 5 of the 5 seats most like Ripon.
+Ripon: Labor leading
+Gippsland South: Nationals leading, 65% · keeps it
+Euroa: Nationals leading, 62% · keeps it
+Ovens Valley: Nationals leading, 69% · keeps it
+Gippsland East: Nationals leading, 75% · keeps it
+Murray Plains: Nationals leading, 76% · keeps it
+
+midnight
+The Nationals lead in 5 of the 5 seats most like Ripon. 5 of the 5 have swung away from Labor since 2022.
+Ripon: Labor leading. It is moving the other way.
+Gippsland South: Nationals leading, 67% · keeps it
+Euroa: Nationals leading, 62% · keeps it
+Ovens Valley: Nationals leading, 69% · keeps it
+Gippsland East: Nationals leading, 74% · keeps it
+Murray Plains: Nationals leading, 74% · keeps it
+
+final
+The Nationals won 5 of the 5 seats most like Ripon. Ripon went to Labor.
+-
+Gippsland South: Nationals won, 65% · keeps it
+Euroa: Nationals won, 60% · keeps it
+Ovens Valley: Nationals won, 68% · keeps it
+Gippsland East: Nationals won, 74% · keeps it
+Murray Plains: Nationals won, 73% · keeps it"
+`;

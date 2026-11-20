@@ -1,0 +1,445 @@
+{
+ "source": "ABS SEIFA 2021 (IRSD and IRSAD, Victorian SA1 deciles grouped into fifths), apportioned to 2022 districts by Mesh Block. Residents, not voters. Source: Australian Bureau of Statistics, licensed CC BY 4.0.",
+ "districts": [
+  {
+   "district_id": 15907,
+   "pct_irsd_q1": 2.3,
+   "pct_irsad_q5": 13.4
+  },
+  {
+   "district_id": 15908,
+   "pct_irsd_q1": 38.2,
+   "pct_irsad_q5": 3.5
+  },
+  {
+   "district_id": 15909,
+   "pct_irsd_q1": 4.5,
+   "pct_irsad_q5": 20.1
+  },
+  {
+   "district_id": 15911,
+   "pct_irsd_q1": 0.9,
+   "pct_irsad_q5": 50.8
+  },
+  {
+   "district_id": 15912,
+   "pct_irsd_q1": 53.8,
+   "pct_irsad_q5": 0.3
+  },
+  {
+   "district_id": 15913,
+   "pct_irsd_q1": 0.5,
+   "pct_irsad_q5": 4.8
+  },
+  {
+   "district_id": 15914,
+   "pct_irsd_q1": 0.7,
+   "pct_irsad_q5": 90.2
+  },
+  {
+   "district_id": 15915,
+   "pct_irsd_q1": 36.8,
+   "pct_irsad_q5": 0.7
+  },
+  {
+   "district_id": 15916,
+   "pct_irsd_q1": 4.3,
+   "pct_irsad_q5": 21.5
+  },
+  {
+   "district_id": 15917,
+   "pct_irsd_q1": 30.5,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15918,
+   "pct_irsd_q1": 55.5,
+   "pct_irsad_q5": 0.1
+  },
+  {
+   "district_id": 15919,
+   "pct_irsd_q1": 0,
+   "pct_irsad_q5": 30
+  },
+  {
+   "district_id": 15920,
+   "pct_irsd_q1": 19.5,
+   "pct_irsad_q5": 6.7
+  },
+  {
+   "district_id": 15921,
+   "pct_irsd_q1": 8.6,
+   "pct_irsad_q5": 47.1
+  },
+  {
+   "district_id": 15922,
+   "pct_irsd_q1": 62,
+   "pct_irsad_q5": 0.8
+  },
+  {
+   "district_id": 15923,
+   "pct_irsd_q1": 33.6,
+   "pct_irsad_q5": 2.6
+  },
+  {
+   "district_id": 15924,
+   "pct_irsd_q1": 10.7,
+   "pct_irsad_q5": 1.9
+  },
+  {
+   "district_id": 15925,
+   "pct_irsd_q1": 27.9,
+   "pct_irsad_q5": 0.7
+  },
+  {
+   "district_id": 15927,
+   "pct_irsd_q1": 1.9,
+   "pct_irsad_q5": 71.2
+  },
+  {
+   "district_id": 15928,
+   "pct_irsd_q1": 46.1,
+   "pct_irsad_q5": 0.7
+  },
+  {
+   "district_id": 15929,
+   "pct_irsd_q1": 3.3,
+   "pct_irsad_q5": 6.7
+  },
+  {
+   "district_id": 15930,
+   "pct_irsd_q1": 2,
+   "pct_irsad_q5": 62.4
+  },
+  {
+   "district_id": 15931,
+   "pct_irsd_q1": 18.8,
+   "pct_irsad_q5": 0.5
+  },
+  {
+   "district_id": 15932,
+   "pct_irsd_q1": 27.7,
+   "pct_irsad_q5": 0.8
+  },
+  {
+   "district_id": 15933,
+   "pct_irsd_q1": 23.3,
+   "pct_irsad_q5": 1.4
+  },
+  {
+   "district_id": 15934,
+   "pct_irsd_q1": 7.3,
+   "pct_irsad_q5": 7.6
+  },
+  {
+   "district_id": 15935,
+   "pct_irsd_q1": 12,
+   "pct_irsad_q5": 1.9
+  },
+  {
+   "district_id": 15936,
+   "pct_irsd_q1": 34.9,
+   "pct_irsad_q5": 0.5
+  },
+  {
+   "district_id": 15937,
+   "pct_irsd_q1": 1.1,
+   "pct_irsad_q5": 19.8
+  },
+  {
+   "district_id": 15938,
+   "pct_irsd_q1": 17.2,
+   "pct_irsad_q5": 1.1
+  },
+  {
+   "district_id": 15939,
+   "pct_irsd_q1": 2.7,
+   "pct_irsad_q5": 14
+  },
+  {
+   "district_id": 15940,
+   "pct_irsd_q1": 13.5,
+   "pct_irsad_q5": 0.2
+  },
+  {
+   "district_id": 15941,
+   "pct_irsd_q1": 0.8,
+   "pct_irsad_q5": 19.7
+  },
+  {
+   "district_id": 15942,
+   "pct_irsd_q1": 9.4,
+   "pct_irsad_q5": 3.8
+  },
+  {
+   "district_id": 15944,
+   "pct_irsd_q1": 10.6,
+   "pct_irsad_q5": 1.2
+  },
+  {
+   "district_id": 15945,
+   "pct_irsd_q1": 7.7,
+   "pct_irsad_q5": 59.9
+  },
+  {
+   "district_id": 15946,
+   "pct_irsd_q1": 5.3,
+   "pct_irsad_q5": 1.2
+  },
+  {
+   "district_id": 15947,
+   "pct_irsd_q1": 28.7,
+   "pct_irsad_q5": 0.4
+  },
+  {
+   "district_id": 15949,
+   "pct_irsd_q1": 30.6,
+   "pct_irsad_q5": 6.1
+  },
+  {
+   "district_id": 15950,
+   "pct_irsd_q1": 1,
+   "pct_irsad_q5": 16.3
+  },
+  {
+   "district_id": 15951,
+   "pct_irsd_q1": 43.4,
+   "pct_irsad_q5": 2.3
+  },
+  {
+   "district_id": 15952,
+   "pct_irsd_q1": 3.9,
+   "pct_irsad_q5": 87.8
+  },
+  {
+   "district_id": 15953,
+   "pct_irsd_q1": 41.3,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15954,
+   "pct_irsd_q1": 18.1,
+   "pct_irsad_q5": 9.2
+  },
+  {
+   "district_id": 15955,
+   "pct_irsd_q1": 0,
+   "pct_irsad_q5": 41.9
+  },
+  {
+   "district_id": 15956,
+   "pct_irsd_q1": 89.3,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15957,
+   "pct_irsd_q1": 3.8,
+   "pct_irsad_q5": 4.4
+  },
+  {
+   "district_id": 15958,
+   "pct_irsd_q1": 0,
+   "pct_irsad_q5": 93.6
+  },
+  {
+   "district_id": 15959,
+   "pct_irsd_q1": 5.4,
+   "pct_irsad_q5": 9.7
+  },
+  {
+   "district_id": 15960,
+   "pct_irsd_q1": 0.7,
+   "pct_irsad_q5": 25.3
+  },
+  {
+   "district_id": 15961,
+   "pct_irsd_q1": 14.7,
+   "pct_irsad_q5": 2.2
+  },
+  {
+   "district_id": 15962,
+   "pct_irsd_q1": 3,
+   "pct_irsad_q5": 9.7
+  },
+  {
+   "district_id": 15963,
+   "pct_irsd_q1": 15.8,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15964,
+   "pct_irsd_q1": 13.7,
+   "pct_irsad_q5": 22.2
+  },
+  {
+   "district_id": 15965,
+   "pct_irsd_q1": 17.6,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15966,
+   "pct_irsd_q1": 17.6,
+   "pct_irsad_q5": 47.8
+  },
+  {
+   "district_id": 15967,
+   "pct_irsd_q1": 36.9,
+   "pct_irsad_q5": 6.6
+  },
+  {
+   "district_id": 15968,
+   "pct_irsd_q1": 2.8,
+   "pct_irsad_q5": 75
+  },
+  {
+   "district_id": 15969,
+   "pct_irsd_q1": 25.3,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15970,
+   "pct_irsd_q1": 11,
+   "pct_irsad_q5": 31.5
+  },
+  {
+   "district_id": 15971,
+   "pct_irsd_q1": 77.4,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15972,
+   "pct_irsd_q1": 37.8,
+   "pct_irsad_q5": 4.6
+  },
+  {
+   "district_id": 15973,
+   "pct_irsd_q1": 0,
+   "pct_irsad_q5": 77.1
+  },
+  {
+   "district_id": 15974,
+   "pct_irsd_q1": 44,
+   "pct_irsad_q5": 10.9
+  },
+  {
+   "district_id": 15975,
+   "pct_irsd_q1": 0,
+   "pct_irsad_q5": 86.4
+  },
+  {
+   "district_id": 15976,
+   "pct_irsd_q1": 24.8,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15977,
+   "pct_irsd_q1": 1.4,
+   "pct_irsad_q5": 4.6
+  },
+  {
+   "district_id": 15978,
+   "pct_irsd_q1": 51.2,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15979,
+   "pct_irsd_q1": 10.3,
+   "pct_irsad_q5": 4.6
+  },
+  {
+   "district_id": 15980,
+   "pct_irsd_q1": 56.3,
+   "pct_irsad_q5": 0.8
+  },
+  {
+   "district_id": 15981,
+   "pct_irsd_q1": 4.8,
+   "pct_irsad_q5": 41.3
+  },
+  {
+   "district_id": 15982,
+   "pct_irsd_q1": 36.1,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15984,
+   "pct_irsd_q1": 24,
+   "pct_irsad_q5": 1.1
+  },
+  {
+   "district_id": 15985,
+   "pct_irsd_q1": 42.8,
+   "pct_irsad_q5": 4.4
+  },
+  {
+   "district_id": 15986,
+   "pct_irsd_q1": 0.4,
+   "pct_irsad_q5": 44.8
+  },
+  {
+   "district_id": 15987,
+   "pct_irsd_q1": 38.7,
+   "pct_irsad_q5": 0.6
+  },
+  {
+   "district_id": 15988,
+   "pct_irsd_q1": 1,
+   "pct_irsad_q5": 15.8
+  },
+  {
+   "district_id": 15989,
+   "pct_irsd_q1": 26.4,
+   "pct_irsad_q5": 3.1
+  },
+  {
+   "district_id": 15990,
+   "pct_irsd_q1": 1.6,
+   "pct_irsad_q5": 55.6
+  },
+  {
+   "district_id": 15991,
+   "pct_irsd_q1": 4.3,
+   "pct_irsad_q5": 19.7
+  },
+  {
+   "district_id": 15993,
+   "pct_irsd_q1": 0,
+   "pct_irsad_q5": 95
+  },
+  {
+   "district_id": 15994,
+   "pct_irsd_q1": 42.2,
+   "pct_irsad_q5": 0
+  },
+  {
+   "district_id": 15996,
+   "pct_irsd_q1": 1.5,
+   "pct_irsad_q5": 33.5
+  },
+  {
+   "district_id": 15997,
+   "pct_irsd_q1": 10.2,
+   "pct_irsad_q5": 39.9
+  },
+  {
+   "district_id": 15998,
+   "pct_irsd_q1": 4,
+   "pct_irsad_q5": 72.4
+  },
+  {
+   "district_id": 15999,
+   "pct_irsd_q1": 10.1,
+   "pct_irsad_q5": 85.4
+  },
+  {
+   "district_id": 16000,
+   "pct_irsd_q1": 2.7,
+   "pct_irsad_q5": 41.3
+  },
+  {
+   "district_id": 16001,
+   "pct_irsd_q1": 26.5,
+   "pct_irsad_q5": 0
+  }
+ ]
+}

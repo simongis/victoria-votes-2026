@@ -1,0 +1,20 @@
+{
+  "name": "vic26election",
+  "private": true,
+  "description": "Live results app for the 2026 Victorian state election",
+  "workspaces": [
+    "packages/schema",
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "build": "npm run build -w @vic26/web"
+  },
+  "devDependencies": {}
+}
