@@ -22,8 +22,12 @@ export interface ResultsSource {
   /** Polling place statics and booth history (VE-136), read lazily. Absent where the source has no booth data. */
   readonly booths?: BoothSource
   statics(): Promise<Statics>
-  /** The one-row status table (ADR 0009): kill-switch state, snapshot stamp, statewide summary. */
-  status(): Promise<StatusAttributes>
+  /**
+   * The one-row status table (ADR 0009): kill-switch state, snapshot stamp, statewide summary.
+   * Null means the table has no row yet (before ingest's first live publish): the expected before-results state, not a
+   * failure. A failed read rejects instead.
+   */
+  status(): Promise<StatusAttributes | null>
   /** Every tick up to the current snapshot, with each tick's district rows. */
   timeline(): Promise<Timeline>
   /** Candidates for one district at one snapshot, or null when the source cannot say. */

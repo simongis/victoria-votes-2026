@@ -15,6 +15,18 @@ export interface Results {
   pollNote: string | null
 }
 
+export type StatusOutcome = 'row' | 'no-row-yet' | 'failed'
+
+/**
+ * What one status read means. No row at all is the quiet before-results state only while no row has been seen in
+ * this page session; after one has been, an empty table is a failed read and hold last good applies (hard rule 5,
+ * VE-233). A malformed row is always a failed read.
+ */
+export function readStatusOutcome(s: unknown, sawRow: boolean): StatusOutcome {
+  if (s === null) return sawRow ? 'failed' : 'no-row-yet'
+  return isStatusRow(s) ? 'row' : 'failed'
+}
+
 /**
  * Checks status on the polite schedule of data/pollPlan.ts (VE-54) and fetches the timeline only when status says
  * there is something new (and the kill switch allows it). Everything on screen stays put through a failed poll.
@@ -41,12 +53,23 @@ export function useResults(source: ResultsSource, opts: { publicBuild?: boolean 
   useEffect(() => {
     let alive = true
     let held: HeldStamp | null = null
+    let sawRow = false
     // startPolling runs one check at a time, so there is no in-flight guard here.
     const check = async () => {
-      const s = await source.status()
-      // A malformed row is a failed read: everything on screen stays as it was (hold last good).
-      if (!isStatusRow(s)) throw new Error('The status row is not readable')
+      const raw = await source.status()
+      const outcome = readStatusOutcome(raw, sawRow)
+      if (outcome === 'no-row-yet') {
+        // Before the first live publish: no error, no retry note, keep polling for the first row.
+        if (alive) setError(null)
+        return { snapshotAt: null, state: null }
+      }
+      // A malformed row, or an empty table after a row was seen, is a failed read: everything on screen stays (hold last good).
+      if (outcome === 'failed' || !isStatusRow(raw)) {
+        throw new Error(raw === null ? 'The status table read empty after a row was seen' : 'The status row is not readable')
+      }
+      const s = raw
       if (!alive) return { snapshotAt: null, state: null }
+      sawRow = true
       setStatus(s)
       // A public build never fetches the figures behind a row that is not live data (hard rule 2).
       if (!(publicBuild && s.data_mode !== 'live') && shouldFetch(held, s)) {

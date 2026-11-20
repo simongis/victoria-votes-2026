@@ -18,15 +18,29 @@ function stub(responses: Record<string, unknown>) {
 describe('AGOL source', () => {
   it('reads the one status row from the status layer by its schema id', async () => {
     const { fetchJson, seen } = stub({ '7': { features: [{ attributes: { state: 'paused', data_mode: 'live', snapshot_id: null } }] } })
-    const s = await createAgolSource({ url: URL_, fetchJson }).status()
+    const s = (await createAgolSource({ url: URL_, fetchJson }).status())!
     expect(s.state).toBe('paused')
     expect(seen[0]).toContain('/7/query?')
     expect(seen[0]).toContain('f=json')
   })
 
-  it('fails status loudly when the table is empty, so the shell keeps waiting', async () => {
+  it('resolves status to null when the table is empty: before the first live publish there is no row yet (VE-233)', async () => {
     const { fetchJson } = stub({ '7': { features: [] } })
-    await expect(createAgolSource({ url: URL_, fetchJson }).status()).rejects.toThrow(/empty/)
+    await expect(createAgolSource({ url: URL_, fetchJson }).status()).resolves.toBeNull()
+  })
+
+  it('still fails status when the status read itself fails', async () => {
+    const { fetchJson } = stub({ '7': { error: { code: 500, message: 'boom' } } })
+    await expect(createAgolSource({ url: URL_, fetchJson }).status()).rejects.toThrow(/boom/)
+  })
+
+  it('picks up the first row once it appears after an empty read', async () => {
+    const responses: Record<string, unknown> = { '7': { features: [] } }
+    const { fetchJson } = stub(responses)
+    const src = createAgolSource({ url: URL_, fetchJson })
+    expect(await src.status()).toBeNull()
+    responses['7'] = { features: [{ attributes: { state: 'live', data_mode: 'live', snapshot_id: 's1' } }] }
+    expect((await src.status())?.snapshot_id).toBe('s1')
   })
 
   it('degrades to an empty timeline when district history is missing or errors', async () => {

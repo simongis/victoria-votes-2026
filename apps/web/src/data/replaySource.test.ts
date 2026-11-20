@@ -61,7 +61,7 @@ function make(clockMs: number, opts: { state?: string | null; message?: string |
 describe('replay source', () => {
   it('reports the tick at or before the demo clock as the status snapshot, marked replay', async () => {
     const { src } = make(2_500)
-    const s = await src.status()
+    const s = (await src.status())!
     expect(s.snapshot_id).toBe('20221126_180500')
     expect(s.snapshot_at).toBe(2_000)
     expect(s.data_mode).toBe('replay')
@@ -70,7 +70,7 @@ describe('replay source', () => {
 
   it('derives the status seats and counted share from history', async () => {
     const { src } = make(3_000)
-    const s = await src.status()
+    const s = (await src.status())!
     expect(s.seats_ALP).toBe(1)
     expect(s.seats_LIB).toBe(1)
     expect(s.seats_in_doubt).toBe(1)
@@ -79,9 +79,9 @@ describe('replay source', () => {
 
   it('advances with the clock', async () => {
     const { src, setClock } = make(1_500)
-    expect((await src.status()).snapshot_id).toBe('20221126_180000')
+    expect((await src.status())!.snapshot_id).toBe('20221126_180000')
     setClock(9_000)
-    expect((await src.status()).snapshot_id).toBe('20221126_181000')
+    expect((await src.status())!.snapshot_id).toBe('20221126_181000')
   })
 
   it('serves the timeline only up to now', async () => {
@@ -94,17 +94,17 @@ describe('replay source', () => {
 
   it('has no snapshot and an empty timeline before the first tick', async () => {
     const { src } = make(500)
-    expect((await src.status()).snapshot_id).toBeNull()
+    expect((await src.status())!.snapshot_id).toBeNull()
     expect((await src.timeline()).ticks).toEqual([])
   })
 
   it('honours a kill-switch override for testing the shell', async () => {
     const { src } = make(2_000, { state: 'paused', message: 'Checking' })
-    const s = await src.status()
+    const s = (await src.status())!
     expect(s.state).toBe('paused')
     expect(s.message).toBe('Checking')
     const { src: bad } = make(2_000, { state: 'nonsense' })
-    expect((await bad.status()).state).toBe('live')
+    expect((await bad.status())!.state).toBe('live')
   })
 
   it('fetches candidates for one district from the snapshot file on demand', async () => {

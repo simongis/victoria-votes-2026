@@ -73,9 +73,11 @@ export function createAgolSource({
   let lastRowAt = 0
   let fellBack = false
 
-  async function agolStatus(): Promise<StatusAttributes> {
+  // Null when the table has no row: the live view holds statics only until ingest's first live publish, so an empty
+  // table is the expected state before results, not a fault (VE-233). The caller decides what an empty read means.
+  async function agolStatus(): Promise<StatusAttributes | null> {
     const [row] = await rows<StatusAttributes>(LAYERS.status.id, {})
-    if (!row) throw new Error('status table is empty')
+    if (!row) return null
     lastRow = row
     lastRowAt = now()
     return row
@@ -102,7 +104,7 @@ export function createAgolSource({
     pollMs,
     note: null,
     // The same ceiling as the timeline's: booth history is read only up to the status row (VE-163).
-    booths: createAgolBoothSource({ url, fetchJson, confirmedAt: async () => (lastRow ?? (await agolStatus())).snapshot_at ?? null }),
+    booths: createAgolBoothSource({ url, fetchJson, confirmedAt: async () => (lastRow ?? (await agolStatus()))?.snapshot_at ?? null }),
 
     statics() {
       staticsP ??= Promise.all([
@@ -130,7 +132,7 @@ export function createAgolSource({
       // only up to the status row's snapshot_at, and drop anything beyond it that comes back anyway (VE-163).
       let all: DistrictHistoryRow[]
       try {
-        const confirmed = (lastRow ?? (await agolStatus())).snapshot_at
+        const confirmed = (lastRow ?? (await agolStatus()))?.snapshot_at
         if (confirmed === null || confirmed === undefined) return { ticks: [], rows: [] }
         const upTo = `snapshot_at <= ${timestampLiteral(Math.ceil(confirmed / 1000) * 1000)}`
         all = (await rows<DistrictHistoryRow>(LAYERS.district_history.id, { where: upTo, orderByFields: 'snapshot_at' })).filter(
