@@ -1,8 +1,11 @@
+import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { validateAsset } from './oneNation'
 
 // The build script is plain Node (.mjs). Its path is a variable so TypeScript does not need a declaration file for it.
 const SCRIPT = '../../scripts/build-one-nation.mjs'
+// apps/web/scripts/ is not in the public export, so the script tests skip there (the asset tests below still run).
+const hasScript = fs.existsSync(new URL(SCRIPT, import.meta.url))
 type Built = { source: string; districts: Record<string, unknown>[]; party_shares: { district_id: number; share_2025: Record<string, number>; stood_2025: Record<string, number>; low_votes: boolean }[] }
 const load = async () => (await import(/* @vite-ignore */ SCRIPT)) as { toAsset: (on: unknown, extra: unknown[], shares: unknown) => Built; toPartyShares: (shares: unknown) => Built['party_shares'] }
 
@@ -21,7 +24,7 @@ const party = (ids: number[]) => ({
   })),
 })
 
-describe('build-one-nation toPartyShares (VE-101e)', () => {
+describe.skipIf(!hasScript)('build-one-nation toPartyShares (VE-101e)', () => {
   it('maps buckets to the schema parties, adds the Coalition and drops everything else', async () => {
     const { toPartyShares } = await load()
     const [a] = toPartyShares(party([7]))
@@ -55,7 +58,7 @@ describe('build-one-nation toPartyShares (VE-101e)', () => {
   })
 })
 
-describe('build-one-nation toAsset', () => {
+describe.skipIf(!hasScript)('build-one-nation toAsset', () => {
   it('maps VE-101a sides to the schema fields and drops everything else', async () => {
     const { toAsset } = await load()
     const a = toAsset(on([2, 1]), extra([1, 2]), party([1, 2]))

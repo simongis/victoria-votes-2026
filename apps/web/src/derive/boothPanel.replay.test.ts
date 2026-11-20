@@ -18,6 +18,13 @@ const DIR = process.env.REPLAY_DIR ?? path.resolve(here, '../../../../packages/i
 const has = fs.existsSync(path.join(DIR, 'manifest.json')) && fs.existsSync(path.join(DIR, 'history/booth_history.columns.json'))
 
 const read = <T,>(p: string): T => JSON.parse(fs.readFileSync(path.join(DIR, p), 'utf8')) as T
+// A skipped describe still runs its body, which reads private files at collection, so the body is not run when they are absent (the public copy).
+const describeIfReplay = (title: string, fn: () => void) =>
+  has
+    ? describe(title, fn)
+    : describe.skip(`${title} [skipped: needs packages/ingest/out/replay-se22-5min, which the public copy leaves out]`, () => {
+        it('skipped', () => {})
+      })
 
 // The five points the brief names: 6:30 pm (few places in), 8 pm, 9 pm, midnight, and the final count.
 const POINTS: [string, string][] = [
@@ -28,7 +35,7 @@ const POINTS: [string, string][] = [
   ['final', '20221215_180017'],
 ]
 
-describe.skipIf(!has)('booth panel across the 2022 replay', () => {
+describeIfReplay('booth panel across the 2022 replay', () => {
   const manifest = read<{ snapshots: { snapshotId: string; snapshotAt: number }[] }>('manifest.json')
   const districts = read<{ features: { properties: DistrictStatic }[] }>('static/districts.geojson').features.map((f) => f.properties)
   const dcols = read<{ fields: string[]; rows: unknown[][] }>('history/district_history.columns.json')
@@ -146,7 +153,14 @@ describe.skipIf(!has)('booth panel across the 2022 replay', () => {
 // centres and places with no 2022 match. They have no results or history yet, so this proves the parse and the states
 // those places start in, not a count.
 const SE26 = path.resolve(here, '../../../../packages/ingest/out/se26/static/booths.geojson')
-describe.skipIf(!fs.existsSync(SE26))('booth panel on the 2026 set-up statics', () => {
+// A skipped describe still runs its body, which reads private files at collection, so the body is not run when they are absent (the public copy).
+const describeIfSe26 = (title: string, fn: () => void) =>
+  fs.existsSync(SE26)
+    ? describe(title, fn)
+    : describe.skip(`${title} [skipped: needs packages/ingest/out/se26/static/booths.geojson, which the public copy leaves out]`, () => {
+        it('skipped', () => {})
+      })
+describeIfSe26('booth panel on the 2026 set-up statics', () => {
   const statics = parseBoothStatics(JSON.parse(fs.readFileSync(SE26, 'utf8')))
   const seat = { id: 0, name: 'Test seat', tcp: { a: 'ALP', b: 'LIB', pctA: 55 } as const, fp: [] }
 

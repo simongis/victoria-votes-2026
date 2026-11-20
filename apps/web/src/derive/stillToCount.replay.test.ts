@@ -15,6 +15,13 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const DIR = process.env.REPLAY_DIR ?? path.resolve(here, '../../../../packages/ingest/out/replay-se22-5min')
 const has = fs.existsSync(path.join(DIR, 'manifest.json')) && fs.existsSync(path.join(DIR, 'history/district_history.columns.json'))
 const read = <T,>(p: string): T => JSON.parse(fs.readFileSync(path.join(DIR, p), 'utf8')) as T
+// A skipped describe still runs its body, which reads private files at collection, so the body is not run when they are absent (the public copy).
+const describeIfReplay = (title: string, fn: () => void) =>
+  has
+    ? describe(title, fn)
+    : describe.skip(`${title} [skipped: needs packages/ingest/out/replay-se22-5min, which the public copy leaves out]`, () => {
+        it('skipped', () => {})
+      })
 
 const st = { district_id: 1, district_name: 'Testville District', enrolment: 50_000, base_winner_party: 'LIB', base_source: 'SE2022' } as DistrictStatic
 const row = (over: Partial<DistrictHistoryRow>): DistrictHistoryRow =>
@@ -38,7 +45,7 @@ describe('stillToCount for one seat (VE-215 A1)', () => {
   })
 })
 
-describe.skipIf(!has)('votes to come across the 2022 replay (VE-215 A1)', () => {
+describeIfReplay('votes to come across the 2022 replay (VE-215 A1)', () => {
   const districts = read<{ features: { properties: DistrictStatic }[] }>('static/districts.geojson').features.map((f) => f.properties)
   const dcols = read<{ fields: string[]; rows: unknown[][] }>('history/district_history.columns.json')
   const byTick = new Map<string, DistrictHistoryRow[]>()
