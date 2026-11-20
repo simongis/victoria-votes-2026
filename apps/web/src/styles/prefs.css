@@ -4,6 +4,8 @@
 .prefs__loc { flex: none; overflow: visible; width: 190px; align-self: flex-start; margin-top: var(--space-2, 8px); max-height: 60%; }
 .prefs__hex { fill: color-mix(in srgb, var(--color-text) 30%, var(--map-paper, #fff)); stroke: var(--map-paper, #fff); stroke-width: 0.7; vector-effect: non-scaling-stroke; transition: fill 120ms; cursor: pointer; }
 .prefs__hex--on { fill: var(--color-text); }
+/* VE-230: the hovered or picked seat: the dot's party ink, a navy outline above the region highlight (no pointer events, so it never steals the hover). */
+.prefs__seat { stroke: var(--color-navy); stroke-width: 3; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: none; filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1px #fff); }
 .prefs__band { fill: transparent; }
 .prefs__band--on { fill: var(--color-border); opacity: 0.35; }
 .prefs__hint { font-size: 10.5px; font-weight: 400; fill: var(--color-text-subtle); paint-order: stroke; stroke: var(--map-paper, #fff); stroke-width: 3px; stroke-linejoin: round; }

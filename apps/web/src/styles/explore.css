@@ -350,14 +350,14 @@ a.explore-card { box-sizing: border-box; text-decoration: none; }
 .view-sheet__act--more > span { flex: 1; }
 
 /* VE-227 (finding 4), portrait phone: "Back to the map" covered the Multiples grid and floated over the key elsewhere. It goes to the
-   start of the lens bar as a 44 px "‹ Map", where View sits on the main map (a phone held sideways already does this, above). The
+   start of the lens bar as a 44 px "‹ Back", where View sits on the main map (a phone held sideways already does this, above). The
    shape toggle moves along to make room; the title keeps its own line. */
+.explore-lens__back-short { display: none; }
 @media (max-width: 699px) and (orientation: portrait) {
   .explore-lens__foot, .app .workspace:has(.rail[data-lens="true"]) .explore-lens__foot { position: absolute; top: 0; left: 0; z-index: 3; padding: var(--space-2); }
   .explore-lens__back { padding: 0 var(--space-3); }
-  .explore-lens__back-pre { display: none; }
-  .explore-lens__back-word { display: inline-block; }
-  .explore-lens__back-word::first-letter { text-transform: uppercase; }
+  .explore-lens__back-pre, .explore-lens__back-word { display: none; }
+  .explore-lens__back-short { display: inline-block; }
   .lens-bar__shape { margin-left: 84px; }
 }
 

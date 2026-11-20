@@ -169,6 +169,7 @@ export default function PrefsLens({ seats, statics, title, mode, onMode }: LensP
     const v = locMode === 'map' && tier ? mapView(tier, statics, false) : hexView(statics)
     return { vb: v.vb, items: v.items.map((it) => ({ id: it.id, geom: it.geom, region: shortRegion(statics.districtById.get(it.id)?.region_name ?? 'Other') })) }
   }, [statics, locMode, tier])
+  const seatOn = active === null ? null : loc.items.find((it) => it.id === active) ?? null
   return (
     <div className="arrows prefs" data-testid="prefs-lens">
       <LensBar
@@ -195,8 +196,10 @@ export default function PrefsLens({ seats, statics, title, mode, onMode }: LensP
       <div className="prefs__body">
       <svg className="prefs__loc" viewBox={loc.vb.join(' ')} role="img" data-mode={locMode} aria-label={locMode === 'map' ? 'Where each region is, on the map of Victoria' : 'Where each region is, one hex for each seat'} data-testid="prefs-loc" onPointerOver={onOver} onPointerOut={onOut} onClick={onTap}>
         {loc.items.map((it) => (
-          <Shape key={it.id} mode={locMode} it={{ id: it.id, geom: it.geom, cx: 0, cy: 0, box: { x0: 0, y0: 0, x1: 0, y1: 0 } }} className={'prefs__hex' + (it.region === activeRegion ? ' prefs__hex--on' : '')} data-region={it.region} data-testid="prefs-hex" />
+          <Shape key={it.id} mode={locMode} it={{ id: it.id, geom: it.geom, cx: 0, cy: 0, box: { x0: 0, y0: 0, x1: 0, y1: 0 } }} className={'prefs__hex' + (it.region === activeRegion ? ' prefs__hex--on' : '')} data-id={it.id} data-region={it.region} data-testid="prefs-hex" />
         ))}
+        {/* VE-230: the seat itself, drawn after the rest so its outline sits above its neighbours. */}
+        {seatOn && <Shape mode={locMode} it={{ id: seatOn.id, geom: seatOn.geom, cx: 0, cy: 0, box: { x0: 0, y0: 0, x1: 0, y1: 0 } }} className="prefs__seat" fill={activeP ? css(pal.party[activeP.party]) : "none"} data-testid="prefs-seat" />}
       </svg>
       <div className="prefs__main">
       <ul className="prefs__key" aria-label="Leading party" data-testid="prefs-key">

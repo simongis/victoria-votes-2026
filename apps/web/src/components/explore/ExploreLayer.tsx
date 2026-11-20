@@ -267,10 +267,11 @@ export function ExploreLayer({ seats, statics, explore, onExplore, rewinding, on
           <div className="explore-lens__foot">
             <button type="button" className="explore-lens__back" data-testid="explore-back" aria-label="Back to the map" onClick={() => onExplore(null)}>
               <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden focusable="false"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              {/* VE-227 (finding 4): a portrait phone shows just "Map" (CSS), at the start of the lens bar where View sits on the main map. */}
+              {/* VE-227 (finding 4): a portrait phone shows just "Back" (CSS; "Map" would sit beside the Map toggle), at the start of the lens bar where View sits on the main map. */}
               <span aria-hidden>
                 <span className="explore-lens__back-pre">Back to the </span>
                 <span className="explore-lens__back-word">map</span>
+                <span className="explore-lens__back-short">Back</span>
               </span>
             </button>
           </div>
