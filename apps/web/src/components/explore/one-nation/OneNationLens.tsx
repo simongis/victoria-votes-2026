@@ -244,7 +244,7 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
         </div>
       </LensBar>
 
-      <p className="onl__marker" data-testid="onl-marker">{top === 'flow' && replay ? notLiveMarker(dataLabel ?? 'Replay') : MARKER}</p>
+      <p className="onl__marker" data-testid="onl-marker" data-kind={top === 'flow' && replay ? 'notlive' : 'source'}>{top === 'flow' && replay ? notLiveMarker(dataLabel ?? 'Replay') : MARKER}</p>
 
       {top === 'share' && (
         <div className="onl__chips" role="group" aria-label="Sort seats by" data-testid="onl-measures">

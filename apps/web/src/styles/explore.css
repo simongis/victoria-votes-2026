@@ -367,3 +367,13 @@ a.explore-card { box-sizing: border-box; text-decoration: none; }
   .lens-bar__sub > .arrows__caption:not(.onl__caption) { position: absolute; width: 1px; height: 1px; min-width: 0; padding: 0; overflow: hidden; clip-path: inset(50%); }
   .lens-bar__sub:has(> .arrows__caption:only-child) { padding: 0; }
 }
+
+/* VE-235 (Simon 25 Nov, phone review B11): on a portrait phone a lens shows one key line at rest, about 40 words in all; the rest
+   is behind the "i". The lens keeps clear of the sheet's peek (the key used to sit under it, unread), the Swing caption that the sheet repeats is read aloud but not drawn, and the
+   One Nation source tag (the "i" says it) goes unless it is the replay or trial marker, which always shows (hard rule 2). */
+/* 699 px: the same width at which a lens opens on Hex (lensStartMode), so a portrait tablet keeps its layout. Every mark keeps its key entry. */
+@media (max-width: 699px) and (orientation: portrait) {
+  .explore-lens:not([data-lens="similar"]) { padding-bottom: 56px; }
+  .lens-bar__sub .arrows__caption { position: absolute; width: 1px; height: 1px; min-width: 0; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .onl__marker[data-kind="source"] { display: none; }
+}

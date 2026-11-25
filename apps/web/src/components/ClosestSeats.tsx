@@ -14,7 +14,7 @@ interface Props {
   final: boolean
   /** The party tapped in the Gains key, if any: the Gains cards are that party's gains and losses. */
   party?: PartyBucket | null
-  /** The Hex is the shape on show (and no lens or polling places cover it). */
+  /** No lens or polling places cover the stage. The block shows under the Hex, or under the Map while it is at rest (VE-235). */
   active: boolean
   /** The seat ringed on the stage (shared with the Gains cards). */
   ring: number | null
@@ -27,6 +27,12 @@ interface Props {
 const CARD_H = 48
 const GAP = 8
 const HEAD_H = 20
+
+/**
+ * The card's one figure at rest ("About 500 votes ahead" becomes "~500 votes"): about 40 words at rest is the phone rule, and six
+ * sentences were half of them. The whole sentence stays in the card's accessible name (c.label).
+ */
+const shortLine = (line: string): string => line.replace(/^About /, '~').replace(/^Under 100/, '<100').replace(/ ahead$/, '')
 
 interface Fit {
   top: number
@@ -67,9 +73,23 @@ export function ClosestSeats({ seats, countedPct, final, party = null, active, r
       return
     }
     const s = stage.getBoundingClientRect()
-    const hexes = [...stage.querySelectorAll('.pane--seats polygon.hex')]
-    if (hexes.length === 0) return
-    const hexBottom = Math.max(...hexes.map((h) => h.getBoundingClientRect().bottom))
+    // The picture's foot: the hexes' bottom edge on Hex, or Victoria's at rest on the Map (MapPane publishes it, VE-235). A map that
+    // has been moved, or any other state of it, publishes nothing, so the block and the key go back to their usual place.
+    let hexBottom: number
+    if (stage.closest('.app')?.getAttribute('data-shape') === 'map') {
+      const mc = stage.querySelector<HTMLElement>('.map-container')
+      const foot = Number(mc?.dataset['restBottom'])
+      if (!mc || !(foot > 0)) {
+        stage.removeAttribute('data-hexfit')
+        stage.style.removeProperty('--hex-bottom')
+        return setFit((f) => (f === null ? f : null))
+      }
+      hexBottom = mc.getBoundingClientRect().top + foot
+    } else {
+      const hexes = [...stage.querySelectorAll('.pane--seats polygon.hex')]
+      if (hexes.length === 0) return
+      hexBottom = Math.max(...hexes.map((h) => h.getBoundingClientRect().bottom))
+    }
     stage.style.setProperty('--hex-bottom', `${(hexBottom - s.top + 6).toFixed(1)}px`)
     stage.setAttribute('data-hexfit', '')
     const chips = stage.querySelector(':scope > .colour-chips')
@@ -104,6 +124,8 @@ export function ClosestSeats({ seats, countedPct, final, party = null, active, r
     const mo = new MutationObserver(() => { watch(); measure() })
     const app = stage.closest('.app')
     if (app) mo.observe(app, { attributes: true, attributeFilter: ['data-selected', 'data-rewind', 'data-colour', 'data-shape', 'data-time'] })
+    const mapBox = stage.querySelector('.map-container')
+    if (mapBox) mo.observe(mapBox, { attributes: true, attributeFilter: ['data-rest-bottom'] })
     const rail = stage.parentElement?.querySelector('.rail')
     if (rail) mo.observe(rail, { attributes: true, attributeFilter: ['data-open'] })
     return () => {
@@ -179,7 +201,7 @@ export function ClosestSeats({ seats, countedPct, final, party = null, active, r
             <span className="closest__stripe" style={{ background: partyCss(c.leader, pal) }} aria-hidden />
             <span className="closest__body">
               <span className="closest__name">{c.name}</span>
-              <span className="closest__line">{c.line}</span>
+              <span className="closest__line">{shortLine(c.line)}</span>
             </span>
           </button>
         ))}

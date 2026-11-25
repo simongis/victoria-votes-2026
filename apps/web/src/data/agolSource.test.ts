@@ -63,6 +63,26 @@ describe('AGOL source', () => {
     expect(t.ticks[0]!.countedPct).toBe(10)
   })
 
+  it('ADR 0036: the current tick takes a declared winner from the districts layer, past ticks do not', async () => {
+    const r = (id: string, at: number) => ({ attributes: { snapshot_id: id, snapshot_at: at, district_id: 1, fp_total: 100, status: 'declared', elected_party: null } })
+    const fetchJson = async <T,>(url: string): Promise<T> => {
+      const layer = url.slice(URL_.length + 1).split('/')[0]
+      const json = url.includes('f=json')
+      const res: Record<string, unknown> = {
+        '7': { features: [{ attributes: { state: 'live', data_mode: 'live', snapshot_id: 'b', snapshot_at: 2 } }] },
+        '5': { features: [r('a', 1), r('b', 2)] },
+        '0': json
+          ? { features: [{ attributes: { district_id: 1, elected_party: 'ALP' } }] }
+          : { type: 'FeatureCollection', features: [{ properties: { district_id: 1, enrolment: 1000 } }] },
+        '1': { type: 'FeatureCollection', features: [] },
+      }
+      return res[layer!] as T
+    }
+    const t = await createAgolSource({ url: URL_, fetchJson }).timeline()
+    expect(t.rows[0]![0]!.elected_party).toBeNull()
+    expect(t.rows[1]![0]!.elected_party).toBe('ALP')
+  })
+
   describe('history is read only up to the status row (VE-163)', () => {
     const r = (id: string, at: number, d: number) => ({ attributes: { snapshot_id: id, snapshot_at: at, district_id: d, fp_total: 100 } })
     const T1 = Date.UTC(2026, 10, 28, 9, 0, 0)

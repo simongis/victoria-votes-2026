@@ -42,14 +42,17 @@ export function forecastBase(raw: string | undefined): string | null {
   return s.endsWith('/') ? s : `${s}/`
 }
 
-/** The link target: the plain address, or the selected seat's page on the other site. */
+/**
+ * The link target: the plain address, or the selected seat on the other site's modelling tab. VE-236: the statewide tab
+ * ignores #seat=, so the seat must be opened on ?tab=modelling.
+ */
 export function forecastHref(base: string, seatName?: string | null): string {
-  return seatName ? `${base}#seat=${seatSlug(seatName)}` : base
+  return seatName ? `${base}?tab=modelling#seat=${seatSlug(seatName)}` : base
 }
 
 /** VE-209: the source site's similarity map for one seat (its modelling tab, seat picked). */
 export function forecastSimilarHref(base: string, seatName: string): string {
-  return `${base}?tab=modelling#seat=${seatSlug(seatName)}`
+  return forecastHref(base, seatName)
 }
 
 /** The base address set at build time, or null. Read once; Vite inlines it. */

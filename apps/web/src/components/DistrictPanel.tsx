@@ -11,6 +11,8 @@ import { usePalette } from '../theme/theme'
 import { getMotion } from '../state/motion'
 import { leaderCss, partyCss } from '../views/encoding'
 import { InfoButton } from './InfoButton'
+import { fpChangeLine } from './swing/fpChange'
+import { useFpBaseline } from './swing/useFpBaseline'
 import { ProfileSection } from './ProfileSection'
 import { FORECAST_BASE, forecastHref, seatLabel } from './explore/forecastLink'
 import { FLOAT_ROW_PX, PANEL_HALF, sheetGrows } from './sheet/sheet'
@@ -248,6 +250,9 @@ export function DistrictPanel({ seat: s, candidates, onClose, closing = false, m
   const vb = pairVotes(s.tcp?.b)
   const leadLine = panelLeadLine(s, va !== null && vb !== null ? { a: va, b: vb } : null, fpCands.length ? fpCands.reduce((n, c) => n + (c.fp_votes ?? 0), 0) : null)
   const hasNight = !!night && night.series.some((v) => v !== null)
+  // VE-234: first-preference change leads the swing section; it exists in every seat, the two-candidate swing only in some.
+  const fpBase = useFpBaseline()
+  const fpChange = fpChangeLine(s, fpBase)
   return (
     <aside ref={root} className="panel" aria-label={`${s.name} district`} data-testid="district-panel" data-motion={motion} data-state={closing ? 'closing' : 'open'} data-handoff={handoff || undefined}>
       <button type="button" className="panel__grip" data-testid="panel-grip" aria-expanded={sheet.detent !== 'peek'} aria-label={sheetGrows(sheet) ? 'Show more' : 'Show less'} onClick={sheet.step} {...sheet.zone} />
@@ -287,6 +292,7 @@ export function DistrictPanel({ seat: s, candidates, onClose, closing = false, m
           {leadLine}
         </p>
       )}
+      {fpChange && <p className="panel__line" data-testid="panel-fpchange">{fpChange}</p>}
       {swing && <p className="panel__line" data-testid="panel-swing">{swing}</p>}
       <Gauge label={turnout ? 'Turnout' : 'Counted'} value={s.pct === null ? '-' : `${Math.round(s.pct)}%`} parts={[{ pct: s.pct ?? 0, colour: 'var(--color-text-subtle)' }]} />
       {fpRows.length > 0 && (

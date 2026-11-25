@@ -88,3 +88,16 @@ export const LENSES: readonly LensDef[] = [
 
 /** A lens's question as it should read now: the Final wording once every seat is declared (VE-167), else the night's. */
 export const questionOf = (l: LensDef, final: boolean): string => (final && l.finalQuestion ? l.finalQuestion : l.question)
+
+/** The width the phone layout (the shared bottom sheet) uses. */
+const PHONE_WIDTH = '(max-width: 699px)'
+
+/**
+ * The shape a lens opens on (VE-235, Simon 25 Nov). On a phone every lens opens on Hex: the map shows 59 of 88 seats under
+ * 10 px and a lens map cannot zoom, so inner Melbourne could not be tapped. Hex gives every seat the same size, and the
+ * Map and Hex toggle stays one tap away. Elsewhere the lens's own default applies. All six lenses have a Hex shape.
+ */
+export function lensStartMode(def: LensDef | undefined): ExploreMode {
+  const phone = typeof matchMedia === 'function' && matchMedia(PHONE_WIDTH).matches
+  return phone ? 'hex' : def?.defaultMode ?? 'map'
+}

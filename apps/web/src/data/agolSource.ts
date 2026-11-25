@@ -14,6 +14,7 @@ import {
 import { createAgolBoothSource, timestampLiteral } from './boothSource'
 import { parsePointer, pointerIsStale } from './latestPointer'
 import { fetchJsonOverHttp, type FetchJson } from './replaySource'
+import { withDistrictWinners } from '../derive/winners'
 import type { ResultsSource } from './source'
 import type { GeoCollection, SeatHexStatic, Statics, Tick, Timeline } from './types'
 
@@ -150,6 +151,18 @@ export function createAgolSource({
         else bySnapshot.set(r.snapshot_id, [r])
       }
       const groups = [...bySnapshot.values()].sort((a, b) => a[0]!.snapshot_at - b[0]!.snapshot_at)
+      // ADR 0036: the live view's history has no elected_party, so the current tick takes the winners from the districts
+      // layer (which does). Best effort: a failed read leaves the history rows as they are (the 2CP fallback applies).
+      if (groups.length > 0) {
+        try {
+          const now = await rows<{ district_id: number; elected_party: DistrictHistoryRow['elected_party'] }>(LAYERS.districts.id, {
+            outFields: 'district_id,elected_party',
+          })
+          groups[groups.length - 1] = withDistrictWinners(groups[groups.length - 1]!, now)
+        } catch {
+          /* keep the history rows */
+        }
+      }
       const ticks: Tick[] = groups.map((g) => ({
         snapshotId: g[0]!.snapshot_id,
         snapshotAt: g[0]!.snapshot_at,

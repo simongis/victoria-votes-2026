@@ -47,8 +47,8 @@ export function swingOf(s: Seat, st: DistrictStatic | undefined): ListRow['swing
 }
 
 function statusOf(s: Seat, margin: number | null): ListStatus {
-  if (!s.leader) return 'Too early'
   if (s.state === 'won') return 'Declared'
+  if (!s.leader) return 'Too early'
   if (s.state === 'firm') return 'Certain'
   return margin !== null && margin < CLOSE_PTS ? 'Within 10 points' : 'Leading'
 }

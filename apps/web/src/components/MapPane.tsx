@@ -8,7 +8,7 @@ import { allDeclared, seatLabel } from '../views/encoding'
 import type { MapCamera } from '../views/projection'
 import { getMotion } from '../state/motion'
 import { useFx } from './Effects'
-import { boxInside, fitCam, frame, panBy, toMatrix, worldBox, zoomAbout, type Cam } from './map/camera'
+import { boxInside, FIT_PAD, fitCam, frame, panBy, toMatrix, toScreen, worldBox, zoomAbout, type Cam } from './map/camera'
 import { popStyle } from '../derive/focus'
 import { HexLabel, type HexAnchor } from './HexLabel'
 import { BoothLayer } from './booths/BoothLayer'
@@ -53,11 +53,15 @@ interface Props {
   pickedBooth?: number | null
   /** VE-227 (finding 2): the phone's Seats list is open over the bottom of the stage; the map refits to the part above it. */
   railOpen?: boolean
+  /** VE-235: a portrait phone at rest. Victoria sits top-aligned under the View row and the closest seats show below it, until the map is moved. */
+  rest?: boolean
 }
 
 /** Is the paper dark? Picks which way the quiet marks lean: a light line on dark, a dark line on light. */
 const darkPaper = (pal: Palette): boolean => 0.299 * pal.paper[0] + 0.587 * pal.paper[1] + 0.114 * pal.paper[2] < 110
 
+/** VE-235: the resting layout is used only when it leaves at least this much below the picture (else the cards would not fit anyway). */
+const REST_MIN_ROOM_PX = 120
 const reducedMotion = (): boolean => getMotion() === 'reduced'
 /** Pixels a pointer may wander and still count as a tap. */
 const SLOP = 5
@@ -85,6 +89,8 @@ interface Ctl {
   frameSeat(box: Box): boolean
   /** Phone only (VE-227): the Seats list opened or closed. The map refits above it, or frames the lit seats (`lit`) when a pick lights some. */
   rail(open: boolean, lit: readonly Box[]): void
+  /** VE-235: the resting layout is wanted (or not): the camera's height is cut to the picture, the room below it is left for the closest seats. */
+  rest(on: boolean): void
   /** The camera the pane is looking through now, and the pane size, for the "is it tiny / off screen" test. */
   view(): { cam: Cam; w: number; h: number } | null
   /** The polling place dot nearest a point in pane pixels, within reach (finger or mouse). */
@@ -96,6 +102,9 @@ interface Ctl {
  * the phone is sideways (panel.css), and the "i" row floats over the top 52 px. A tapped seat is framed in what is left.
  */
 const PHONE = '(max-width: 1023px)'
+const REST_PHONE = '(max-width: 699px)'
+/** Space between the View row and Victoria's top at rest. */
+const REST_TOP_GAP_PX = 14
 const PHONE_SIDEWAYS = '(orientation: landscape) and (max-height: 500px)'
 /** The seat sheet's half height as a share of the stage (sheet.ts, ADR 0035): a tapped seat is framed above it. */
 const SHEET_SHARE = PANEL_HALF
@@ -113,7 +122,7 @@ const ZOOMED = 0.97
  * Each layer's paths sit under one matrix group, set by hand during a gesture (a React render per frame would be
  * wasteful); the blur and shadow filters sit outside that group, so they stay in screen pixels as the map zooms.
  */
-export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSelect, ring = null, dots = null, onPickBooth, pickedBooth = null, railOpen = false }: Props) {
+export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSelect, ring = null, dots = null, onPickBooth, pickedBooth = null, railOpen = false, rest = false }: Props) {
   const pal = usePalette()
   const fx = useFx()
   // Phones show one Victoria map the reader pinches and pans (ADR 0032, VE-217); the Melbourne close-up is gone.
@@ -151,6 +160,10 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
     let h = 0
     let rawH = 0
     let railPx = 0
+    // VE-235: the room kept below the picture at rest (0 when not at rest), the height currently applied, and whether the resting layout is wanted.
+    let restOn = false
+    let restPx = 0
+    let applied = 0
     // Moved by a person (so a resize keeps their view) or still at the opening fit (so a resize refits).
     let touched = false
     let loading = -1
@@ -161,10 +174,56 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
     // What the seat sheet and the floating "i" cover on a phone; null on a desktop, where nothing is framed round them.
     const phoneMq = typeof matchMedia === 'function' ? matchMedia(PHONE) : null
     const sidewaysMq = typeof matchMedia === 'function' ? matchMedia(PHONE_SIDEWAYS) : null
+    // VE-235: the resting layout is for phone widths only (the width a lens opens on Hex at), not portrait tablets.
+    const restMq = typeof matchMedia === 'function' ? matchMedia(REST_PHONE) : null
     const phoneInset = (): Inset | null => {
       if (!phoneMq?.matches) return null
       if (sidewaysMq?.matches) return { top: FLOAT_ROW_PX, right: Math.min(SHEET_SIDE_PX, w / 2), bottom: 0, left: 0 }
       return { top: FLOAT_ROW_PX, right: 0, bottom: Math.round(h * SHEET_SHARE), left: 0 }
+    }
+    // VE-235: at rest on a portrait phone the camera is only as tall as Victoria plus a View row's height above and below, so the
+    // state sits top-aligned under the View row (the width-bound fit is centred in that short box) and the rest of the pane is
+    // left for the closest seats. Moving the map (a drag, pinch or zoom) gives the room back, keeping the picture where it is.
+    function restReserve(ww: number, hh: number): number {
+      const wd = world()
+      if (!restOn || touched || !wd || ww <= 0 || hh <= 0 || !restMq?.matches || sidewaysMq?.matches) return 0
+      const vh = wd.h / ((wd.w * (1 + 2 * FIT_PAD)) / ww)
+      // A little more than the View row above and below: touch screens snap a tap near a button onto it, and Mildura sits right under View.
+      const restH = Math.round(vh + 2 * (FLOAT_ROW_PX + REST_TOP_GAP_PX))
+      return restH < hh - REST_MIN_ROOM_PX ? hh - restH : 0
+    }
+    // The camera height from the rail's cover (wins while the list is open) or the resting room, and where Victoria's foot sits for the cards.
+    function syncH() {
+      restPx = railPx > 0 ? 0 : restReserve(w, rawH)
+      applied = railPx > 0 ? railPx : restPx
+      h = rawH - applied
+      const wd = world()
+      const box = containerRef.current
+      if (!box) return
+      if (restPx > 0 && wd) {
+        const fc = fitCam(wd, w, h)
+        box.dataset.restBottom = String(Math.round(toScreen(fc, w, h, wd.e0, wd.n0 - wd.h)[1]))
+      } else delete box.dataset.restBottom
+    }
+    function markTouched() {
+      touched = true
+      if (restPx > 0 && cam) {
+        const before = h
+        syncH()
+        if (h !== before) cam = clamp({ ...cam, cy: cam.cy - ((h - before) / 2) * cam.res })
+        apply()
+      }
+    }
+    // The cover changed (the list opened or closed, or the resting layout came or went): refit if untouched, else keep the top left where it is.
+    function relayout() {
+      if (rawH <= 0 || !cam || !world()) return
+      const before = h
+      const was = applied
+      syncH()
+      if (applied === was) return
+      if (!touched) fit(300)
+      else set(clamp({ ...cam, cy: cam.cy - ((h - before) / 2) * cam.res }))
+      settle()
     }
     const marks = () => svg.querySelectorAll<SVGGElement>('g.world')
 
@@ -257,11 +316,13 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
       const wd = world()
       if (!wd || w <= 0) return
       touched = false
+      syncH()
       goTo(fitCam(wd, w, h), ms)
     }
     const init = () => {
       const wd = world()
       if (cam || !wd || w <= 0) return
+      syncH()
       set(fitCam(wd, w, h))
       settle()
       container.dataset.ready = 'true'
@@ -281,12 +342,12 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
       zoomBy(factor) {
         const wd = world()
         if (!wd || !cam) return
-        touched = true
+        markTouched()
         goTo(zoomAbout(cam, factor, w / 2, h / 2, w, h), 220)
       },
       show(box) {
         if (!cam || w <= 0) return
-        touched = true
+        markTouched()
         goTo(frame(box, w, h, 0), 450)
       },
       rail(open, lit) {
@@ -300,20 +361,20 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
         const px = open && portrait && list ? Math.round(railCover(container.getBoundingClientRect(), listTop)) : 0
         if (rawH <= 0 || !cam || !wd) return
         if (px !== railPx) {
-          const before = h
           railPx = px
-          h = rawH - px
-          if (!touched) fit(300)
-          // A map the reader has moved keeps its top left where it is, as a resize does.
-          else set(clamp({ ...cam, cy: cam.cy - ((h - before) / 2) * cam.res }))
-          settle()
+          relayout()
         }
         // Close seats or Changing hands light some seats: frame them above the list (the same maths as a tapped seat).
         const box = open && px > 0 ? unionBox(lit) : null
         if (box) {
-          touched = true
+          markTouched()
           goTo(frameSeat({ box, world: wd, W: w, H: h, inset: NO_INSET, cam }), FRAME_MS)
         }
+      },
+      rest(on) {
+        if (restOn === on) return
+        restOn = on
+        relayout()
       },
       frameSeat(box) {
         const wd = world()
@@ -322,7 +383,7 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
         const to = frameSeat({ box, world: wd, W: w, H: h, inset, cam })
         // Already closer in with the seat in view: the map stays where the reader left it.
         if (to === cam) return true
-        touched = true
+        markTouched()
         goTo(to, FRAME_MS)
         return true
       },
@@ -347,7 +408,8 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
     if (apiRef) {
       apiRef.current = {
         camera: () => {
-          if (cam && w > 0) last = { cx: cam.cx, cy: cam.cy, resolution: cam.res, units: 'vicgrid' }
+          // The overlay reads the camera as looking through the whole pane, so a shortened camera (list open, resting layout) is moved to the pane's centre.
+          if (cam && w > 0) last = { cx: cam.cx, cy: cam.cy - ((rawH - h) / 2) * cam.res, resolution: cam.res, units: 'vicgrid' }
           return last
         },
         fit: () => fit(300),
@@ -361,7 +423,7 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
     const watch = new ResizeObserver(() => {
       const nw = container.clientWidth
       rawH = container.clientHeight
-      const nh = rawH - railPx
+      const nh = rawH - (railPx > 0 ? railPx : restReserve(nw, rawH))
       if (nw <= 0 || nh <= 0) return
       setSize({ w: nw, h: rawH })
       const hadSize = seenW > 0
@@ -369,7 +431,8 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
       const dw = nw - seenW
       const dh = nh - seenH
       seenW = w = nw
-      seenH = h = nh
+      seenH = nh
+      syncH()
       if (!cam) {
         init()
         return
@@ -434,7 +497,7 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
           svg.setPointerCapture(e.pointerId)
           svg.classList.add('is-dragging')
         }
-        touched = true
+        markTouched()
         moving()
         set(clamp(panBy(cam, p.x - prev.x, p.y - prev.y)))
         container.dataset.fitted = 'pending'
@@ -446,7 +509,7 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
         // The midpoint's own drift pans, the change in spread zooms about the midpoint.
         const others = [...down.entries()].find(([id]) => id !== e.pointerId)![1]
         const pm = { x: (prev.x + others.x) / 2, y: (prev.y + others.y) / 2 }
-        touched = true
+        markTouched()
         moving()
         let next = panBy(cam, mx - pm.x, my - pm.y)
         if (pinch.d > 0 && d > 0) next = zoomAbout(next, d / pinch.d, mx, my, w, h)
@@ -479,7 +542,7 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
       // A trackpad pinch arrives as ctrl + wheel with small deltas, so it gets a bigger gain.
       const k = Math.exp((-e.deltaY * unit * (e.ctrlKey ? 0.01 : 0.0018)))
       const p = local(e)
-      touched = true
+      markTouched()
       moving()
       set(clamp(zoomAbout(cam, k, p.x, p.y, w, h)))
       window.clearTimeout(settleTimer)
@@ -534,6 +597,12 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
       tint.style.opacity = '0'
     }
   }, [fx, animateTint, seats, pal, tier])
+
+  // VE-235: the resting layout is for a phone at rest only; a picked seat or the sheet (selected) ends it, as the list does.
+  const restWanted = rest && selected === null
+  useEffect(() => {
+    ctl.current?.rest(restWanted)
+  }, [restWanted, tier])
 
   // VE-227 (finding 2): an open Seats list covers the map's lower part; the map refits above it. A picked seat's sheet takes the
   // list's place, so it counts as closed then (and the full pane is back before the seat is framed, below). The lit seats are

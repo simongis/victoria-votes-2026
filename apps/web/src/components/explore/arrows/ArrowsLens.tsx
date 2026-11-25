@@ -11,7 +11,8 @@ import type { LensProps } from '../lenses'
 import { LensBar } from '../LensBar'
 import { Shape } from '../Shape'
 import { hexView, mapView, useSize } from '../stageGeom'
-import { biggestMover, fpMovers, moversSentence, type Mover } from '../../lenspanel/swing'
+import { biggestMover, fpMovers, type Mover } from '../../lenspanel/swing'
+import { fpChangeLine } from '../../swing/fpChange'
 import { partyCss } from '../../../views/encoding'
 import { useFp2022 } from './fp2022'
 import { pointsAttr, taperArrow, type Taper } from './taper'
@@ -133,6 +134,7 @@ export default function ArrowsLens({ seats, statics, mode, title, onMode }: Lens
         onMode={onMode}
         info={
           <InfoButton label="About the swing arrows" align="right">
+            <p>Tap or hover a seat for how each party's first preferences changed since the last election, then the two-candidate swing where there is one. A new party shows as new, not as a gain.</p>
             <p>An arrow points toward Labor (red) or toward the Coalition (blue, Liberal or National). Longer means a bigger swing in the two-candidate vote since the last election.</p>
             <p>Arrows are for seats where the top two after preferences are Labor and a Coalition party, shown once {SWING_MIN_PCT}% of the seat is counted, because early booths mislead. A ring means too early.</p>
             <p>Where another party is in the top two (One Nation included), a party-coloured triangle shows who gained or lost most first-preference votes since the last election: up for a gain, down for a loss, as the ABC does. A dot means another pairing, so there is no swing to compare.</p>
@@ -180,14 +182,21 @@ export default function ArrowsLens({ seats, statics, mode, title, onMode }: Lens
         )}
         {active !== null && activeMark && (
           <div className="arrows__pill" role="status" data-testid="arrows-pill">
+            {/* VE-234: the first-preference change leads, in every seat; the two-candidate sentence follows. */}
+            {fpChangeLine(activeMark.seat, fp) && <b className="arrows__fp" data-testid="arrows-pill-fp">{fpChangeLine(activeMark.seat, fp)}. </b>}
             {markSentence(activeMark)}
-            {activeMark.kind === 'other' && (movers.get(activeMark.seat.id)?.length ?? 0) > 0 ? ` ${moversSentence(movers.get(activeMark.seat.id)!, activeMark.seat.baseNote || 'the last election')}` : ''}
             {sticky !== null && hover === null ? ' Tap again to clear.' : ''}
           </div>
         )}
       </div>
 
       <ul className="arrows__legend" aria-label="Key">
+        {anyMover && (
+          <li data-testid="arrows-legend-mover">
+            <svg width="14" height="14" viewBox="-7 -7 14 14" aria-hidden focusable="false"><polygon points="0,-5 5,5 -5,5" fill="var(--color-text-subtle)" /></svg>
+            Biggest vote change
+          </li>
+        )}
         <li>
           <svg width="34" height="18" viewBox="0 0 34 18" aria-hidden focusable="false">
             <g transform="translate(29 14)"><ArrowShape len={5 * 4.5} toward="ALP" halo={paper} /></g>
@@ -215,12 +224,6 @@ export default function ArrowsLens({ seats, statics, mode, title, onMode }: Lens
           <svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden focusable="false"><Dot kind="other" /></svg>
           Not Labor v Coalition
         </li>
-        {anyMover && (
-          <li data-testid="arrows-legend-mover">
-            <svg width="14" height="14" viewBox="-7 -7 14 14" aria-hidden focusable="false"><polygon points="0,-5 5,5 -5,5" fill="var(--color-text-subtle)" /></svg>
-            Biggest vote change
-          </li>
-        )}
       </ul>
     </div>
   )

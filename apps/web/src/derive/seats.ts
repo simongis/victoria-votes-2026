@@ -122,10 +122,12 @@ function fpShares(r: DistrictHistoryRow): FpShare[] {
 
 /**
  * The seat's leader at one tick: the 2CP leader, else the first-preference leader, as ingest does, so the tally agrees
- * with the status table. A declared seat takes the same leader for now. VE-225 seam: this is the one place a declared
- * seat's winner is chosen, so a declared-winner field points here when the contract carries one.
+ * with the status table. A declared seat prefers the VEC's Elected winner (ADR 0034), which the two-candidate pair can
+ * miss; when the row has none (the districts layer's flag is merged in by winners.ts, ADR 0036) it falls back to that
+ * same leader, so a declared seat is never left without a party just because a field is missing.
  */
 function leaderOf(r: DistrictHistoryRow): PartyBucket | null {
+  if (r.status === 'declared' && r.elected_party) return r.elected_party
   const withheld = r.tcp_withheld === true
   return !withheld && r.tcp_party_a !== null ? r.tcp_party_a : r.lead_party
 }
@@ -181,7 +183,8 @@ export function seatFromHistory(r: DistrictHistoryRow, st: DistrictStatic, tcpVo
   if (declared) stillToCount = 0
   const close = !declared && (withheld || (r.tcp_pct_a !== null && r.tcp_pct_a < IN_DOUBT_TCP_PCT))
   const noPrefs = !declared && !withheld && r.tcp_pct_a === null && counted
-  const state: SeatState = leader === null ? 'none' : declared ? 'won' : firm ? 'firm' : 'leading'
+  // A declared seat is Won; its party comes from the Elected flag or the 2CP fallback (ADR 0036).
+  const state: SeatState = declared ? 'won' : leader === null ? 'none' : firm ? 'firm' : 'leading'
   const likely = state === 'leading' && tcp !== null && (r.pct_counted ?? 0) >= LIKELY_FROM_PCT && tcp.pctA >= LIKELY_MIN_TCP_PCT && prefsEnough
 
   return {

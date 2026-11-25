@@ -358,3 +358,34 @@ describe('panelLeadLine (finding 4)', () => {
     expect(panelLeadLine(seatFromHistory(row({ tcp_withheld: true, tcp_party_a: null, tcp_party_b: null, tcp_pct_a: null }), st()), null, null)).toBeNull()
   })
 })
+
+describe('declared winner (ADR 0034)', () => {
+  const declaredRow = (over: Partial<DistrictHistoryRow> = {}) =>
+    row({ status: 'declared', tcp_party_a: 'LIB', tcp_party_b: 'ALP', tcp_pct_a: 51, lead_party: 'LIB', ...over })
+
+  it('names the Elected party, not the two-candidate leader, which can be on the wrong pair', () => {
+    const s = seatFromHistory(declaredRow({ elected_party: 'ALP' }), st())
+    expect(s.state).toBe('won')
+    expect(s.leader).toBe('ALP')
+  })
+
+  it('ADR 0036: a declared seat with no Elected flag falls back to the two-candidate leader and counts for them', () => {
+    const s = seatFromHistory(declaredRow({ elected_party: null }), st())
+    expect(s.state).toBe('won')
+    expect(s.leader).toBe('LIB')
+    const t = tallyOf(new Map([[1, s]]))
+    expect(t.firm.LIB + t.leading.LIB).toBe(1)
+    // A row from a view without the field is the same.
+    expect(seatFromHistory(declaredRow({ elected_party: undefined as never }), st()).leader).toBe('LIB')
+  })
+
+  it('falls back to the first-preference leader when the two-candidate count is withheld, never to nobody', () => {
+    const s = seatFromHistory(declaredRow({ elected_party: null, tcp_withheld: true, tcp_party_a: null, tcp_party_b: null, tcp_pct_a: null, lead_party: 'GRN' }), st())
+    expect(s.leader).toBe('GRN')
+  })
+
+  it('an undeclared seat is unaffected by elected_party', () => {
+    const s = seatFromHistory(row({ elected_party: 'GRN' }), st())
+    expect(s.leader).toBe('ALP')
+  })
+})

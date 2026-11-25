@@ -5,7 +5,7 @@ import type { Position } from './data/types'
 import { DistrictPanelHost } from './components/DistrictPanel'
 import { ExploreLayer } from './components/explore/ExploreLayer'
 import { captionCounts, classifySeat } from './derive/arrows'
-import { LENSES } from './components/explore/lenses'
+import { LENSES, lensStartMode } from './components/explore/lenses'
 import { lensReady } from './components/explore/ready'
 import { HexInset } from './components/inset/HexInset'
 import { VIC_OUTLINE_PATH, VIC_OUTLINE_VIEWBOX } from './components/map/vicOutline'
@@ -294,7 +294,7 @@ export function App() {
       // A link needs only something to show (one arrow or level bar); the Trust chip's ten-seat bar is for offering the lens (FB-148).
       ready: pendingLink.link.lens === 'arrows' ? captionCounts([...seats.values()].map((x) => classifySeat(x, statics?.districtById.get(x.id)))).ready > 0 : lensReady(pendingLink.link.lens, seats),
       loaded,
-      defaultMode: def?.defaultMode ?? 'map',
+      defaultMode: lensStartMode(def),
     })
     if (out === 'wait') return
     // A one-off hand-over once outside data (results, night) has arrived, so it has to be an effect.
@@ -681,7 +681,7 @@ export function App() {
               <main ref={panesRef} className={`panes${fade ? ` panes--fade-${fade}` : ''}`}>
                 {/* Both shapes fill the one stage and only the chosen one shows, so a morph is the same rect to the same rect. */}
                 <section className="pane pane--map" aria-label="Map" data-active={view.shape === 'map'} data-leaving={leaving === 'map'}>
-                  <MapPane apiRef={mapApi} districts={statics.districts} seats={seats} paints={placesOn ? quietPaints : paints} certainty={view.colour === 'certainty' && !placesOn} selected={view.selected} pop={pop} onSelect={select} ring={ringId} dots={placesOn ? (dots ?? []) : null} onPickBooth={pickDot} pickedBooth={boothPanel ? view.booth : null} railOpen={railOpen && !lensOpen} />
+                  <MapPane apiRef={mapApi} districts={statics.districts} seats={seats} paints={placesOn ? quietPaints : paints} certainty={view.colour === 'certainty' && !placesOn} selected={view.selected} pop={pop} onSelect={select} ring={ringId} dots={placesOn ? (dots ?? []) : null} onPickBooth={pickDot} pickedBooth={boothPanel ? view.booth : null} railOpen={railOpen && !lensOpen} rest={view.shape === 'map' && !placesOn && !lensOpen} />
                 </section>
                 <section className="pane pane--seats" aria-label="Hex" data-active={view.shape === 'hex'} data-leaving={leaving === 'hex'}>
                   <SeatsPane seatHexes={statics.seatHexes} seats={seats} paints={paints} colour={view.colour} certainty={view.colour === 'certainty'} selected={view.selected} pop={pop} onSelect={select} ring={ringId} />
@@ -732,7 +732,7 @@ export function App() {
                 off={chipsOff}
                 places={placesOffered ? { on: placesOn, onPick: pickPlaces, parties: placeParties } : undefined}
               />
-              <ClosestSeats seats={seats} countedPct={tick?.countedPct ?? 0} final={allWon} party={gainsParty} active={view.shape === 'hex' && !placesOn && !lensOpen} ring={ringId} onRing={setRingId} onSelect={select} />
+              <ClosestSeats seats={seats} countedPct={tick?.countedPct ?? 0} final={allWon} party={gainsParty} active={!placesOn && !lensOpen} ring={ringId} onRing={setRingId} onSelect={select} />
               {placesOn && sv.dataLabel && (
                 <p className="places-marker" role="note" data-testid="places-marker" data-short={sv.dataLabel}>{notLiveMarker(sv.dataLabel)}</p>
               )}

@@ -153,6 +153,10 @@ export interface DistrictHistoryRow extends FpVotes {
   tcp_withheld: boolean | null;
   changed_hands: boolean | null;
   status: DistrictStatus;
+  // ADR 0034: the VEC's Elected flag names a declared winner; the 2CP leader can be on the wrong pair.
+  elected_party: PartyBucket | null;
+  // ADR 0034: votes counted after preferences, so ADR 0033's half-counted rule can be applied per tick.
+  tcp_total: number | null;
 }
 
 export interface BoothHistoryRow extends FpVotes {
@@ -397,6 +401,8 @@ export const LAYERS = {
       f("tcp_withheld", "bool"),
       f("changed_hands", "bool"),
       f("status", "string", false),
+      f("elected_party", "string"), // ADR 0034
+      f("tcp_total", "int"), // ADR 0034
     ],
   },
   booth_history: {

@@ -4,7 +4,7 @@ import type { Statics } from '../../data/types'
 import type { Seat } from '../../derive/seats'
 import { COUNTED_LENS_FINAL_TITLE, isFinal } from '../../derive/turnout'
 import type { ExploreMode, ExploreState } from '../../state/view'
-import { LENSES, questionOf, type LensDef, type LensProps } from './lenses'
+import { LENSES, questionOf, lensStartMode, type LensDef, type LensProps } from './lenses'
 import type { OneNationExtras } from './one-nation/OneNationLens'
 import type { SimilarExtras } from './similar/SimilarLens'
 import { markPeekIntroSeen, peekIntroDue, readPeek, writePeek, type PeekState } from './pref'
@@ -145,7 +145,7 @@ export function ExploreLayer({ seats, statics, explore, onExplore, rewinding, on
 
   const openLens = (id: string) => {
     setSheet(false)
-    onExplore({ lens: id, mode: lensById(id)?.defaultMode ?? 'map' })
+    onExplore({ lens: id, mode: lensStartMode(lensById(id)) })
   }
   const showSeat = useCallback(
     (id: number) => {

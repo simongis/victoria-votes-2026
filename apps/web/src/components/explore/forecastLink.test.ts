@@ -131,9 +131,10 @@ describe('forecastHref', () => {
     expect(forecastHref(base, null)).toBe(base)
     expect(forecastHref(base, undefined)).toBe(base)
   })
-  it('ends with #seat=<slug> for a seat', () => {
-    expect(forecastHref(base, 'Albert Park')).toBe('https://forecast.example/#seat=albert-park')
-    expect(forecastHref('https://forecast.example/vic/', 'St Albans')).toBe('https://forecast.example/vic/#seat=st-albans')
+  // VE-236: the forecast site ignores #seat= on its statewide tab, so a seat link opens the modelling tab with the seat shown.
+  it('opens the modelling tab with #seat=<slug> for a seat', () => {
+    expect(forecastHref(base, 'Albert Park')).toBe('https://forecast.example/?tab=modelling#seat=albert-park')
+    expect(forecastHref('https://forecast.example/vic/', 'St Albans')).toBe('https://forecast.example/vic/?tab=modelling#seat=st-albans')
   })
 })
 

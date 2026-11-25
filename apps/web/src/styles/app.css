@@ -1008,6 +1008,10 @@
   .closest__name { font-size: 14px; line-height: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .closest__line { font-size: 13px; line-height: 18px; color: var(--color-text-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+/* VE-235: the Map's resting layout (phone width only, as MapPane's rest) puts the key under Victoria too. */
+@media (max-width: 699px) and (orientation: portrait) {
+  .app[data-shape="map"] .stage[data-hexfit] > .colour-chips { top: var(--hex-bottom); bottom: auto; }
+}
 @media (min-width: 1024px), (orientation: landscape) { .closest { display: none; } }
 
 /* VE-227 (finding 6): Victoria's outline while the stage loads, so the screen is not blank paper. */
