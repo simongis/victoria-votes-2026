@@ -14,6 +14,7 @@ import {
 import { createAgolBoothSource, timestampLiteral } from './boothSource'
 import { parsePointer, pointerIsStale } from './latestPointer'
 import { fetchJsonOverHttp, type FetchJson } from './replaySource'
+import { enrolmentByDistrict, statewidePct } from '../derive/enrolment'
 import { withDistrictWinners } from '../derive/winners'
 import type { ResultsSource } from './source'
 import type { GeoCollection, SeatHexStatic, Statics, Tick, Timeline } from './types'
@@ -143,7 +144,10 @@ export function createAgolSource({
         return { ticks: [], rows: [] }
       }
       const statics = await this.statics()
-      const enrolment = [...statics.districtById.values()].reduce((a, d) => a + (d.enrolment ?? 0), 0)
+      // VE-247: the layer's static enrolment is the 2022 baseline, so the statewide figure uses each seat's 2026 enrolment
+      // worked back from its own pct_counted (votes-weighted), and the newest tick takes the status row's votes_counted_pct
+      // itself when it is for the same snapshot, so the headline cannot differ from what ingest published.
+      const enrolment = enrolmentByDistrict(all, statics.districtById.values())
       const bySnapshot = new Map<string, DistrictHistoryRow[]>()
       for (const r of all) {
         const list = bySnapshot.get(r.snapshot_id)
@@ -163,13 +167,17 @@ export function createAgolSource({
           /* keep the history rows */
         }
       }
+      const status = lastRow
       const ticks: Tick[] = groups.map((g) => ({
         snapshotId: g[0]!.snapshot_id,
         snapshotAt: g[0]!.snapshot_at,
-        countedPct: enrolment > 0 ? (100 * g.reduce((a, r) => a + (r.fp_total ?? 0), 0)) / enrolment : 0,
+        countedPct:
+          status && status.snapshot_id === g[0]!.snapshot_id && typeof status.votes_counted_pct === 'number'
+            ? status.votes_counted_pct
+            : statewidePct(g, enrolment),
         synthetic: false,
       }))
-      return { ticks, rows: groups }
+      return { ticks, rows: groups, enrolment }
     },
 
     async candidates(snapshotId: string, districtId: number) {

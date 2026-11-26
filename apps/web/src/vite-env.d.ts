@@ -9,4 +9,6 @@ interface ImportMetaEnv {
   readonly VITE_LATEST_URL?: string
   /** VE-200: an outside forecast site (https). Empty hides the Polling model card in the Explore sheet. */
   readonly VITE_FORECAST_URL?: string
+  /** VE-254: the words after "Replay:" on the marker and in the "i" sheet (dev server only; empty means the default "2022, not live"). */
+  readonly VITE_REPLAY_LABEL?: string
 }

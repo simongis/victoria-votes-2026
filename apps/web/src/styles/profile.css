@@ -1,11 +1,12 @@
 /* VE-68 district profile: tokens only, so it follows the theme. */
 .pf { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--color-border); }
 .pf--loading { min-height: 96px; }
-.pf-head { display: flex; align-items: center; gap: 8px; }
+/* VE-254: wraps, so the "i" drops to its own line instead of running past the panel edge when the panel is narrow (1024 to 1440 px wide). */
+.pf-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .pf-head__label { font-size: var(--text-sm); color: var(--color-text);  white-space: nowrap; }
 .pf-head__fig { font-size: var(--text-xl); color: var(--color-text); font-variant-numeric: tabular-nums; }
 .pf-pop { margin: -2px 0 0; font-size: var(--text-xs); color: var(--color-text-subtle); }
-.pf-info { margin-left: auto; }
+.pf-info { margin-left: auto; flex: none; }
 .pf-info__small { font-size: var(--text-xs); color: var(--color-text-subtle); }
 .pf-spark { display: block; overflow: visible; }
 .pf-spark polyline { fill: none; stroke: var(--color-text-subtle); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }

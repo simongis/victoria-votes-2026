@@ -1,6 +1,8 @@
 /**
  * The band's headline (ADR 0023, option C): who leads whom and what the leader needs, written from the
- * same tally the bar draws. It reports leads and never calls government (a lead is not a VEC result). Pure: the band
+ * same tally the bar draws. It reports leads and never calls government (a lead is not a VEC result). VE-257: only seats
+ * the VEC has declared can say "has a majority" (45 declared for one side); a seat we call "won or certain" never counts.
+ * Pure: the band
  * sets each side's name in party colour so the words, the bar and the map read as one picture.
  */
 import type { PartyBucket } from '@vic26/schema'
@@ -35,12 +37,13 @@ export function declaredOf(seats: Iterable<Seat>): Record<PartyBucket, number> {
 
 /**
  * `countedPct` is the statewide share of enrolment counted; below HEADLINE_MIN_PCT no leader is named (null skips the test).
- * `declared` is the VEC-declared wins by party. "Has won" needs every one of the leader's seats declared, a majority,
- * and nothing in doubt; otherwise the headline says "leads".
+ * `declared` is the VEC-declared wins by party (declaredOf), always the real counts. `final` is true only when every
+ * seat is declared (allDeclared); "has won" and the no-majority result need it plus nothing in doubt. Before that, a side with
+ * 45 or more declared "has a majority"; anything less is a lead. `final` defaults to false so a caller can never say "won" by omission.
  */
-export function headlineParts(t: Tally, inDoubt: number, declared: Record<PartyBucket, number> = ZERO, countedPct: number | null = null): HeadlinePart[] {
+export function headlineParts(t: Tally, inDoubt: number, declared: Record<PartyBucket, number> = ZERO, countedPct: number | null = null, final = false): HeadlinePart[] {
   const sides = sideTotals(t)
-  const finished = isFinished(t, inDoubt, declared)
+  const finished = final && isFinished(t, inDoubt, declared)
   const ranked = [...SIDES].sort((a, b) => sides[b].all - sides[a].all)
   const first = ranked[0]!
   const second = ranked[1]!
@@ -65,13 +68,15 @@ export function headlineParts(t: Tally, inDoubt: number, declared: Record<PartyB
     if (n === sides[second].all) return [name(first), { text: ' and ' }, name(second), { text: ` won ${n} seats each.${noMajority}` }]
     return [name(first), { text: ` won ${seats(n)} and ` }, name(second), { text: ` ${sides[second].all}.${noMajority}` }]
   }
+  const sideDeclared = declaredFor(first, declared)
+  // VE-257: 45 declared for one side is a majority (45 + 45 > 88, so only the leader can have it). Before Final that is all we say.
+  if (!finished && sideDeclared >= MAJORITY) return [name(first), { text: ` ${v('has', 'have')} a majority: ${seats(sideDeclared)} declared.` }]
   if (n === sides[second].all) return [name(first), { text: ' and ' }, name(second), { text: ` level on ${seats(n)}. Each needs ${more}` }, tail()]
   if (n >= MAJORITY) {
     const over = n - MAJORITY
-    const sideDeclared = declaredFor(first, declared)
     const margin = over === 0 ? `exactly the ${MAJORITY}` : `${over} more than the ${MAJORITY}`
     // Past tense once won: the 45 was what it needed, not what it needs (VE-167).
-    if (inDoubt === 0 && sideDeclared === n) return [name(first), { text: ` ${v('has', 'have')} won ${seats(n)}, ${margin} ${v('it', 'they')} needed.` }]
+    if (finished && sideDeclared === n) return [name(first), { text: ` ${v('has', 'have')} won ${seats(n)}, ${margin} ${v('it', 'they')} needed.` }]
     return [name(first), { text: ` ${v('leads', 'lead')} in ${seats(n)}, ${margin} ${v('it needs', 'they need')}` }, tail()]
   }
   return [name(first), { text: ` ${v('leads', 'lead')} ` }, name(second), { text: ` by ${seats(n - sides[second].all)}. ${v('It needs', 'They need')} ${more}` }, tail()]
@@ -116,7 +121,7 @@ export function legibleOn(c: Rgb, ground: Rgb): Rgb {
  * government) in fewer words: no majority and no "could still change", because the tally's 45 mark and the in-doubt
  * button beside it already say those.
  */
-export function shortHeadlineParts(t: Tally, inDoubt: number, declared: Record<PartyBucket, number> = ZERO, countedPct: number | null = null): HeadlinePart[] {
+export function shortHeadlineParts(t: Tally, inDoubt: number, declared: Record<PartyBucket, number> = ZERO, countedPct: number | null = null, final = false): HeadlinePart[] {
   const sides = sideTotals(t)
   const ranked = [...SIDES].sort((a, b) => sides[b].all - sides[a].all)
   const first = ranked[0]!
@@ -130,9 +135,13 @@ export function shortHeadlineParts(t: Tally, inDoubt: number, declared: Record<P
   const name = (s: Side): HeadlinePart => ({ text: SIDE_NAMES[s], side: s })
   const n = sides[first].all
   // VE-153: at Final the phone line says "won", with or without a majority (the tally's 45 mark shows whether there is one).
-  if (n < MAJORITY && isFinished(t, inDoubt, declared) && n !== sides[second].all) return [name(first), { text: ` won ${n} of ${SEATS}` }]
-  if (n === sides[second].all) return [name(first), { text: ' and ' }, name(second), { text: ` level on ${n}` }]
-  const won = n >= MAJORITY && inDoubt === 0 && declaredFor(first, declared) === n
+  const finished = final && isFinished(t, inDoubt, declared)
+  if (n < MAJORITY && finished && n !== sides[second].all) return [name(first), { text: ` won ${n} of ${SEATS}` }]
   const v = (one: string, many: string) => agree(SIDE_NAMES[first], one, many)
+  // VE-257: 45 declared for one side says "has a majority" (before Final); a "won or certain" seat is not declared and never counts.
+  const sideDeclared = declaredFor(first, declared)
+  if (!finished && sideDeclared >= MAJORITY) return [name(first), { text: ` ${v('has', 'have')} a majority: ${sideDeclared} declared` }]
+  if (n === sides[second].all) return [name(first), { text: ' and ' }, name(second), { text: ` level on ${n}` }]
+  const won = n >= MAJORITY && finished && sideDeclared === n
   return [name(first), { text: ` ${won ? `${v('has', 'have')} won` : `${v('leads', 'lead')} in`} ${n} of ${SEATS}` }]
 }

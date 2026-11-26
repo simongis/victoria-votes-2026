@@ -3,9 +3,11 @@ import { IN_DOUBT_TCP_PCT, type PartyBucket } from '@vic26/schema'
 import { FIRM_RULE, MAJORITY, SEATS, SIDE_NAMES, headlineOf, sideTotals, type Seat, type Side, type Tally } from '../derive/seats'
 import { DOUBT, focusDetail, focusName, focusSummary, parseFocus, type Focus, type FocusPart } from '../derive/focus'
 import { OTHERS_KEY, keyOthers } from '../derive/tallyKey'
+import { noPreferencesYet } from '../derive/closest'
 import { HEADLINE_MIN_PCT, declaredOf, headlineParts, headlineText, legibleOn, shortHeadlineParts } from '../derive/headline'
 import { DECLARED_NOTICE, PROVISIONAL_NOTICE } from '../footer'
 import { PARTY_NAMES } from '../parties'
+import { REPLAY_LABEL } from '../replayLabel'
 import { css, usePalette } from '../theme/theme'
 import { countedShare, countedWord } from '../derive/turnout'
 import { LEAD_STEP_WORDS, allDeclared, leadStep, partyCss, stepRgb, type LeadStep } from '../views/encoding'
@@ -111,12 +113,14 @@ function Count({ value, testId }: { value: number; testId?: string }) {
 }
 
 /** The "i": how to read the colours and the counts, and where the figures came from (ADR 0017: the attribution lives here). */
-export function ReadingKey({ sourceNote, className, pollNote, colourInfo, holding, final }: { sourceNote: string | null; /** Every seat is declared (VE-166): no tick is drawn, so the key does not explain one. */ final?: boolean; className?: string; /** VE-149: the holding page has no results to read, so only the notice, source and settings show. */ holding?: boolean; /** What the stage colour means (VE-141): first in the sheet, so there is one "i", not two. */ colourInfo?: ReactNode; /** The quiet poll note (VE-54): set while retrying or on the backup check. */ pollNote?: string | null }) {
+export function ReadingKey({ sourceNote, className, pollNote, colourInfo, holding, final, dataLabel }: { sourceNote: string | null; /** VE-254 (F7): the marker beside the title (Replay, Trial); the sheet says in a line what it means, because the phone marker is short. */ dataLabel?: string | null; /** Every seat is declared (VE-166): no tick is drawn, so the key does not explain one. */ final?: boolean; className?: string; /** VE-149: the holding page has no results to read, so only the notice, source and settings show. */ holding?: boolean; /** What the stage colour means (VE-141): first in the sheet, so there is one "i", not two. */ colourInfo?: ReactNode; /** The quiet poll note (VE-54): set while retrying or on the backup check. */ pollNote?: string | null }) {
   const motion = useMotion()
   // VE-144a: what left the phone's stage (the votes still to come) is the first thing in the sheet.
   const { stillLine } = usePhoneBits()
   return (
     <InfoButton label="How to read this" className={className}>
+      {dataLabel === 'Trial' && <p className="key__trial" data-testid="info-trial"><b>Trial:</b> this is test data, not real results.</p>}
+      {dataLabel === 'Replay' && <p className="key__trial" data-testid="info-replay"><b>Replay:</b> {REPLAY_LABEL}.</p>}
       {!holding && stillLine && (
         <div className="key__counts" data-testid="info-counts">
           {stillLine && <p data-testid="info-still">{stillLine}</p>}
@@ -130,7 +134,7 @@ export function ReadingKey({ sourceNote, className, pollNote, colourInfo, holdin
       {!holding && !final && (
       <ul className="key">
         <li><span className="key__tick" aria-hidden>&#10003;</span> Declared by the VEC</li>
-        <li><span className="sq sq--none" /> No result yet</li>
+        <li><span className="sq sq--none" /> No figures yet</li>
       </ul>
       )}
       {!holding && (
@@ -288,11 +292,12 @@ export function TopBand(p: TopBandProps) {
   const sum = (ps: readonly PartyBucket[], pick: (q: PartyBucket) => number) => ps.reduce((a, q) => a + pick(q), 0)
   const totalOf = (ps: readonly PartyBucket[]) => sum(ps, (q) => seatsOf(p.tally, q))
   const otherName = (q: PartyBucket, n: number): [string, string | null] =>
-    q === 'IND' ? [n === 1 ? 'Independent' : 'Independents', 'Ind'] : q === 'ONP' ? ['One Nation', 'ON'] : [PARTY_NAMES[q], null]
+    q === 'IND' ? [n === 1 ? 'Independent' : 'Independents', 'Ind'] : q === 'ONP' ? ['One Nation', 'ON'] : q === 'OTH' ? [n === 1 ? 'Other party' : 'Other parties', 'Other'] : [PARTY_NAMES[q], null]
 
   /** Coalition (and the crossbench) are bracketed: the group's name and total, then each partner. */
   const group = (f: Focus, name: string, parties: readonly PartyBucket[], testId?: string) => (
-    <span key={f} className="tl__grp" role="group" aria-label={name} data-g={f}>
+    // VE-254 (F1): the group's total is spelled out as a sum, so a reader can add it up (All others 31 = Independents 8 + Other parties 23).
+    <span key={f} className="tl__grp" role="group" aria-label={name} data-g={f} title={f === 'XB' ? `${name} ${totalOf(parties)} = ${parties.map((q) => `${otherName(q, 2)[0]} ${seatsOf(p.tally, q)}`).join(' + ')}` : undefined}>
       {chip(f, name, null, parties, totalOf(parties), { testId, head: true })}
       <span className="tl__parts">
         {parties.map((q) => {
@@ -304,17 +309,22 @@ export function TopBand(p: TopBandProps) {
   )
 
   // The headline is richer than the old one-liner only when the app is showing results; "Results offline" and the like pass through.
+  // VE-254: "has won" needs every seat declared (`declared` is allDeclared), so a seat with no results (87 of 88) never says it.
+  // VE-257: the real declared counts always go in, because 45 declared for one side says "has a majority" before Final.
+  const declaredFor = declaredOf(p.seats.values())
   const rich = p.headline === headlineOf(p.tally)
-  const bits = rich ? headlineParts(p.tally, p.inDoubt, declaredOf(p.seats.values()), p.countedPct) : [{ text: p.headline }]
+  const bits = rich ? headlineParts(p.tally, p.inDoubt, declaredFor, p.countedPct, declared) : [{ text: p.headline }]
   const pct = Math.max(0, Math.min(100, p.countedPct))
   // VE-166 (FB-194): no close-seat count before the headline names a leader; the count then is early-count noise.
   const closeShown = p.countedPct >= HEADLINE_MIN_PCT
   const closeCount = closeShown ? p.close : 0
+  // VE-254 (F5): with no count after preferences anywhere, "0 close" is not a fact, so it is not said.
+  const closeWaiting = p.close === 0 && noPreferencesYet(p.seats.values())
   const closeAria = `${closeCount} close ${closeCount === 1 ? 'seat' : 'seats'}: show them`
 
   // VE-144a: the phone's sheet handle reads the short headline and carries the in-doubt button (it left the band). Published
   // only when the text, the side or the count changes, so a tick that changes nothing re-renders nothing.
-  const shortBits = rich ? shortHeadlineParts(p.tally, p.inDoubt, declaredOf(p.seats.values()), p.countedPct) : [{ text: p.headline }]
+  const shortBits = rich ? shortHeadlineParts(p.tally, p.inDoubt, declaredFor, p.countedPct, declared) : [{ text: p.headline }]
   const shortText = headlineText(shortBits)
   const shortSide = shortBits.find((b) => b.side)?.side
   const handleCounted = `${countedShare(pct)} ${countedWord(declared)}`
@@ -338,7 +348,7 @@ export function TopBand(p: TopBandProps) {
             <span className="badge badge--replay" data-testid="data-label" title="These are not live results">
               {p.dataLabel === 'Replay' ? (
                 <>
-                  Replay<span className="badge__more">: 2022, not live</span>
+                  Replay<span className="badge__more">: {REPLAY_LABEL}</span>
                 </>
               ) : (
                 <>
@@ -384,9 +394,9 @@ export function TopBand(p: TopBandProps) {
       {/* VE-118 (FB-120): on desktop the band is a grid; the stats span the title row and the headline row, so centring them puts them at the midpoint between the band's top and the tally bar, in CSS alone. */}
       <div className="band__stats band__desk">
         <span className="band__cell" title="Votes counted as a share of enrolment (turnout, once every seat is declared)"><b><Roll value={Math.round(p.countedPct)} />%</b> {countedWord(allDeclared(p.seats.values()))}</span>
-        {closeShown && !(p.inDoubt === 0 && p.timeState === 'final') && <button type="button" className="band__cell band__cell--btn" data-testid="band-doubt" title="Close seats, out of 88: show them" aria-label={closeAria} onClick={p.onShowDoubt}><b><Roll value={p.close} /></b> close</button>}
+        {closeShown && !closeWaiting && !(p.inDoubt === 0 && p.timeState === 'final') && <button type="button" className="band__cell band__cell--btn" data-testid="band-doubt" title="Close seats, out of 88: show them" aria-label={closeAria} onClick={p.onShowDoubt}><b><Roll value={p.close} /></b> close</button>}
       </div>
-      <ReadingKey sourceNote={p.sourceNote} className="band__desk" pollNote={p.pollNote} colourInfo={p.colourInfo} final={declared} />
+      <ReadingKey sourceNote={p.sourceNote} className="band__desk" pollNote={p.pollNote} colourInfo={p.colourInfo} final={declared} dataLabel={p.dataLabel} />
       {/* VE-227 (finding 6): before the first figures the party chips would read "Labor 0, Coalition 0"; CSS hides them and keeps the bar and the 45 mark. */}
       <div className="tl" data-nofigures={p.asAt === null || undefined}>
         <div className="tl__bar" role="group" aria-label={`${aria.join(', ') || 'No figures yet'}. ${MAJORITY} seats to win.`}>
@@ -406,7 +416,7 @@ export function TopBand(p: TopBandProps) {
             const [full, short] = otherName(q, seatsOf(p.tally, q))
             return chip(q, full, short, [q], seatsOf(p.tally, q), {})
           })()}
-          {othersHeld.length > 1 && group('XB', 'Others', othersHeld)}
+          {othersHeld.length > 1 && group('XB', 'All others', othersHeld)}
           <span className="tl__fill" />
           {group('COA', 'Coalition', COALITION, 'tally-coa')}
         </div>
@@ -426,7 +436,7 @@ export function TopBand(p: TopBandProps) {
 
   /** One party's part of the bar: its solid, likely and early seats in the three tones the map uses (VE-127). The whole part picks the party. */
   function seg(x: Seg, side: 'left' | 'right'): ReactNode {
-    const name = x.party === 'IND' ? 'Independent' : PARTY_NAMES[x.party]
+    const name = x.party === 'IND' ? 'Independents' : x.party === 'OTH' ? 'Other parties' : PARTY_NAMES[x.party]
     const on = x.n > 0
     const Tag = on ? 'button' : 'span'
     // Solid sits at the outer end: first on the left, last on the right (mirrored).

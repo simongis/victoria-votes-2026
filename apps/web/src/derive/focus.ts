@@ -85,7 +85,7 @@ export const withStatus = (p: Picks, status: RailFilter | null): Picks => ({
   focus: status === 'doubt' ? DOUBT : p.focus === DOUBT ? null : p.focus,
 })
 
-const whoName = (who: FocusWho): string => (who === 'COA' ? 'Coalition' : who === 'XB' ? 'Others' : PARTY_NAMES[who])
+const whoName = (who: FocusWho): string => (who === 'COA' ? 'Coalition' : who === 'XB' ? 'All others' : PARTY_NAMES[who])
 const PART_NAMES: Record<FocusPart, string> = { strong: 'certain', pale: 'leading' }
 
 export const focusName = (f: Focus): string => {

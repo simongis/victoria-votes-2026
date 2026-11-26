@@ -3,7 +3,8 @@
 
 /* Phones keep the three steps on one line. */
 @media (max-width: 640px) {
-  .colour-key:has(.lkey__step) { flex-wrap: nowrap; }
+  /* VE-254 (F2): the steps stay on one line; "No figures yet", when shown, takes a second line rather than run off the screen. */
+  .colour-key:has(.lkey__step):not(:has(.lkey__sw--empty)) { flex-wrap: nowrap; }
 }
 
 /* VE-167: on a phone Polling places names its party colours on one line; the faint line moves behind the "i" (PlacesInfo).

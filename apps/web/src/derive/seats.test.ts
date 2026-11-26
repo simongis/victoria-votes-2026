@@ -389,3 +389,19 @@ describe('declared winner (ADR 0034)', () => {
     expect(s.leader).toBe('ALP')
   })
 })
+
+describe('VE-247: the static enrolment (2022 baseline) never reaches a shown figure', () => {
+  it('stillToCount comes from the row, so a stale static field changes nothing', () => {
+    const a = seatFromHistory(row(), st({ enrolment: 50_000 }))
+    const b = seatFromHistory(row(), st({ enrolment: 7 }))
+    expect(b.stillToCount).toBe(a.stillToCount)
+    expect(a.stillToCount).toBe(Math.round(50_000 * 0.9 * 0.95 - 20_000 * 0.95))
+  })
+  it('a seat with nothing counted and no enrolment supplied has no estimate (a dash), not one built on the static field', () => {
+    expect(seatFromHistory(row({ fp_total: 0, pct_counted: 0 }), st({ enrolment: 50_000 })).stillToCount).toBeNull()
+  })
+  it('seatsFromRows takes the supplied 2026 enrolment for a seat that has not reported', () => {
+    const seats = seatsFromRows([row({ fp_total: 0, pct_counted: 0 })], [st({ enrolment: 7 })], new Map([[1, 50_000]]))
+    expect(seats.get(1)!.stillToCount).toBe(Math.round(50_000 * 0.9 * 0.95))
+  })
+})

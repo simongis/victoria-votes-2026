@@ -26,13 +26,13 @@ export const PARTY_NAMES: Record<PartyBucket, string> = {
   GRN: 'Greens',
   ONP: 'One Nation',
   IND: 'Independent',
-  OTH: 'Other',
+  OTH: 'Other party',
 }
 
 /**
  * VE-226 (finding 17): names that take a plural verb in Australian usage ("the Greens lead", "the Nationals keep it").
  * Labor, Liberal, One Nation, the Coalition and a single Independent are singular.
  */
-const PLURAL_NAMES: ReadonlySet<string> = new Set(['Greens', 'Nationals', 'Independents', 'Others', 'Liberals'])
+const PLURAL_NAMES: ReadonlySet<string> = new Set(['Greens', 'Nationals', 'Independents', 'Others', 'Other parties', 'All others', 'Liberals'])
 /** The verb form that agrees with a party name: `agree('Greens', 'leads', 'lead')` is "lead". */
 export const agree = (name: string, one: string, many: string): string => (PLURAL_NAMES.has(name) ? many : one)

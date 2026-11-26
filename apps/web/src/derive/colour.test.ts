@@ -118,6 +118,16 @@ describe('certainty bands', () => {
 })
 
 describe('seatPaint', () => {
+  it('a seat with no figures is a pale hatched "empty" seat under Leader and Gains, never a flat grey that Other leaders share (VE-254, F2)', () => {
+    const none = seat({ leader: null, state: 'none', tcp: null, pct: null })
+    const p = seatPaint(none, st(), 'leader', pal, true)
+    expect(p.empty).toBe(true)
+    expect(p.rgb).toEqual([71, 71, 71]) // the no-result grey faded 70% towards the (black) paper
+    expect(seatPaint(none, st(), 'gains', pal, true).empty).toBe(true)
+    expect(seatPaint(none, st(), 'certainty', pal, true).empty).toBeUndefined()
+    expect(seatPaint(seat(), st(), 'leader', pal, true).empty).toBeUndefined()
+    expect(seatPaint(none, st(), 'leader', pal, false).empty).toBeUndefined()
+  })
   it('leader colour is the shared encoding and always sharp', () => {
     expect(seatPaint(seat(), st(), 'leader', pal, true)).toEqual({ rgb: [255, 0, 0], band: 2, lit: false, hatch: false })
   })
@@ -271,8 +281,8 @@ describe('seatPaint under Gains (VE-156)', () => {
     const shown = seat({ state: 'firm', changing: true, base: 'LIB', leader: 'ALP' })
     expect(seatPaint(shown, st(), 'gains', pal, true, false, 'GRN').rgb).toEqual(gainsTintRgb('ALP', pal))
   })
-  it('a seat with no figures keeps the no-result colour', () => {
-    expect(seatPaint(seat({ leader: null, state: 'none', tcp: null }), st(), 'gains', pal, true).rgb).toEqual([238, 238, 238])
+  it('a seat with no figures takes the pale empty fill (VE-254: the no-result grey faded towards the paper)', () => {
+    expect(seatPaint(seat({ leader: null, state: 'none', tcp: null }), st(), 'gains', pal, true).rgb).toEqual([71, 71, 71])
   })
   it('a seat outside a tally pick fades as everywhere else and is not lifted', () => {
     expect(seatPaint(changed, st(), 'gains', pal, false, true).gain).toBeUndefined()
@@ -366,5 +376,32 @@ describe('Counted scale at Final (VE-170, review finding 7)', () => {
     const s = countedScale(turnouts, true)
     expect(countedRgb(84, pal, s.cuts)).toEqual(countedRgb(40, pal))
     expect(countedRgb(84, pal)).toEqual(countedRgb(80, pal))
+  })
+})
+
+// VE-261 (F3): the Swing colour is a Labor v Coalition measure, as the Swing lens already treats it (derive/arrows.ts).
+describe('swing colour covers Labor v Liberal or Nationals only', () => {
+  const grey = seatPaint(seat({ tcp: null, pct: 75 }), st(), 'trust', pal, true).rgb
+  it('a Labor v Greens seat past the swing threshold, swinging away from Labor, is the "other contest" grey, not Liberal blue', () => {
+    const lvg = seat({ pct: 75, tcp: { a: 'ALP', b: 'GRN', pctA: 55 } })
+    const base = st({ base_tcp_party_a: 'ALP', base_tcp_party_b: 'GRN', base_tcp_pct_a: 60 })
+    const p = seatPaint(lvg, base, 'trust', pal, true)
+    expect(p.rgb).toEqual(grey)
+    expect(p.hatch).toBe(false)
+    // The unit under test would otherwise paint it from the palette: prove the grey differs from that cell.
+    expect(grey).not.toEqual(seatPaint(seat({ tcp: { a: 'ALP', b: 'LIB', pctA: 55 } }), st({ base_tcp_pct_a: 60 }), 'trust', pal, true).rgb)
+  })
+  it('a Labor v Greens seat still counting is grey, not hatched "too early"', () => {
+    const p = seatPaint(seat({ pct: 10, tcp: { a: 'ALP', b: 'GRN', pctA: 55 } }), st({ base_tcp_party_b: 'GRN' }), 'trust', pal, true)
+    expect(p.hatch).toBe(false)
+  })
+  it('Labor v Liberal and Labor v Nationals seats keep their swing colour', () => {
+    for (const b of ['LIB', 'NAT'] as const) {
+      const p = seatPaint(seat({ pct: 75, tcp: { a: 'ALP', b, pctA: 55 } }), st({ base_tcp_party_b: b, base_tcp_pct_a: 60 }), 'trust', pal, true)
+      const cell = trustCell(-5, 55)!
+      expect(p.rgb).not.toEqual(grey)
+      expect(p.rgb).toEqual(seatPaint(seat({ tcp: { a: 'ALP', b: 'LIB', pctA: 55 } }), st({ base_tcp_pct_a: 60 }), 'trust', pal, true).rgb)
+      expect(cell).not.toBeNull()
+    }
   })
 })

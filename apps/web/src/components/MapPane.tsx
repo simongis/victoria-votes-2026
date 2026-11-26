@@ -3,7 +3,7 @@ import type { DistrictStatic } from '@vic26/schema'
 import type { GeoCollection } from '../data/types'
 import type { Seat } from '../derive/seats'
 import { css, usePalette, type Palette } from '../theme/theme'
-import { BLUR_PX, HATCH_STRIPE, type SeatPaint } from '../derive/colour'
+import { BLUR_PX, EMPTY_STRIPE, HATCH_STRIPE, type SeatPaint } from '../derive/colour'
 import { allDeclared, seatLabel } from '../views/encoding'
 import type { MapCamera } from '../views/projection'
 import { getMotion } from '../state/motion'
@@ -242,6 +242,7 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
       placeBooths(svg.querySelector('g.booth-dots'), cam, w, h, fitCam(wd, w, h).res)
       // The hatch (VE-98) lives in map units, so counter-scale it to keep the stripes the same size on screen at any zoom.
       svg.querySelector('#map-hatch')?.setAttribute('patternTransform', `rotate(45) scale(${1 / a})`)
+      svg.querySelector('#map-empty')?.setAttribute('patternTransform', `rotate(45) scale(${1 / a})`)
       // Declared ticks keep their size on screen, so each is placed (not scaled) at its seat's centre by the same matrix.
       svg.querySelectorAll<SVGGElement>('g.map-tick').forEach((g) => {
         const x = Number(g.dataset.x)
@@ -750,6 +751,10 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
           <pattern id="map-hatch" width={7} height={7} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1={0} y1={0} x2={0} y2={7} stroke={HATCH_STRIPE} strokeWidth={1.5} />
           </pattern>
+          {/* VE-254 (F2): no figures yet is striped, so it is not read as a seat an Other candidate leads. */}
+          <pattern id="map-empty" width={7} height={7} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1={0} y1={0} x2={0} y2={7} stroke={EMPTY_STRIPE} strokeWidth={1.5} />
+          </pattern>
           {BLUR_PX.map(
             (px, band) =>
               px > 0 && (
@@ -793,6 +798,7 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
                       strokeWidth={empty ? 0.75 : 0.5}
                     />
                     {/* Trust, too early to compare (VE-98): stripes over the faint base, never taking the pointer. */}
+                    {paints.get(id)?.empty && <path className="map-empty" d={tier!.paths.get(id)} fillRule="evenodd" fill="url(#map-empty)" stroke="none" pointerEvents="none" aria-hidden />}
                     {paints.get(id)?.hatch && <path className="map-hatch" d={tier!.paths.get(id)} fillRule="evenodd" fill="url(#map-hatch)" stroke="none" pointerEvents="none" aria-hidden />}
                     </Fragment>
                   )

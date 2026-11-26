@@ -31,7 +31,8 @@
 }
 .sq--firm { background: var(--party-alp); }
 .sq--lead { background: color-mix(in srgb, var(--party-alp), var(--map-tint-base) 60%); }
-.sq--none { background: var(--map-no-result); border: 1px solid var(--color-border-strong); }
+/* VE-254 (F2): no figures yet is a pale striped fill, as on the map, so it is not mistaken for a seat an Other candidate leads. */
+.sq--none { background-color: color-mix(in srgb, var(--map-no-result) 30%, var(--map-paper)); background-image: repeating-linear-gradient(45deg, rgba(110, 110, 120, 0.6) 0 1.5px, transparent 1.5px 4px); border: 1px solid var(--color-border-strong); }
 
 /* The top band (band, badge, the top row) lives in topband.css (VE-66b). The headline and the tally below it are
    here (VE-83b, ADR 0023); the `.app` prefix lets these win over the band's older fixed-height rules. */
@@ -290,7 +291,10 @@
 .colour-key:has(.lkey__item) { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--space-3); }
 .lkey__item { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .lkey__sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, 0.18); }
+/* VE-257: on a phone the early-night key names only what is on the map (words at rest, 48 or fewer). */
+@media (max-width: 1023px) { .lkey__item--late { display: none; } }
 .lkey__item .lkey__sw + .lkey__sw { margin-left: -2px; }
+.lkey__sw--empty { width: 12px; height: 12px; border-color: var(--color-border-strong); }
 @media (max-width: 1023px) {
   .colour-key:has(.lkey__item) { gap: 2px var(--space-2); }
 }
@@ -756,6 +760,7 @@
 .cands .cand { display: block; }
 .cand__top { display: flex; align-items: baseline; gap: 8px; }
 .cand__party { display: block; font-size: var(--text-xs); color: var(--color-text-subtle); }
+.panel__fpnote { margin: 6px 0 0; font-size: var(--text-xs); color: var(--color-text-subtle); }
 .cand__pair { margin: 2px 0 0; display: inline-block; }
 .cand__votes { min-width: 52px; text-align: right; font-size: var(--text-xs); color: var(--color-text-subtle); font-variant-numeric: tabular-nums; }
 .cand__bar { display: block; height: 4px; margin-top: 2px; background: var(--color-surface-alt); border-radius: 2px; overflow: hidden; }
@@ -1025,6 +1030,8 @@
   :root { --text-2xs: 12px; --text-xs: 12px; }
   .tl__key { font-size: 11px; }
   .app .colour-key { font-size: 13px; }
+  /* VE-254 (F2): the key gained "No figures yet"; it wraps to a second line rather than run off the screen. */
+  .app .colour-key:has(.lkey__item) { max-width: calc(100vw - 2 * var(--space-4)); }
   .rail__counted { font-size: 13px; }
   .railtable thead th { font-size: 12px; }
 }

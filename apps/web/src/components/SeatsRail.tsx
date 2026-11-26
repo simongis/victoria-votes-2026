@@ -4,6 +4,7 @@ import type { Seat } from '../derive/seats'
 import { DOUBT, focusName, type Focus } from '../derive/focus'
 import { filterRows, latestFirst, listRow, railCounts, resultWords, sortRows, type ListRow, type RailFilter, type SortDir, type SortKey } from '../derive/list'
 import { barScale, barWidths, doubtWords } from '../derive/doubt'
+import { noPreferencesYet } from '../derive/closest'
 import { sparkPath } from '../derive/pulse'
 import { css, usePalette } from '../theme/theme'
 import { allDeclared, leaderCss, partyCss } from '../views/encoding'
@@ -163,7 +164,8 @@ export function SeatsRail({ seats, statics, selected, focus, onFocus, onSelect, 
   // VE-166 (FB-195): at Final a row's "Won" and the Won chip say the same thing 88 times, so both go; they come back in Rewind because this reads the seats on screen.
   const final = useMemo(() => allDeclared(seats.values()), [seats])
   // VE-170 (review finding 9): "Won (0)" filters to nothing, so it waits for the first declared seat. If it is pressed when Rewind takes the count to zero it stays until unpressed, as the Close chip does.
-  const closeShown = countedPct >= HEADLINE_MIN_PCT
+  // VE-254 (F5): and not while no seat has a count after preferences, when "Close seats (0)" would read as a fact.
+  const closeShown = countedPct >= HEADLINE_MIN_PCT && !(counts.doubt === 0 && noPreferencesYet(seats.values()))
   // Changing hands is offered on Gains' bar (VE-168, FB-198), so its count can never run ahead of the Gains panel's.
   const changingShown = countedPct >= GAINS_FROM_COUNTED_PCT
   // The open lens makes everything behind it inert (ExploreLayer), the rail included. The panel is the lens's own list and must

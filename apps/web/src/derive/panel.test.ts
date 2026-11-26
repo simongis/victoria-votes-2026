@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fpDisclosureLabel, heldLine, informalShare, nightSides, replayNote, swingLine, votesRounded } from './panel'
+import { bucketLeadNote, bucketRowNames, fpDisclosureLabel, heldLine, informalShare, nightSides, replayNote, swingLine, votesRounded } from './panel'
 
 describe('informalShare', () => {
   it('is informal votes as a share of all votes cast', () => {
@@ -72,5 +72,24 @@ describe('replayNote', () => {
     expect(replayNote(null, 'NARRACAN_SUPP_2023')).toBeNull()
     expect(replayNote('Trial', 'NARRACAN_SUPP_2023')).toBeNull()
     expect(replayNote('Replay', 'SE2022')).toBeNull()
+  })
+})
+
+describe('first preferences by party bucket (VE-254, F3)', () => {
+  it('names the grouped buckets as groups, never as one candidate', () => {
+    expect(bucketRowNames('OTH')).toEqual({ name: 'Other parties', partyText: 'all candidates added together' })
+    expect(bucketRowNames('IND')).toEqual({ name: 'Independents', partyText: 'all candidates added together' })
+    expect(bucketRowNames('GRN')).toEqual({ name: 'Greens', partyText: null })
+  })
+  it('explains a leader who is not top of the rows: the lead is one candidate, the rows are totals', () => {
+    const rows = [{ party: 'OTH' as const }, { party: 'IND' as const }, { party: 'GRN' as const }]
+    expect(bucketLeadNote('GRN', rows)).toBe('The Greens candidate has the most votes of any single candidate. Other parties and Independents each add their candidates together.')
+  })
+  it('says nothing when the leader tops the rows, or there is no leader', () => {
+    expect(bucketLeadNote('OTH', [{ party: 'OTH' }, { party: 'GRN' }])).toBeNull()
+    expect(bucketLeadNote(null, [{ party: 'OTH' }])).toBeNull()
+  })
+  it('does not mention a group that is not above the leader', () => {
+    expect(bucketLeadNote('ALP', [{ party: 'IND' }, { party: 'ALP' }, { party: 'OTH' }])).toBe('The Labor candidate has the most votes of any single candidate. Independents add their candidates together.')
   })
 })

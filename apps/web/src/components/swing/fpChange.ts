@@ -52,11 +52,11 @@ export function fpChangeItems(seat: Seat, base: Base | undefined): FpChangeItem[
 
 const signed1 = (n: number): string => `${n < 0 ? '-' : '+'}${(Math.round(Math.abs(n) * 10) / 10).toFixed(1)}`
 
-/** "First preferences since 2022: One Nation new (21.0%), Labor -14.0, Greens +1.2, Others +0.3", or null with nothing to say. */
+/** "First preferences since 2022: One Nation new (21.0%), Labor -14.0, Greens +1.2, Other parties +0.3", or null with nothing to say. */
 export function fpChangeText(items: readonly FpChangeItem[], since: string): string | null {
   if (items.length === 0) return null
   const parts = items.map((i) => {
-    const name = i.party ? PARTY_NAMES[i.party] : 'Others'
+    const name = i.party ? PARTY_NAMES[i.party] : 'Other parties'
     return i.fresh ? `${name} new (${i.share.toFixed(1)}%)` : `${name} ${signed1(i.change ?? 0)}`
   })
   return `First preferences since ${since}: ${parts.join(', ')}`

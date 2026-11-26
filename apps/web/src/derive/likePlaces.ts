@@ -16,7 +16,7 @@ const WHO: Record<PartyBucket, string> = {
   GRN: 'the Greens',
   ONP: 'One Nation',
   IND: 'Independents',
-  OTH: 'Others',
+  OTH: 'Other parties',
 }
 const upFirst = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
 const andList = (xs: string[]): string => (xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`)

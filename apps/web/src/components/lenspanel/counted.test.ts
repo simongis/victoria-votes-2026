@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { DistrictStatic } from '@vic26/schema'
 import type { Seat } from '../../derive/seats'
 import { countedScale } from '../../derive/colour'
 import { bandLabel, countedCounts, countedRows, countedSentence, countedSummary, filterCounted } from './counted'
 
 const seat = (id: number, name: string, pct: number | null): Seat => ({ id, name, leader: 'ALP', state: 'firm', tcp: null, pct, baseNote: '2022', fp: [] }) as unknown as Seat
-const st = (enrolment: number | null) => ({ enrolment }) as DistrictStatic
-const noStatics = new Map<number, DistrictStatic>()
+const noStatics = new Map<number, number>()
 
 describe('countedRows', () => {
   it('ranks the least counted first, with seats that have no count last', () => {
@@ -42,8 +40,12 @@ describe('countedSummary', () => {
   })
   it('weights by enrolment where it is known', () => {
     const rows = countedRows([seat(1, 'Small', 10), seat(2, 'Big', 50)])
-    const s = new Map([[1, st(1000)], [2, st(3000)]])
+    const s = new Map([[1, 1000], [2, 3000]])
     expect(countedSummary(rows, s)).toContain('40% counted across Victoria')
+  })
+  it('uses the 2026 enrolment it is given, not a static field (VE-247)', () => {
+    const rows = countedRows([seat(1, 'Small', 10), seat(2, 'Big', 50)])
+    expect(countedSummary(rows, new Map([[1, 3000], [2, 1000]]))).toContain('20% counted across Victoria')
   })
   it('at Final calls it turnout and drops "counted across Victoria"', () => {
     const rows = countedRows([seat(1, 'Mildura', 81), seat(2, 'Geelong', 91)])

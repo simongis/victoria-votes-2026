@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PartyBucket } from '@vic26/schema'
-import { CLOSEST_FROM_PCT, CLOSEST_MAX, changingSeats, closestSeats, marginWords } from './closest'
+import { CLOSEST_FROM_PCT, CLOSEST_MAX, CLOSE_WAIT_NOTE, changingSeats, closestSeats, marginWords, noPreferencesYet } from './closest'
 import type { Seat } from './seats'
 
 const seat = (id: number, name: string, leader: PartyBucket | null, pctA: number | null, o: Partial<Seat> = {}): Seat =>
@@ -97,5 +97,19 @@ describe('changingSeats (VE-189, FB-222)', () => {
   it('keeps at most six', () => {
     const seats = Array.from({ length: 9 }, (_, i) => ch(i + 1, `S${i}`, 'ALP', 'LIB', 51 + i))
     expect(changingSeats(seats, 40, false)!.cards).toHaveLength(CLOSEST_MAX)
+  })
+})
+
+describe('noPreferencesYet (VE-254, F5: "0 close" is not a fact without two-candidate counts)', () => {
+  it('is true when no seat has a two-candidate count or a withheld one', () => {
+    expect(noPreferencesYet([seat(1, 'A', 'ALP', null), seat(2, 'B', null, null, { state: 'none' })])).toBe(true)
+    expect(noPreferencesYet([])).toBe(true)
+  })
+  it('is false once any seat has a count after preferences, or the VEC withholds one', () => {
+    expect(noPreferencesYet([seat(1, 'A', 'ALP', null), seat(2, 'B', 'GRN', 51)])).toBe(false)
+    expect(noPreferencesYet([seat(1, 'A', 'ALP', null, { tcpWithheld: true })])).toBe(false)
+  })
+  it('has one plain line for the empty phone map', () => {
+    expect(CLOSE_WAIT_NOTE).toBe('Close seats show once preferences are counted')
   })
 })

@@ -71,6 +71,7 @@ import {
 } from './transitions'
 import { mapScreen, seatsScreen, type MapCamera, type Origin, type Rect, type ViewBox } from './views/projection'
 import { css, documentPalette, PaletteContext, useTheme } from './theme/theme'
+import { leadStep } from './views/encoding'
 
 // The public build shows live data only (VE-188); the dev server and the loopback rehearsal rig are unchanged.
 const PUBLIC_BUILD = isPublicBuild(import.meta.env.DEV, import.meta.env.VITE_AGOL_VIEW_URL)
@@ -79,6 +80,8 @@ const PUBLIC_BUILD = isPublicBuild(import.meta.env.DEV, import.meta.env.VITE_AGO
 const modeOf = (shape: Shape): Mode => (shape === 'hex' ? 'seats' : 'map')
 /** One playback step (one tick) at 1x. */
 const PLAY_STEP_MS = 1200
+/** No enrolment known yet: the Counted summary falls back to a plain mean (VE-247). */
+const NO_ENROLMENT: ReadonlyMap<number, number> = new Map()
 // The hand-over where no flight runs: the new shape fades in over the old one (keep in step with .panes--fade-* in app.css).
 const CROSSFADE_MS = 150
 /** Where each real view is on screen, read from the DOM (and the map camera) at one moment. */
@@ -230,7 +233,7 @@ export function App() {
 
   // Every tick's seats derived once per timeline (88 x about 100), so scrubbing is instant.
   const seatsAt = useMemo(
-    () => (timeline && statics ? timeline.rows.map((rows) => seatsFromRows(rows, statics.districtById.values())) : []),
+    () => (timeline && statics ? timeline.rows.map((rows) => seatsFromRows(rows, statics.districtById.values(), timeline.enrolment)) : []),
     [timeline, statics],
   )
   const blank = useMemo(
@@ -521,7 +524,7 @@ export function App() {
     if (panelLens === 'counted') {
       const scale = countedScale([...seats.values()].map((s) => s.pct), allWon)
       const rows = countedRows(seats.values(), scale)
-      const summary = countedSummary(rows, statics.districtById, allWon)
+      const summary = countedSummary(rows, timeline?.enrolment ?? NO_ENROLMENT, allWon)
       return { summary, panel: <CountedPanel rows={rows} summary={summary} final={allWon} scale={scale} /> }
     }
     if (panelLens === 'prefs') {
@@ -537,7 +540,7 @@ export function App() {
       return { summary, panel: <MultiPanel rows={rows} summary={summary} total={ticks.length} /> }
     }
     return null
-  }, [panelLens, seats, statics, partySummaryLine, likeLine, pulse, idx, ticks.length, allWon])
+  }, [panelLens, seats, statics, partySummaryLine, likeLine, pulse, idx, ticks.length, allWon, timeline?.enrolment])
   // Gains (VE-156): the net change per party and the cards, from the one shown-gain predicate (derive/gains.ts), so the key, the stage and the cards agree.
   const nets = useMemo(() => netChange(seats.values()), [seats])
   const gainsPanel = useMemo(() => {
@@ -727,6 +730,8 @@ export function App() {
                 declared={allWon}
                 noFaint={noFaint}
                 tooEarly={view.colour === 'trust' && [...paints.values()].some((p) => p.hatch)}
+                noFigures={[...seats.values()].some((s) => !s.leader)}
+                earlyOnly={[...seats.values()].some((s) => !s.leader) && [...seats.values()].every((s) => (leadStep(s) ?? 0) === 0)}
                 hexNumbers={view.shape === 'hex' && view.colour !== 'gains' && [...seats.values()].some((s) => s.pct !== null && s.state !== 'won')}
                 stillLine={stillLine}
                 off={chipsOff}
@@ -745,7 +750,7 @@ export function App() {
               <ViewSheet shape={view.shape} onShape={changeShape} />
               {/* Narrow screens: the "i" floats over the stage (it sits in the band on desktop). */}
               <div className="float" data-testid="float-controls">
-                <ReadingKey sourceNote={source.note} pollNote={pollNote} colourInfo={<ColourInfo colour={view.colour} placesOn={placesOn} final={time.state === 'final'} noFaint={noFaint} />} final={allWon} />
+                <ReadingKey sourceNote={source.note} pollNote={pollNote} colourInfo={<ColourInfo colour={view.colour} placesOn={placesOn} final={time.state === 'final'} noFaint={noFaint} />} final={allWon} dataLabel={sv.dataLabel} />
               </div>
               <ExploreLayer seats={seats} statics={statics} explore={explore} onExplore={setExplore} rewinding={view.rewindOpen || !live} onSelectSeat={select} selectedId={view.selected} at={tick?.snapshotAt} replay={notLive} dataLabel={sv.dataLabel} />
             </div>

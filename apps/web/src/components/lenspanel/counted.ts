@@ -2,7 +2,6 @@
  * The Counted lens's panel (VE-125b): every seat ranked by how much is counted, least first, from the same pct_counted the
  * stage colours by. Pure, so the ranking, filters and words are tested without a browser.
  */
-import type { DistrictStatic } from '@vic26/schema'
 import { NIGHT_SCALE, countedStep, type CountedScale, type CountedStep } from '../../derive/colour'
 import type { Seat } from '../../derive/seats'
 import { countedWord } from '../../derive/turnout'
@@ -36,11 +35,14 @@ export function countedRows(seats: Iterable<Seat>, scale: CountedScale = NIGHT_S
     .sort((a, b) => (a.pct === null ? 1 : 0) - (b.pct === null ? 1 : 0) || (a.pct ?? 0) - (b.pct ?? 0) || a.name.localeCompare(b.name))
 }
 
-/** The statewide figure is enrolment-weighted where every counted seat has enrolment, else a plain mean. */
-export function countedSummary(rows: readonly CountedRow[], statics: ReadonlyMap<number, DistrictStatic>, final = false): string {
+/**
+ * The statewide figure is enrolment-weighted where every counted seat has enrolment, else a plain mean. VE-247: the enrolment
+ * is the 2026 one per district (derive/enrolment.ts), never the static layer's 2022 baseline.
+ */
+export function countedSummary(rows: readonly CountedRow[], enrolment: ReadonlyMap<number, number>, final = false): string {
   const counted = rows.filter((r) => r.pct !== null)
   if (counted.length === 0) return 'Nothing counted yet.'
-  const enrol = (r: CountedRow): number => statics.get(r.id)?.enrolment ?? 0
+  const enrol = (r: CountedRow): number => enrolment.get(r.id) ?? 0
   const weighted = counted.every((r) => enrol(r) > 0)
   const avg = weighted
     ? counted.reduce((a, r) => a + enrol(r) * r.pct!, 0) / counted.reduce((a, r) => a + enrol(r), 0)

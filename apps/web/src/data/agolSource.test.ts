@@ -50,7 +50,8 @@ describe('AGOL source', () => {
   })
 
   it('groups history rows into ticks in time order', async () => {
-    const r = (id: string, at: number, d: number) => ({ attributes: { snapshot_id: id, snapshot_at: at, district_id: d, fp_total: 100 } })
+    // 100 votes at 5% counted: each seat's 2026 enrolment is 2,000 (the static 1,000 is the stale 2022 figure, VE-247).
+    const r = (id: string, at: number, d: number) => ({ attributes: { snapshot_id: id, snapshot_at: at, district_id: d, fp_total: 100, pct_counted: 5 } })
     const { fetchJson } = stub({
       '7': { features: [{ attributes: { state: 'live', data_mode: 'live', snapshot_id: 'b', snapshot_at: 2 } }] },
       '5': { features: [r('b', 2, 1), r('a', 1, 1), r('a', 1, 2)] },
@@ -60,7 +61,22 @@ describe('AGOL source', () => {
     const t = await createAgolSource({ url: URL_, fetchJson }).timeline()
     expect(t.ticks.map((x) => x.snapshotId)).toEqual(['a', 'b'])
     expect(t.rows[0]).toHaveLength(2)
-    expect(t.ticks[0]!.countedPct).toBe(10)
+    expect(t.ticks[0]!.countedPct).toBe(5)
+  })
+
+  it('VE-247: the newest tick takes status.votes_counted_pct, whatever the static enrolment says', async () => {
+    const r = (id: string, at: number, d: number) => ({ attributes: { snapshot_id: id, snapshot_at: at, district_id: d, fp_total: 100, pct_counted: 5 } })
+    const { fetchJson } = stub({
+      '7': { features: [{ attributes: { state: 'live', data_mode: 'live', snapshot_id: 'b', snapshot_at: 2, votes_counted_pct: 10.07 } }] },
+      '5': { features: [r('a', 1, 1), r('b', 2, 1), r('b', 2, 2)] },
+      '0': { type: 'FeatureCollection', features: [{ properties: { district_id: 1, enrolment: 7 } }, { properties: { district_id: 2, enrolment: 7 } }] },
+      '1': { type: 'FeatureCollection', features: [] },
+    })
+    const t = await createAgolSource({ url: URL_, fetchJson }).timeline()
+    expect(t.ticks[1]!.countedPct).toBe(10.07)
+    // An earlier tick has no status row of its own: votes over the derived 2026 enrolment (100 / 4,000), not over the static 14.
+    expect(t.ticks[0]!.countedPct).toBe(2.5)
+    expect(t.enrolment?.get(1)).toBe(2000)
   })
 
   it('ADR 0036: the current tick takes a declared winner from the districts layer, past ticks do not', async () => {

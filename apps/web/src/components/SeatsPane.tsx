@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent } fr
 import type { Seat } from '../derive/seats'
 import type { GeoCollection, SeatHexStatic } from '../data/types'
 import { css } from '../theme/theme'
-import { BLUR_PX, HATCH_STRIPE, type SeatPaint } from '../derive/colour'
+import { BLUR_PX, EMPTY_STRIPE, HATCH_STRIPE, type SeatPaint } from '../derive/colour'
 import { allDeclared, seatLabel } from '../views/encoding'
 import { projectSvg, ringsById } from '../views/geometry'
 import { useFx } from './Effects'
@@ -142,6 +142,9 @@ export function SeatsPane({ seatHexes, seats, paints, certainty, selected, pop, 
           <pattern id="hex-hatch" width={7 / scale} height={7 / scale} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1={0} y1={0} x2={0} y2={7 / scale} stroke={HATCH_STRIPE} strokeWidth={1.5 / scale} />
           </pattern>
+          <pattern id="hex-empty" width={7 / scale} height={7 / scale} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1={0} y1={0} x2={0} y2={7 / scale} stroke={EMPTY_STRIPE} strokeWidth={1.5 / scale} />
+          </pattern>
           {/* Gains (VE-156): a soft lift under each seat that changed hands, sized in screen pixels like the blur. */}
           <filter id="hex-lift" x="-30%" y="-30%" width="160%" height="160%">
             <feDropShadow dx="0" dy={1 / scale} stdDeviation={1.5 / scale} floodColor="rgba(0, 0, 0, 0.35)" />
@@ -180,6 +183,7 @@ export function SeatsPane({ seatHexes, seats, paints, certainty, selected, pop, 
               onFocus={(e) => e.currentTarget.matches(':focus-visible') && showTip(h.id, e.currentTarget, true)}
               onBlur={() => setTip(null)}
             />
+            {paints.get(h.id)?.empty && <polygon className="hex-empty" points={h.points} fill="url(#hex-empty)" pointerEvents="none" aria-hidden />}
             {paints.get(h.id)?.hatch && <polygon className="hex-hatch" points={h.points} fill="url(#hex-hatch)" pointerEvents="none" aria-hidden />}
             </Fragment>
           )

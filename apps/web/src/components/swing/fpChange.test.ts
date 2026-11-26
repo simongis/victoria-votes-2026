@@ -32,7 +32,7 @@ describe('fpChangeItems', () => {
 describe('fpChangeText', () => {
   it('writes signed one-decimal points in party words, then others', () => {
     const items = fpChangeItems(seat(fp({ ALP: 30, ONP: 21, LIB: 30, GRN: 12, OTH: 7 })), { ALP: 44.04, LIB: 30, GRN: 10, OTH: 16 })
-    expect(fpChangeText(items, '2022')).toBe('First preferences since 2022: One Nation new (21.0%), Labor -14.0, Greens +2.0, Others -9.0')
+    expect(fpChangeText(items, '2022')).toBe('First preferences since 2022: One Nation new (21.0%), Labor -14.0, Greens +2.0, Other parties -9.0')
   })
   it('rounds to one decimal and signs gains with a plus', () => {
     const items = fpChangeItems(seat(fp({ GRN: 12.26, ALP: 47.5 })), { GRN: 10, ALP: 50 })

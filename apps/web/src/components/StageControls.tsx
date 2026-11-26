@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } f
 import { createPortal } from 'react-dom'
 import type { PartyBucket } from '@vic26/schema'
 import { usePhoneBits, setPhoneBit } from '../state/phoneBits'
-import { COLOURS, HATCH_BASE, HATCH_BASE_ALPHA, HATCH_STRIPE, SWING_MIN_PCT, TRUST_NA, TRUST_PALETTE } from '../derive/colour'
+import { COLOURS, EMPTY_ALPHA, EMPTY_STRIPE, HATCH_BASE, HATCH_BASE_ALPHA, HATCH_STRIPE, SWING_MIN_PCT, TRUST_NA, TRUST_PALETTE } from '../derive/colour'
 import { PARTY_NAMES } from '../parties'
 import { signedNet, type PartyNet } from '../derive/gains'
 import { netChip, netSentence } from '../derive/netChange'
@@ -89,20 +89,27 @@ const STEP_LABELS: readonly { step: LeadStep; text: string }[] = [
 ]
 const RAMP_PARTY: PartyBucket = 'ALP'
 
-function LeaderKey() {
+function LeaderKey({ noFigures, earlyOnly }: { noFigures?: boolean; earlyOnly?: boolean }) {
   const pal = usePalette()
   return (
     <>
       {STEP_LABELS.map(({ step, text }) => (
-        <span key={step} className="lkey__item lkey__step" data-step={step}>
+        <span key={step} className={`lkey__item lkey__step${earlyOnly && step > 0 ? ' lkey__item--late' : ''}`} data-step={step}>
           <i className="lkey__sw" style={{ background: css(stepRgb(RAMP_PARTY, step, pal)) }} aria-hidden />
           {text}
         </span>
       ))}
       {/* VE-226 (finding 6): the tick means declared everywhere, so it has its own entry rather than sitting beside "certain". */}
-      <span className="lkey__item lkey__tick" data-testid="key-declared">
+      <span className={`lkey__item lkey__tick${earlyOnly ? ' lkey__item--late' : ''}`} data-testid="key-declared">
         <b aria-hidden>{'✓'}</b> declared
       </span>
+      {/* VE-254 (F2): grey at rest was unnamed. A striped pale swatch, drawn as the seats are, says "No figures yet" while any seat has none. */}
+      {noFigures && (
+        <span className="lkey__item" data-testid="key-no-figures">
+          <i className="lkey__sw lkey__sw--empty" style={{ backgroundColor: `color-mix(in srgb, var(--map-no-result) ${EMPTY_ALPHA * 100}%, var(--map-paper))`, backgroundImage: `repeating-linear-gradient(45deg, ${EMPTY_STRIPE} 0 1.5px, transparent 1.5px 4px)` }} aria-hidden />
+          No figures yet
+        </span>
+      )}
     </>
   )
 }
@@ -242,6 +249,10 @@ interface ColourProps {
   noFaint?: boolean
   /** A hatched (too early) seat is on screen, so the Swing key names the hatch. */
   tooEarly?: boolean
+  /** VE-254 (F2): some seat has no figures yet, so the Leader key names the striped fill. */
+  noFigures?: boolean
+  /** VE-257: some seat has no figures and every lead is still an early lead. On a phone the Leader key then keeps "Early lead" (the one label saying the pale colours are not wins) and "No figures yet", and leaves out Likely, Won or certain and the tick, which name nothing on the map yet (CSS only, so desktop is unchanged). */
+  earlyOnly?: boolean
   /** VE-221 (B8): the Hex is printing "% counted" figures, so the key says what the number is. */
   hexNumbers?: boolean
   /** "About 1.2 million votes to come": shown with How sure (VE-92). */
@@ -262,7 +273,7 @@ interface ColourProps {
  * The colour chips at the stage's bottom left (ADR 0018): how the seats are filled, on either shape. Same radio-group
  * pattern as the shape control. The one "i" (ReadingKey) carries the active colour's text first (VE-141).
  */
-export function ColourChips({ colour, onColour, declared, noFaint, tooEarly, hexNumbers, stillLine, off, gains, places }: ColourProps) {
+export function ColourChips({ colour, onColour, declared, noFaint, tooEarly, noFigures, earlyOnly, hexNumbers, stillLine, off, gains, places }: ColourProps) {
   // VE-144a: on a phone the chips live in the View sheet. While it is open the row (and the reason a chip is off) is drawn
   // into its slot; the same component and handlers, so choosing, the arrow keys and Polling places work as on the stage.
   const { colourSlot, moreWays } = usePhoneBits()
@@ -329,7 +340,7 @@ export function ColourChips({ colour, onColour, declared, noFaint, tooEarly, hex
       {colourSlot ? createPortal(row, colourSlot) : row}
       {!keyEmpty && (
       <p className="colour-key" data-testid="colour-key">
-        {placesOn ? <PlacesKey parties={places?.parties} final={noFaint ?? declared === true} /> : colour === 'leader' ? <LeaderKey /> : colour === 'trust' ? <SwingKey tooEarly={tooEarly} /> : colour === 'gains' ? <GainsKey nets={gains?.nets ?? []} party={gains?.party ?? null} onParty={gains?.onParty ?? (() => {})} /> : COLOUR_KEY_CERTAINTY}
+        {placesOn ? <PlacesKey parties={places?.parties} final={noFaint ?? declared === true} /> : colour === 'leader' ? <LeaderKey noFigures={noFigures} earlyOnly={earlyOnly} /> : colour === 'trust' ? <SwingKey tooEarly={tooEarly} /> : colour === 'gains' ? <GainsKey nets={gains?.nets ?? []} party={gains?.party ?? null} onParty={gains?.onParty ?? (() => {})} /> : COLOUR_KEY_CERTAINTY}
         {/* VE-221 (B8): the hexes print a bare figure, so the key says what it is wherever one shows. */}
         {!placesOn && hexNumbers && <span className="lkey__item lkey__hexnum" data-testid="key-hex-number">Number: % counted</span>}
       </p>

@@ -120,6 +120,12 @@ export const HATCH_STRIPE = 'rgba(110, 110, 120, 0.7)'
 export const HATCH_BASE = '#d4d4d4'
 export const HATCH_BASE_ALPHA = 0.35
 export const HATCH_ID = 'trust-hatch'
+/**
+ * VE-254 (F2): "no figures yet" is a pale fill with grey stripes, so it cannot be mistaken for a seat an Other candidate
+ * leads (a flat mid grey at the Early lead step looked the same as the old flat no-result grey). Applies under Leader and Gains.
+ */
+export const EMPTY_ALPHA = 0.3
+export const EMPTY_STRIPE = 'rgba(110, 110, 120, 0.6)'
 /** Share counted at which a Trust seat is fully opaque (districts top out near 75% of enrolment counted). */
 export const TRUST_FULL_AT = 75
 export const TRUST_MIN_ALPHA = 0.1
@@ -160,6 +166,10 @@ export const belowSwingMin = (pct: number | null | undefined): boolean => (pct ?
 
 export const trustAlpha = (pct: number | null | undefined): number =>
   TRUST_MIN_ALPHA + (1 - TRUST_MIN_ALPHA) * Math.min(1, Math.max(0, (pct ?? 0) / TRUST_FULL_AT))
+
+/** VE-261 (F3): Labor against Liberal or Nationals, either way round (the same test as derive/arrows.ts). */
+const isLaborVCoalition = (t: NonNullable<Seat['tcp']>): boolean =>
+  (t.a === 'ALP' && (t.b === 'LIB' || t.b === 'NAT')) || (t.b === 'ALP' && (t.a === 'LIB' || t.a === 'NAT'))
 
 /**
  * Labor's two-candidate swing since the baseline, in points. The history rows carry no first-preference swing, so
@@ -246,6 +256,8 @@ export interface SeatPaint {
   lit: boolean
   /** Trust only: too early to compare, so drawn as a light hatch over the paper rather than a swing colour. */
   hatch: boolean
+  /** VE-254 (F2): a seat with no figures yet under Leader or Gains: pale, with stripes drawn over it. Left out otherwise. */
+  empty?: true
   /** Gains only (VE-156): a seat that changed hands and is kept by the tapped party. Drawn lifted, with a heavier edge, above every other seat. Left out otherwise. */
   gain?: true
 }
@@ -277,8 +289,11 @@ export function seatPaint(s: Seat | undefined, st: DistrictStatic | undefined, c
     }
   } else if (colour === 'trust' && s?.leader) {
     // Too early only when a swing could exist later: no 2CP yet, or a comparable pairing. A changed pairing never will, so it stays grey.
-    hatch = belowSwingMin(s.pct) && (s.tcp === null || rawLaborSwing(s, st) !== null)
-    const cell = trustCell(swingShown(s, st), marginOfTcp(s.tcp?.pctA))
+    // VE-261 (F3): only Labor v Liberal or Nationals carries the swing colour, as the Swing lens does (derive/arrows.ts). Labor v
+    // Greens and the rest are the "other contest" grey: "away from Labor" must not be painted Liberal blue.
+    const laborV = s.tcp === null || isLaborVCoalition(s.tcp)
+    hatch = laborV && belowSwingMin(s.pct) && (s.tcp === null || rawLaborSwing(s, st) !== null)
+    const cell = laborV ? trustCell(swingShown(s, st), marginOfTcp(s.tcp?.pctA)) : null
     rgb = hatch ? fade(hexRgb(HATCH_BASE), HATCH_BASE_ALPHA, pal.paper) : fade(hexRgb(cell ? TRUST_PALETTE[cell.margin]![cell.swing]! : TRUST_NA), trustAlpha(s.pct), pal.paper)
   } else if (colour === 'leader') {
     // VE-127: faint (early lead), mid (likely), solid (firm or won); the tick marks won. No blur: nobody else blurs, and steps read at a glance.
@@ -287,5 +302,8 @@ export function seatPaint(s: Seat | undefined, st: DistrictStatic | undefined, c
     rgb = strengthRgb(s, pal)
     if (colour === 'certainty' && s?.leader) band = certaintyBand(s.pct)
   }
-  return { rgb: inFocus ? rgb : fadeGreyRgb(rgb, pal), band, lit: picking && inFocus, hatch: hatch && inFocus, ...(gain && inFocus ? { gain: true as const } : {}) }
+  // VE-254 (F2): paler than the flat no-result grey, and striped by the views.
+  const empty = !s?.leader && (colour === 'leader' || colour === 'gains')
+  if (empty) rgb = fade(pal.noResult, EMPTY_ALPHA, pal.paper)
+  return { rgb: inFocus ? rgb : fadeGreyRgb(rgb, pal), band, lit: picking && inFocus, hatch: hatch && inFocus, ...(empty && inFocus ? { empty: true as const } : {}), ...(gain && inFocus ? { gain: true as const } : {}) }
 }

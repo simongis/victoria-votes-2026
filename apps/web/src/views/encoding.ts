@@ -58,8 +58,8 @@ export function leadStep(s: Seat | undefined): LeadStep | null {
 export function allDeclared(seats: Iterable<Seat | undefined>): boolean {
   let any = false
   for (const s of seats) {
-    if (!s?.leader) continue
-    if (s.state !== 'won') return false
+    // A seat with no results or no leader is not declared (VE-254): skipping it said "Every seat declared" with 87 of 88 done.
+    if (!s?.leader || s.state !== 'won') return false
     any = true
   }
   return any

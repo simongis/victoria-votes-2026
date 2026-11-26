@@ -17,9 +17,9 @@ describe('headline', () => {
   it('gives a plural party name a plural verb (VE-226, finding 17)', () => {
     expect(headlineText(headlineParts(tally({ GRN: 30 }, { ALP: 12 }), 4))).toBe('Greens lead Labor by 18 seats. They need 15 more.')
     expect(headlineText(headlineParts(tally({ IND: 46 }, { ALP: 12 }), 4))).toBe('Independents lead in 46 seats, 1 more than the 45 they need.')
-    expect(headlineText(headlineParts(tally({ GRN: 46 }), 0, won({ GRN: 46 })))).toBe('Greens have won 46 seats, 1 more than the 45 they needed.')
+    expect(headlineText(headlineParts(tally({ GRN: 46 }), 0, won({ GRN: 46 }), null, true))).toBe('Greens have won 46 seats, 1 more than the 45 they needed.')
     expect(headlineText(shortHeadlineParts(tally({ GRN: 30 }, { ALP: 12 }), 4))).toBe('Greens lead in 30 of 88')
-    expect(headlineText(shortHeadlineParts(tally({ GRN: 46 }), 0, won({ GRN: 46 })))).toBe('Greens have won 46 of 88')
+    expect(headlineText(shortHeadlineParts(tally({ GRN: 46 }), 0, won({ GRN: 46 }), null, true))).toBe('Greens have won 46 of 88')
   })
 
   it('below a majority: the gap, what the leader needs, and how many could still change', () => {
@@ -39,22 +39,22 @@ describe('headline', () => {
 
   it('says has won only when every one of the leader\'s seats is a VEC-declared win and none is in doubt', () => {
     const t = tally({ ALP: 54 })
-    expect(headlineText(headlineParts(t, 0, won({ ALP: 54 })))).toBe('Labor has won 54 seats, 9 more than the 45 it needed.')
+    expect(headlineText(headlineParts(t, 0, won({ ALP: 54 }), null, true))).toBe('Labor has won 54 seats, 9 more than the 45 it needed.')
     // One lead not yet declared: still a lead.
-    expect(headlineText(headlineParts(t, 0, won({ ALP: 53 })))).toBe('Labor leads in 54 seats, 9 more than the 45 it needs. No seats could still change.')
+    expect(headlineText(headlineParts(t, 0, won({ ALP: 53 }), null, true))).toBe('Labor has a majority: 53 seats declared.')
     // Anything still in doubt: still a lead.
-    expect(headlineText(headlineParts(t, 2, won({ ALP: 54 })))).toBe('Labor leads in 54 seats, 9 more than the 45 it needs.')
+    expect(headlineText(headlineParts(t, 2, won({ ALP: 54 }), null, true))).toBe('Labor has a majority: 54 seats declared.')
     // Declared wins below a majority never say won.
     expect(headlineText(headlineParts(tally({ ALP: 30 }, { LIB: 10 }), 0, won({ ALP: 30 })))).toBe('Labor leads Coalition by 20 seats. It needs 15 more. No seats could still change.')
     for (const c of [tally({ ALP: 54 }), tally({ ALP: 20 }, { LIB: 10 })]) expect(headlineText(headlineParts(c, 3))).not.toMatch(/\bwon\b|wins|government/i)
   })
 
   it('counts a Coalition win across Liberal and Nationals', () => {
-    expect(headlineText(headlineParts(tally({ LIB: 40, NAT: 6 }), 0, won({ LIB: 40, NAT: 6 })))).toBe('Coalition has won 46 seats, 1 more than the 45 it needed.')
+    expect(headlineText(headlineParts(tally({ LIB: 40, NAT: 6 }), 0, won({ LIB: 40, NAT: 6 }), null, true))).toBe('Coalition has won 46 seats, 1 more than the 45 it needed.')
   })
 
   it('says "exactly the 45" for a bare majority, won or leading', () => {
-    expect(headlineText(headlineParts(tally({ ALP: 45 }), 0, won({ ALP: 45 })))).toBe('Labor has won 45 seats, exactly the 45 it needed.')
+    expect(headlineText(headlineParts(tally({ ALP: 45 }), 0, won({ ALP: 45 }), null, true))).toBe('Labor has won 45 seats, exactly the 45 it needed.')
   })
 
   it('level: each side needs the same, and how many could still change', () => {
@@ -140,9 +140,9 @@ describe('shortHeadlineParts (the phone sheet handle, VE-144a)', () => {
   })
 
   it('final: has won only when all are declared and none is in doubt; never calls government', () => {
-    expect(short(tally({ ALP: 54 }), 0, won({ ALP: 54 }), 100)).toBe('Labor has won 54 of 88')
-    expect(short(tally({ ALP: 54 }), 0, won({ ALP: 53 }), 100)).toBe('Labor leads in 54 of 88')
-    expect(short(tally({ ALP: 54 }), 2, won({ ALP: 54 }), 99)).toBe('Labor leads in 54 of 88')
+    expect(short(tally({ ALP: 54 }), 0, won({ ALP: 54 }), 100, true)).toBe('Labor has won 54 of 88')
+    expect(short(tally({ ALP: 54 }), 0, won({ ALP: 53 }), 100, true)).toBe('Labor has a majority: 53 declared')
+    expect(short(tally({ ALP: 54 }), 2, won({ ALP: 54 }), 99, true)).toBe('Labor has a majority: 54 declared')
     expect(short(tally({ ALP: 30 }, { LIB: 10 }), 0, won({ ALP: 30 }), 100)).not.toMatch(/won|government/i)
   })
 
@@ -156,17 +156,65 @@ describe('headline at Final without a majority (VE-153)', () => {
   const allWon = won({ ALP: 42, LIB: 20, NAT: 8, GRN: 4, IND: 2 })
   const t = tally({ ALP: 42, LIB: 20, NAT: 8, GRN: 4, IND: 2 })
   it('says who won how many, and that no one has a majority, with no "leads", "needs" or "could still change"', () => {
-    const text = headlineText(headlineParts(t, 0, allWon, 87))
+    const text = headlineText(headlineParts(t, 0, allWon, 87, true))
     expect(text).toBe('Labor won 42 seats and Coalition 28. No party has the 45 needed for a majority.')
     expect(text).not.toMatch(/leads|needs|could still change/)
   })
   it('names both sides when level', () => {
-    expect(headlineText(headlineParts(tally({ ALP: 44, LIB: 44 }), 0, won({ ALP: 44, LIB: 44 })))).toBe('Labor and Coalition won 44 seats each. No party has the 45 needed for a majority.')
+    expect(headlineText(headlineParts(tally({ ALP: 44, LIB: 44 }), 0, won({ ALP: 44, LIB: 44 }), null, true))).toBe('Labor and Coalition won 44 seats each. No party has the 45 needed for a majority.')
   })
   it('keeps the lead words while any seat is not declared', () => {
     expect(headlineText(headlineParts(t, 0, won({ ALP: 41, LIB: 20, NAT: 8, GRN: 4, IND: 2 })))).toMatch(/leads Coalition/)
   })
   it('the phone line says won, not leads in, at Final', () => {
-    expect(headlineText(shortHeadlineParts(t, 0, allWon, 87))).toBe('Labor won 42 of 88')
+    expect(headlineText(shortHeadlineParts(t, 0, allWon, 87, true))).toBe('Labor won 42 of 88')
+  })
+})
+
+// VE-257 (Simon, 26 Nov: "we can't get this wrong"): only VEC declarations say a party has a majority.
+describe('has a majority only from VEC declarations (VE-257)', () => {
+  const long = (...a: Parameters<typeof headlineParts>) => headlineText(headlineParts(...a))
+  const short = (...a: Parameters<typeof shortHeadlineParts>) => headlineText(shortHeadlineParts(...a))
+  const lead = tally({ ALP: 60 }, { LIB: 20 })
+
+  it('44 declared is still a lead, even with 60 seats leading', () => {
+    expect(long(lead, 0, won({ ALP: 44 }), 50)).toBe('Labor leads in 60 seats, 15 more than the 45 it needs. No seats could still change.')
+    expect(short(lead, 0, won({ ALP: 44 }), 50)).toBe('Labor leads in 60 of 88')
+  })
+  it('45 declared says has a majority, naming the declared count', () => {
+    expect(long(lead, 3, won({ ALP: 45 }), 50)).toBe('Labor has a majority: 45 seats declared.')
+    expect(short(lead, 3, won({ ALP: 45 }), 50)).toBe('Labor has a majority: 45 declared')
+    expect(long(lead, 3, won({ ALP: 52 }), 50)).toBe('Labor has a majority: 52 seats declared.')
+  })
+  it('the party name still carries its side, so the band can colour it', () => {
+    expect(headlineParts(lead, 3, won({ ALP: 45 }), 50).find((p) => p.side)?.side).toBe('ALP')
+  })
+  it('never says won, government or the election before every seat is declared', () => {
+    for (const d of [0, 44, 45, 60]) {
+      expect(long(lead, 0, won({ ALP: d }), 50)).not.toMatch(/\bwon\b|government|election/i)
+      expect(short(lead, 0, won({ ALP: d }), 50)).not.toMatch(/\bwon\b|government|election/i)
+    }
+  })
+  it('seats we call "won or certain" (firm, not declared) never count towards the majority', () => {
+    // 60 firm seats, none declared: the tally is full of firm seats, the headline still only leads.
+    expect(long(tally({ ALP: 60 }), 0, won({}), 50)).toMatch(/^Labor leads in 60 seats/)
+    expect(long(tally({ ALP: 60 }), 0, won({}), 50)).not.toMatch(/majority:/)
+  })
+  it('a tie on declarations is a tie, not a majority', () => {
+    expect(long(tally({ ALP: 44, LIB: 44 }), 0, won({ ALP: 44, LIB: 44 }), 90)).toBe('Labor and Coalition level on 44 seats. Each needs 1 more. No seats could still change.')
+  })
+  it('counts the Coalition as one side: 30 Liberal and 15 Nationals declared is 45', () => {
+    expect(long(tally({ LIB: 30, NAT: 15 }), 0, won({ LIB: 30, NAT: 15 }), 50)).toBe('Coalition has a majority: 45 seats declared.')
+    expect(long(tally({ LIB: 30, NAT: 14 }), 0, won({ LIB: 30, NAT: 14 }), 50)).toMatch(/^Coalition leads/)
+  })
+  it('a plural name takes a plural verb', () => {
+    expect(long(tally({ IND: 45 }), 0, won({ IND: 45 }), 50)).toBe('Independents have a majority: 45 seats declared.')
+  })
+  it('all 88 declared: Final, as before (won, with the margin)', () => {
+    expect(long(tally({ ALP: 60, LIB: 28 }), 0, won({ ALP: 60, LIB: 28 }), 90, true)).toBe('Labor has won 60 seats, 15 more than the 45 it needed.')
+  })
+  it('Final is only said when the caller says every seat is declared (87 of 88 stays a lead or a majority)', () => {
+    expect(long(tally({ ALP: 60, LIB: 27 }), 0, won({ ALP: 60, LIB: 27 }), 90)).toBe('Labor has a majority: 60 seats declared.')
+    expect(long(tally({ ALP: 30, LIB: 20 }), 0, won({ ALP: 30, LIB: 20 }), 90)).toMatch(/leads/)
   })
 })

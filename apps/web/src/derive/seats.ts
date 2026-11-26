@@ -12,6 +12,7 @@ import {
 } from '@vic26/schema'
 import { PARTY_NAMES } from '../parties'
 import { votesRounded } from './panel'
+import { enrolmentOf } from './enrolment'
 
 export const SEATS = 88
 export const MAJORITY = 45
@@ -149,7 +150,13 @@ function tcpVotesOf(r: DistrictHistoryRow): number | null {
  * preferences when the source has them (ADR 0033): under half the counted votes, the lead is the actual gap and the seat is
  * neither Likely nor certain.
  */
-export function seatFromHistory(r: DistrictHistoryRow, st: DistrictStatic, tcpVotes: number | null = tcpVotesOf(r)): Seat {
+export function seatFromHistory(
+  r: DistrictHistoryRow,
+  st: DistrictStatic,
+  tcpVotes: number | null = tcpVotesOf(r),
+  // VE-247: never st.enrolment (the 2022 baseline on the live layer). Null leaves the estimate unknown rather than wrong.
+  enrolment: number | null = enrolmentOf(r),
+): Seat {
   const blank = blankSeat(st)
   const withheld = r.tcp_withheld === true
   const declared = r.status === 'declared'
@@ -162,12 +169,12 @@ export function seatFromHistory(r: DistrictHistoryRow, st: DistrictStatic, tcpVo
   // VE-215 A1: every seat with an enrolment carries an estimate, including seats with nothing counted yet, so the statewide
   // total can only fall as ballots are counted. It used to count only seats with a two-candidate figure, so it rose as seats reported.
   const formalCounted = (r.fp_total ?? 0) * FORMAL_RATE
-  let stillToCount: number | null = st.enrolment ? Math.max(0, Math.round(st.enrolment * TURNOUT_CEILING * FORMAL_RATE - formalCounted)) : null
+  let stillToCount: number | null = enrolment ? Math.max(0, Math.round(enrolment * TURNOUT_CEILING * FORMAL_RATE - formalCounted)) : null
   const prefsShare = tcp && tcpVotes !== null && formalCounted > 0 ? Math.min(1, tcpVotes / formalCounted) : null
   // Unknown coverage does not block: the count and margin floors still apply (see tcpVotesOf).
   const prefsEnough = prefsShare === null || prefsShare >= PREFS_MIN_SHARE
   let firm = false
-  if (tcp && counted && st.enrolment) {
+  if (tcp && counted && enrolment) {
     const gap = Math.abs(2 * tcp.pctA - 100) / 100
     if (prefsEnough) {
       marginVotes = Math.round(gap * formalCounted)
@@ -209,12 +216,17 @@ export function seatFromHistory(r: DistrictHistoryRow, st: DistrictStatic, tcpVo
 }
 
 /** Every district at one tick, blank where the tick has no row for it. */
-export function seatsFromRows(rows: readonly DistrictHistoryRow[], statics: Iterable<DistrictStatic>): Map<number, Seat> {
+export function seatsFromRows(
+  rows: readonly DistrictHistoryRow[],
+  statics: Iterable<DistrictStatic>,
+  /** Enrolment per district (enrolment.ts); absent, each row's own is derived from its counted figures. */
+  enrolment?: ReadonlyMap<number, number>,
+): Map<number, Seat> {
   const byId = new Map(rows.map((r) => [r.district_id, r]))
   const out = new Map<number, Seat>()
   for (const st of statics) {
     const r = byId.get(st.district_id)
-    out.set(st.district_id, r ? seatFromHistory(r, st) : blankSeat(st))
+    out.set(st.district_id, r ? seatFromHistory(r, st, tcpVotesOf(r), enrolment ? (enrolment.get(st.district_id) ?? null) : enrolmentOf(r)) : blankSeat(st))
   }
   return out
 }
@@ -245,7 +257,7 @@ export const SIDE_NAMES: Record<Side, string> = {
   GRN: 'Greens',
   ONP: 'One Nation',
   IND: 'Independents',
-  OTH: 'Others',
+  OTH: 'Other parties',
 }
 
 export function sideTotals(t: Tally): Record<Side, { firm: number; all: number }> {

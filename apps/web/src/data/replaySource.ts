@@ -16,6 +16,7 @@ import {
   type KillSwitchState,
   type StatusAttributes,
 } from '@vic26/schema'
+import { staticEnrolment, statewidePct } from '../derive/enrolment'
 import { seatsFromRows, statsOf, tallyOf } from '../derive/seats'
 import { createReplayBoothSource } from './boothSource'
 import type { ResultsSource } from './source'
@@ -61,6 +62,8 @@ export interface ReplayOptions {
 interface Loaded {
   manifest: Manifest
   statics: Statics
+  /** 2022 enrolment per district: right for the 2022 replay (VE-247). */
+  enrolment: Map<number, number>
   ticks: Tick[]
   rows: DistrictHistoryRow[][]
 }
@@ -96,16 +99,16 @@ export function createReplaySource(opts: ReplayOptions): ResultsSource {
         else bySnapshot.set(row.snapshot_id, [row])
       }
       const rows = manifest.snapshots.map((s) => bySnapshot.get(s.snapshotId) ?? [])
-      const enrolment = districts.features.reduce((a, f) => a + (f.properties.enrolment ?? 0), 0)
+      const enrolment = staticEnrolment(districts.features.map((f) => f.properties))
       const synthetic = new Set(manifest.synthetic ?? [])
       const ticks: Tick[] = manifest.snapshots.map((s, i) => ({
         snapshotId: s.snapshotId,
         snapshotAt: s.snapshotAt,
         // Same sum ingest's status uses, so this matches votes_counted_pct.
-        countedPct: enrolment > 0 ? (100 * rows[i]!.reduce((a, r) => a + (r.fp_total ?? 0), 0)) / enrolment : 0,
+        countedPct: statewidePct(rows[i]!, enrolment),
         synthetic: synthetic.has(s.snapshotId),
       }))
-      return { manifest, statics, ticks, rows }
+      return { manifest, statics, enrolment, ticks, rows }
     })()
     // A failed load is retried on the next poll rather than cached.
     loading.catch(() => (loading = null))
@@ -139,7 +142,7 @@ export function createReplaySource(opts: ReplayOptions): ResultsSource {
       const l = await load()
       const i = nowIndex(l)
       const tick = l.ticks[i]
-      const seats = seatsFromRows(i < 0 ? [] : l.rows[i]!, l.statics.districtById.values())
+      const seats = seatsFromRows(i < 0 ? [] : l.rows[i]!, l.statics.districtById.values(), l.enrolment)
       const t = tallyOf(seats)
       const stats = statsOf(seats)
       const seatCounts = Object.fromEntries(PARTY_BUCKETS.map((p) => [`seats_${p}`, t.firm[p] + t.leading[p]]))
@@ -161,7 +164,7 @@ export function createReplaySource(opts: ReplayOptions): ResultsSource {
     async timeline(): Promise<Timeline> {
       const l = await load()
       const n = nowIndex(l) + 1
-      return { ticks: l.ticks.slice(0, n), rows: l.rows.slice(0, n) }
+      return { ticks: l.ticks.slice(0, n), rows: l.rows.slice(0, n), enrolment: l.enrolment }
     },
 
     async candidates(snapshotId, districtId) {

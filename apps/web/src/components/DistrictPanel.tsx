@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CandidateAttributes } from '@vic26/schema'
 import type { PartyBucket } from '@vic26/schema'
 import { WITHHELD_LINE, panelLeadLine, tcpBasisLine, type Seat } from '../derive/seats'
-import { fpDisclosureLabel, heldLine, nightSides } from '../derive/panel'
+import { bucketLeadNote, bucketRowNames, fpDisclosureLabel, heldLine, nightSides } from '../derive/panel'
 import { sparkPath } from '../derive/pulse'
 import { gainShown, resultWords } from '../derive/list'
 import { num, personName } from '../format'
@@ -156,7 +156,7 @@ function TwoCandidate({ seat: s, candidates }: { seat: Seat; candidates: Candida
       <h3 className="panel__h">After preferences</h3>
       <div className="tc__row">
         <Side name={ca ? personName(ca.candidate_name) : PARTY_NAMES[tcp.a]} party={PARTY_NAMES[tcp.a]} pct={tcp.pctA} votes={ca?.tcp_votes ?? null} />
-        <Side name={cb ? personName(cb.candidate_name) : tcp.b ? PARTY_NAMES[tcp.b] : 'Other'} party={tcp.b ? PARTY_NAMES[tcp.b] : 'Other'} pct={pctB} votes={cb?.tcp_votes ?? null} end />
+        <Side name={cb ? personName(cb.candidate_name) : tcp.b ? PARTY_NAMES[tcp.b] : 'Other party'} party={tcp.b ? PARTY_NAMES[tcp.b] : 'Other party'} pct={pctB} votes={cb?.tcp_votes ?? null} end />
       </div>
       <div className="tc__bar" role="img" aria-label={`Two-candidate count: ${tcp.pctA.toFixed(1)}% to ${pctB.toFixed(1)}%, tick at 50%`}>
         <span style={{ width: `${tcp.pctA}%`, background: partyCss(tcp.a, pal) }} />
@@ -242,8 +242,10 @@ export function DistrictPanel({ seat: s, candidates, onClose, closing = false, m
   // Party buckets stand in (no names, no pair) when the source carries no candidates.
   const fpRows: { key: string | number; party: PartyBucket; name: string; partyText: string | null; pct: number | null; votes: number | null; pair: boolean }[] = fpCands.length
     ? fpCands.map((c) => ({ key: c.candidate_id, party: c.party, name: personName(c.candidate_name), partyText: c.party === 'OTH' && c.affiliation_name ? c.affiliation_name : PARTY_NAMES[c.party], pct: c.fp_pct, votes: c.fp_votes, pair: !s.tcpWithheld && (c.tcp_votes ?? 0) > 0 }))
-    : s.fp.map((f) => ({ key: f.party, party: f.party, name: PARTY_NAMES[f.party], partyText: null, pct: f.pct, votes: f.votes, pair: false }))
+    : s.fp.map((f) => ({ key: f.party, party: f.party, ...bucketRowNames(f.party), pct: f.pct, votes: f.votes, pair: false }))
   const fpTop = Math.max(1, ...fpRows.map((r) => r.pct ?? 0))
+  // VE-254 (F3): with party bars only, say why the leader (one candidate) can sit below a group's total.
+  const fpNote = fpCands.length ? null : bucketLeadNote(s.leader, fpRows)
   // VE-226 (finding 4): the two candidates' votes after preferences, so the lead line can say how much of the count it rests on.
   const pairVotes = (p: PartyBucket | null | undefined) => (p ? fpCands.find((c) => c.party === p && (c.tcp_votes ?? 0) > 0)?.tcp_votes ?? null : null)
   const va = pairVotes(s.tcp?.a)
@@ -317,6 +319,7 @@ export function DistrictPanel({ seat: s, candidates, onClose, closing = false, m
               </li>
             ))}
           </ol>
+          {fpNote && <p className="panel__fpnote" data-testid="panel-fp-note">{fpNote}</p>}
         </section>
       )}
       {hasNight && night && <NightLine seat={s} night={night} />}

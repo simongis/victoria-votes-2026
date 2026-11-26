@@ -52,7 +52,7 @@ describe('focus', () => {
   it('names the pick in plain words', () => {
     expect(focusName('ALP')).toBe('Labor')
     expect(focusName('COA')).toBe('Coalition')
-    expect(focusName('XB')).toBe('Others')
+    expect(focusName('XB')).toBe('All others')
     expect(focusName('ALP:strong')).toBe('Labor, certain')
     expect(focusName('NAT:pale')).toBe('Nationals, leading')
   })

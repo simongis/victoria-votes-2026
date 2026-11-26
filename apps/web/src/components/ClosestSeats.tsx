@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { changingSeats, closestSeats } from '../derive/closest'
+import { CLOSE_WAIT_NOTE, CLOSEST_FROM_PCT, changingSeats, closestSeats, noPreferencesYet } from '../derive/closest'
 import type { Seat } from '../derive/seats'
 import { useCloseUpFits } from './map/closeUpWindow'
 import type { PartyBucket } from '@vic26/schema'
@@ -171,6 +171,9 @@ export function ClosestSeats({ seats, countedPct, final, party = null, active, r
     if (!visible) clear()
   }, [visible, clear])
 
+  // VE-254 (F5): with no count after preferences anywhere the block would be empty, and the lower part of the phone map with it. One plain line says why (the smaller, safer change: no first-preference cards, which would rank party totals, not candidates).
+  const waiting = on && !gains && !closest && !final && countedPct >= CLOSEST_FROM_PCT && fit !== null && noPreferencesYet(seats.values())
+  if (waiting) return <section ref={root} className="closest" style={{ top: fit.top }} data-testid="closest-wait"><p className="closest__h closest__wait">{CLOSE_WAIT_NOTE}</p></section>
   if (!visible || !closest || !fit) return <section ref={root} className="closest" hidden aria-hidden />
 
   return (

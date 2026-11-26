@@ -38,4 +38,6 @@ export interface Tick {
 export interface Timeline {
   ticks: Tick[]
   rows: DistrictHistoryRow[][]
+  /** Enrolment per district for this election (VE-247), never the static layer's 2022 baseline on the live view. Absent: derive from each row. */
+  enrolment?: ReadonlyMap<number, number>
 }

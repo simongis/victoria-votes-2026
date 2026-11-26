@@ -53,8 +53,9 @@ describe('allDeclared (VE-142: steps drop once every leading seat is declared)',
     expect(allDeclared([seat({ state: 'won' }), seat({ state: 'firm' })])).toBe(false)
     expect(allDeclared([seat({ state: 'won' }), seat({ pct: 10 })])).toBe(false)
   })
-  it('ignores seats with no leader, and is false with nothing to show', () => {
-    expect(allDeclared([seat({ state: 'won' }), seat({ leader: null, state: 'none' })])).toBe(true)
+  it('is false while any seat has no leader or no results (VE-254: Narracan with no results is not declared), and with nothing to show', () => {
+    expect(allDeclared([seat({ state: 'won' }), seat({ leader: null, state: 'none' })])).toBe(false)
+    expect(allDeclared([seat({ state: 'won' }), undefined])).toBe(false)
     expect(allDeclared([seat({ leader: null, state: 'none' })])).toBe(false)
     expect(allDeclared([])).toBe(false)
   })

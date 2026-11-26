@@ -35,7 +35,7 @@ describe('ReadingKey poll note (VE-75)', () => {
     expect(text).toContain('A dark outline marks seats you picked')
     expect(text).toContain('The top bar is the key')
     expect(text).toContain('Night')
-    expect(text).toContain('No result yet')
+    expect(text).toContain('No figures yet')
     // VE-170: the key itself no longer repeats the colour rule; the colour's own line says it once.
     expect(text).not.toContain('Seats take')
     expect(text).not.toContain('Seats updated')
@@ -49,12 +49,12 @@ describe('ReadingKey poll note (VE-75)', () => {
   it('drops the tick line at Final, when no tick is drawn (VE-166)', () => {
     expect(open(null, true).textContent).not.toContain('Declared by the VEC')
   })
-  it('at Final reads finished: no leading-colour line, no "No result yet", no Close sentence (VE-167)', () => {
+  it('at Final reads finished: no leading-colour line, no "No figures yet", no Close sentence (VE-167)', () => {
     const el = open(null, true)
     el.querySelector('summary')?.click()
     const text = el.textContent ?? ''
     expect(text).not.toContain('Seats take')
-    expect(text).not.toContain('No result yet')
+    expect(text).not.toContain('No figures yet')
     expect(text).not.toMatch(/Close means|early in the night|leading party/)
   })
   it('says "Close" in the band note, not "In doubt" (VE-166)', () => {

@@ -69,3 +69,14 @@ export function changingSeats(all: Iterable<Seat>, countedPct: number, final: bo
   })
   return { heading: final ? 'Seats that changed hands since 2022' : 'Seats changing hands since 2022', cards }
 }
+
+/**
+ * VE-254 (F5): no seat has a count after preferences, so none can be called close. "0 close" then reads as a fact, so the
+ * band and the rail say nothing, and the phone map says why in one line. (The first-preference gap between buckets is not a
+ * margin: the seat's leader is one candidate and the bars are party totals, so no honest first-preference card exists.)
+ */
+export const noPreferencesYet = (seats: Iterable<Seat>): boolean => {
+  for (const s of seats) if (s.tcp !== null || s.tcpWithheld) return false
+  return true
+}
+export const CLOSE_WAIT_NOTE = 'Close seats show once preferences are counted'

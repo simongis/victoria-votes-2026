@@ -70,7 +70,8 @@ const idOf = (t: EventTarget | null): number | null => {
   const el = t instanceof Element ? t.closest<SVGElement>('[data-id]') : null
   return el ? Number(el.dataset.id) : null
 }
-const targetOf = (id: number): Element | null => document.querySelector(`${LENS} [data-id="${id}"]`)
+/** Scoped to the stage: the Preferences locator hexes also carry data-id (VE-230) and must not catch a row tap. */
+const targetOf = (id: number): Element | null => document.querySelector(`${LENS} .arrows__stage [data-id="${id}"]`)
 
 /**
  * The link between the rows and the stage, both ways. The lens owns its hover and pick (ExploreLayer is not ours), so the

@@ -9,6 +9,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { DistrictHistoryRow, DistrictStatic } from '@vic26/schema'
+import { staticEnrolment, statewidePct } from './enrolment'
 import { seatFromHistory, seatsFromRows, stillToCountTotal } from './seats'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -29,19 +30,19 @@ const row = (over: Partial<DistrictHistoryRow>): DistrictHistoryRow =>
 
 describe('stillToCount for one seat (VE-215 A1)', () => {
   it('a seat with nothing counted carries the full estimate, with no margin and so no "firm"', () => {
-    const s = seatFromHistory(row({}), st)
+    const s = seatFromHistory(row({}), st, null, st.enrolment)
     expect(s.stillToCount).toBe(Math.round(50_000 * 0.9 * 0.95))
     expect(s.marginVotes).toBeNull()
     expect(s.state).toBe('none')
   })
   it('a seat counted but with no two-candidate figure still carries an estimate and stays not firm', () => {
-    const s = seatFromHistory(row({ fp_ALP: 5_000, fp_total: 5_000, lead_party: 'ALP' }), st)
+    const s = seatFromHistory(row({ fp_ALP: 5_000, fp_total: 5_000, lead_party: 'ALP' }), st, null, st.enrolment)
     expect(s.stillToCount).toBe(Math.round(50_000 * 0.9 * 0.95 - 5_000 * 0.95))
     expect(s.marginVotes).toBeNull()
     expect(s.state).toBe('leading')
   })
   it('a declared seat is 0 even when nothing is counted in the row', () => {
-    expect(seatFromHistory(row({ status: 'declared' }), st).stillToCount).toBe(0)
+    expect(seatFromHistory(row({ status: 'declared' }), st, null, st.enrolment).stillToCount).toBe(0)
   })
 })
 
@@ -54,13 +55,34 @@ describeIfReplay('votes to come across the 2022 replay (VE-215 A1)', () => {
     byTick.set(o.snapshot_id, [...(byTick.get(o.snapshot_id) ?? []), o])
   }
   const ticks = [...byTick.keys()].sort()
-  const totals = ticks.map((t) => stillToCountTotal(seatsFromRows(byTick.get(t)!, districts)))
+  const totals = ticks.map((t) => stillToCountTotal(seatsFromRows(byTick.get(t)!, districts, staticEnrolment(districts))))
 
   // Prints the figures the brief reports (before and after the change); asserts nothing.
   it('reports the total at named ticks', () => {
     const at = (id: string) => totals[ticks.findIndex((t) => t >= id)]
     const named = ['20221126_183000', '20221126_184500', '20221126_194500', '20221126_210000', '20221127_000000', ticks[ticks.length - 1]!]
     console.log(named.map((id) => `${id}: ${at(id)}`).join('\n'))
+  })
+  // VE-247: the replay's figures do not move when enrolment comes from the helper instead of the old inline sums.
+  it('statewide % equals the old static-enrolment formula at every tick', () => {
+    const total = districts.reduce((a, d) => a + (d.enrolment ?? 0), 0)
+    for (const t of ticks) {
+      const rows = byTick.get(t)!
+      const old = (100 * rows.reduce((a, r) => a + (r.fp_total ?? 0), 0)) / total
+      expect(statewidePct(rows, staticEnrolment(districts)), t).toBe(old)
+    }
+  })
+  it('stillToCount per seat equals the old static-enrolment value on a sample of ticks', () => {
+    const byId = new Map(districts.map((d) => [d.district_id, d]))
+    const sample = ticks.filter((_, i) => i % Math.max(1, Math.floor(ticks.length / 12)) === 0)
+    for (const t of sample) {
+      const seats = seatsFromRows(byTick.get(t)!, districts, staticEnrolment(districts))
+      for (const r of byTick.get(t)!) {
+        const enrol = byId.get(r.district_id)!.enrolment
+        const old = enrol ? Math.max(0, Math.round(enrol * 0.9 * 0.95 - (r.fp_total ?? 0) * 0.95)) : null
+        expect(seats.get(r.district_id)!.stillToCount, `${t} ${r.district_id}`).toBe(r.status === 'declared' ? 0 : old)
+      }
+    }
   })
   it('never rises from one tick to the next', () => {
     for (let i = 1; i < totals.length; i++) {
