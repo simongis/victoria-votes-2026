@@ -155,6 +155,11 @@ describe('staleLine', () => {
   it('warns without a time when ingested_at is missing', () => {
     expect(staleLine(status({ ingested_at: null }), NOW, fmt)).toBe('Results may be behind.')
   })
+  it('says nothing before any snapshot exists, whatever ingested_at is (VE-265: nothing can be behind yet)', () => {
+    expect(staleLine(status({ snapshot_id: null, ingested_at: null }), NOW, fmt)).toBeNull()
+    expect(staleLine(status({ snapshot_id: null, ingested_at: NOW - 20 * 60_000 }), NOW, fmt)).toBeNull()
+    expect(staleLine(status({ snapshot_id: undefined as unknown as null, ingested_at: null }), NOW, fmt)).toBeNull()
+  })
   it('says nothing when held, offline or there is no row', () => {
     expect(staleLine(status({ state: 'paused', ingested_at: 1 }), NOW, fmt)).toBeNull()
     expect(staleLine(status({ state: 'offline', ingested_at: 1 }), NOW, fmt)).toBeNull()

@@ -53,6 +53,8 @@ export const STALE_AFTER_MS = 15 * 60_000
  */
 export function staleLine(status: StatusAttributes | null, now: number, fmt: (ms: number) => string): string | null {
   if (!status || status.state !== 'live') return null
+  // VE-265: a live row before the first snapshot (seeded ahead of election night) has nothing that could be behind.
+  if (status.snapshot_id === null || status.snapshot_id === undefined) return null
   const at = status.ingested_at
   if (at === null || at === undefined) return 'Results may be behind.'
   return now - at > STALE_AFTER_MS ? `Last updated ${fmt(at)}. Results may be behind.` : null
