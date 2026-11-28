@@ -7,9 +7,11 @@ import { sparkPath } from '../derive/pulse'
 import { gainShown, resultWords } from '../derive/list'
 import { num, personName } from '../format'
 import { PARTY_NAMES } from '../parties'
-import { usePalette } from '../theme/theme'
+import { css, usePalette } from '../theme/theme'
 import { getMotion } from '../state/motion'
-import { leaderCss, partyCss } from '../views/encoding'
+import { leaderCss, partyCss, stepRgb } from '../views/encoding'
+import { pairDoubtNote, pairDoubtTail } from '../derive/pairNote'
+import { midlineInk } from '../derive/midline'
 import { InfoButton } from './InfoButton'
 import { fpChangeLine } from './swing/fpChange'
 import { useFpBaseline } from './swing/useFpBaseline'
@@ -148,6 +150,8 @@ function TwoCandidate({ seat: s, candidates }: { seat: Seat; candidates: Candida
   const ca = pair.find((c) => c.party === tcp.a) ?? null
   const cb = tcp.b ? pair.find((c) => c.party === tcp.b && c !== ca) ?? null : null
   const pctB = 100 - tcp.pctA
+  // VE-284: the 50% line sits on the leader's fill, so its ink follows that colour.
+  const midInk = tcp.pctA >= 50 || !tcp.b ? midlineInk(pal.party[tcp.a]) : midlineInk(pal.party[tcp.b])
   // VE-139: the final-two votes cover fewer booths than first preferences, so say how many votes this bar is built on.
   const formal = (candidates ?? []).reduce((n, c) => n + (c.fp_votes ?? 0), 0)
   const basis = tcpBasisLine((ca?.tcp_votes ?? 0) + (cb?.tcp_votes ?? 0), formal)
@@ -161,7 +165,7 @@ function TwoCandidate({ seat: s, candidates }: { seat: Seat; candidates: Candida
       <div className="tc__bar" role="img" aria-label={`Two-candidate count: ${tcp.pctA.toFixed(1)}% to ${pctB.toFixed(1)}%, tick at 50%`}>
         <span style={{ width: `${tcp.pctA}%`, background: partyCss(tcp.a, pal) }} />
         <span style={{ width: `${pctB}%`, background: tcp.b ? partyCss(tcp.b, pal) : 'var(--color-border-strong)' }} />
-        <span className="gauge__mark" style={{ left: '50%' }} />
+        <span className="gauge__mark tc__mid" data-ink={midInk} style={{ left: '50%' }} />
       </div>
       {basis && <p className="tc__votes tc__basis" style={{ margin: 0 }} data-testid="panel-tcp-basis">{basis}</p>}
     </div>
@@ -251,6 +255,7 @@ export function DistrictPanel({ seat: s, candidates, onClose, closing = false, m
   const va = pairVotes(s.tcp?.a)
   const vb = pairVotes(s.tcp?.b)
   const leadLine = panelLeadLine(s, va !== null && vb !== null ? { a: va, b: vb } : null, fpCands.length ? fpCands.reduce((n, c) => n + (c.fp_votes ?? 0), 0) : null)
+  const doubtNote = pairDoubtNote(s)
   const hasNight = !!night && night.series.some((v) => v !== null)
   // VE-234: first-preference change leads the swing section; it exists in every seat, the two-candidate swing only in some.
   const fpBase = useFpBaseline()
@@ -277,9 +282,14 @@ export function DistrictPanel({ seat: s, candidates, onClose, closing = false, m
         <p className="panel__lead">
           <span className="sq" style={{ background: leaderCss(s, pal) }} />
           {s.leader ? (resultWords(s) ?? `${PARTY_NAMES[s.leader]} ${STATE_TEXT[s.state]}`) : STATE_TEXT.none}
-          {gainShown(s) && <span className="flag">{turnout ? "Changed hands" : "Changing hands"}</span>}
+          {gainShown(s) && <span className="flag">{turnout || s.state === 'won' ? 'Changed hands' : 'Changing hands'}</span>}
         </p>
         <p className="panel__held" data-testid="panel-held">{heldLine(s.base ? PARTY_NAMES[s.base] : null, s.baseNote)}</p>
+        {doubtNote && (
+          <p className="panel__note panel__pairnote" data-testid="panel-pair-note">
+            VEC counting <b style={{ color: css(stepRgb(doubtNote.a, 2, pal)) }}>{PARTY_NAMES[doubtNote.a]}</b> v <b style={{ color: css(stepRgb(doubtNote.b, 2, pal)) }}>{PARTY_NAMES[doubtNote.b]}</b>. <b style={{ color: css(stepRgb(doubtNote.outsider, 2, pal)) }}>{PARTY_NAMES[doubtNote.outsider]}</b>{pairDoubtTail(doubtNote)}
+          </p>
+        )}
       </div>
       {note && <p className="panel__note" data-testid="panel-replay-note">{note}</p>}
       {s.tcpWithheld ? (

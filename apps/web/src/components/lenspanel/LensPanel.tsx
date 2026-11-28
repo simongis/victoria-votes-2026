@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { scrollRowIntoView } from '../scrollRowIntoView'
 
 /**
  * The right-hand panel while an Explore lens is open (VE-125, FB-138): the lens's picture as a ranked list. This is the
@@ -129,7 +130,7 @@ export function LensPanel({ summary, unit, filters, filter, onFilter, query, onQ
   const target = link && 'scrollTo' in link ? link.scrollTo ?? null : active
   useEffect(() => {
     if (target === null || Date.now() - scrolled.current < SCROLL_HOLD_MS) return
-    list.current?.querySelector(`[data-district="${target}"]`)?.scrollIntoView({ block: 'nearest' })
+    scrollRowIntoView(list.current?.querySelector(`[data-district="${target}"]`))
   }, [target])
 
   const enter = (id: number) => {

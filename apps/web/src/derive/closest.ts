@@ -8,6 +8,7 @@ import { PARTY_NAMES } from '../parties'
 import { cardLine, gainCards, gainsAvailable } from './gains'
 import { marginPts } from './list'
 import { aheadCardLine, aheadLine } from './marginWords'
+import { votesRounded } from './panel'
 import type { Seat } from './seats'
 
 /** Statewide share counted below which there is no block: earlier margins are first-hour noise (same bar as the headline). */
@@ -39,16 +40,20 @@ export const marginWords = (pts: number): { short: string; long: string } => ({ 
 export function closestSeats(seats: Iterable<Seat>, countedPct: number, final: boolean): Closest | null {
   if (countedPct < CLOSEST_FROM_PCT) return null
   const cards: ClosestCard[] = []
+  const votesShown = new Map<number, number>()
   for (const s of seats) {
     const margin = marginPts(s)
     if (margin === null || s.leader === null) continue
+    if (s.marginVotes !== null && s.marginVotes !== undefined) votesShown.set(s.id, votesRounded(s.marginVotes))
     const w = marginWords(margin)
     const party = PARTY_NAMES[s.leader]
     const ahead = aheadLine(s.marginVotes)
     cards.push({ id: s.id, name: s.name, leader: s.leader, margin, line: aheadCardLine(s.marginVotes) ?? `${party} by ${w.short}`, label: `${s.name}, ${party}, ${ahead ? ahead.toLowerCase() : `by ${w.long}`}, show on the map` })
   }
   if (cards.length === 0) return null
-  cards.sort((a, b) => a.margin - b.margin || a.name.localeCompare(b.name))
+  // The cards show votes when known, so order by that rounded figure (else "~400" can sit above "~300"); points break ties.
+  const shown = new Map(cards.map((c) => [c.id, votesShown.get(c.id) ?? Infinity]))
+  cards.sort((a, b) => shown.get(a.id)! - shown.get(b.id)! || a.margin - b.margin || a.name.localeCompare(b.name))
   return { heading: final ? 'Closest results' : 'Closest seats', cards: cards.slice(0, CLOSEST_MAX) }
 }
 

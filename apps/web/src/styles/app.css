@@ -50,7 +50,14 @@
 
 /* The tally: a calm stacked bar in the map's own colours, the 45 line, then names and counts with the partners bracketed. */
 .tl { position: relative; flex: none; }
-.tl__bar { position: relative; display: flex; height: 20px; background: var(--color-chip-ground); }
+/* VE-269 (race to 45): one lane per contender, a name chip then a track that runs to a shared 45 line. */
+.tl__lanes { position: relative; display: grid; grid-template-columns: auto 1fr; --lp: 11px; grid-template-rows: 14px 14px; column-gap: var(--space-2); row-gap: 8px; align-items: center; padding: 15px var(--space-4) 8px; }
+/* The rows are exactly the track height, so the 45 line starts at the top lane and stops at the bottom of the lower lane; the taller name chips centre on their track. */
+.tl__lane { display: contents; }
+.tl__lane > .tl__chip { grid-column: 1; grid-row: var(--lane-row); }
+.tl__bar { position: relative; display: flex; grid-column: 2; grid-row: var(--lane-row); height: 14px; background: var(--color-border); border-radius: 3px; }
+/* The 45 line and its label sit over the track column, so they cross every lane at the same place. */
+.tl__over { grid-column: 2; grid-row: 1 / span 2; position: relative; align-self: stretch; pointer-events: none; }
 .tl__seg {
   position: relative;
   display: block;
@@ -66,25 +73,24 @@
   transition: width 600ms cubic-bezier(0.3, 0.7, 0.2, 1), opacity 200ms ease;
 }
 .tl__seg[data-empty="true"] { }
-/* Seats with no figures yet: an empty, dashed slot, so the bar still adds up to 88. */
-.tl__gap { flex: 1 1 0; min-width: 0; outline: 1px dashed var(--color-border-strong); outline-offset: -1px; }
 .tl__seg:focus-visible { outline: var(--focus-ring); outline-offset: -3px; }
-.tl__line { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: var(--color-text); pointer-events: none; z-index: 2; }
+.tl__line { position: absolute; top: -2px; bottom: -2px; width: 3px; margin-left: -1.5px; background: var(--color-text); pointer-events: none; z-index: 2; transition: background-color 300ms ease; }
 .tl__maj {
   position: absolute;
-  top: -6px;
+  top: -15px;
   transform: translateX(-50%);
-  padding: 0 4px;
-  border-radius: 6px;
-  background: var(--color-header);
-  color: var(--color-text);
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   font-weight: 700;
   line-height: 12px;
+  white-space: nowrap;
+  color: var(--color-text);
   pointer-events: none;
   z-index: 3;
 }
-.tl__key { display: flex; align-items: flex-end; gap: 2px 8px; padding: 3px var(--space-4) 0; font-size: var(--text-sm); color: var(--color-text); }
+.tl__key { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 3px var(--space-4) 5px; font-size: var(--text-sm); color: var(--color-text); }
+.tl__partners { gap: 6px; }
+/* A lane with no seats yet keeps its name but no "0" (no chip reads 0). */
+.tl__lane .tl__chip[data-zero] b, .tl__lane .tl__chip[data-zero] .fx-chip { display: none; }
 .tl__fill { flex: 1 1 0; min-width: 0; }
 .tl__chip {
   display: inline-flex;
@@ -119,8 +125,10 @@
 
 @media (max-width: 1023px) {
   .band__headline { padding: 0 var(--space-3) 3px; font-size: var(--text-md); }
-  .tl__bar { height: 18px; }
-  .tl__key { flex-wrap: wrap; gap: 0 1px; padding: 3px 4px 0; font-size: var(--text-xs); }
+  /* A phone: thinner lanes and tighter spacing, so the band takes less of a small screen (VE-269). */
+  .tl__lanes { --lp: 9px; grid-template-rows: 12px 12px; row-gap: 6px; padding: 14px var(--space-3) 1px; column-gap: 6px; }
+  .tl__bar { height: 12px; }
+  .tl__key { gap: 0 1px; padding: 2px 4px 3px; font-size: var(--text-xs); }
   .tl__chip { gap: 3px; padding: 1px 2px; }
   .tl__swp i { width: 4px; height: 9px; }
   /* A partner shows its strong tone only here; the bar above carries the pale one. */
@@ -137,6 +145,12 @@
 @media (pointer: coarse) {
   .tl__seg:not([data-empty="true"])::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
   .tl__chip::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: 44px; transform: translate(-50%, -50%); }
+  /* VE-269: the two lanes sit one lane pitch apart (twice --lp), so two 44 px targets would overlap and the later one would take the earlier one's taps.
+     Instead the top lane's target reaches 30 px up and down to the midpoint between the lanes, and the lower lane's from the midpoint 30 px down. */
+  .tl__lane:first-child > .tl__chip::after { top: calc(50% - 30px); height: calc(30px + var(--lp)); transform: translateX(-50%); }
+  .tl__lane:nth-child(2) > .tl__chip::after { top: calc(50% - var(--lp)); height: calc(30px + var(--lp)); transform: translateX(-50%); }
+  .tl__lane:first-child .tl__seg:not([data-empty="true"])::after { top: calc(50% - 30px); height: calc(30px + var(--lp)); transform: none; }
+  .tl__lane:nth-child(2) .tl__seg:not([data-empty="true"])::after { top: calc(50% - var(--lp)); height: calc(30px + var(--lp)); transform: none; }
 }
 :root[data-motion="off"] :is(.tl__seg, .tl__chip) { transition: none; }
 
@@ -181,6 +195,11 @@
   font-size: var(--text-sm);
   color: var(--color-text);
   white-space: normal;
+  /* VE-304: on a phone in landscape (390 px tall) or a short iPhone viewport the map "i" sheet ran off the bottom with no
+     way to reach "Show me around" or the credits. It scrolls inside itself instead. 140px is the band and the gap. */
+  max-height: calc(100dvh - 140px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .info__pop--up { top: auto; bottom: calc(100% + 2px); }
 .info__pop--right { right: 0; }
@@ -196,6 +215,12 @@
 .switch[aria-checked="true"]::before { left: auto; right: 6px; background: #fff; }
 .switch:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 .motion-note { color: var(--color-text-subtle); }
+/* VE-280: the maker's line, muted; the icons darken on hover and focus. 44 px hit area only on coarse pointers. */
+.made-by { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-2) 0 0; font-size: 0.85em; color: var(--color-text-subtle); }
+.made-by a { display: inline-flex; align-items: center; justify-content: center; color: var(--color-text-subtle); border-radius: 3px; }
+.made-by a:hover { color: var(--color-text); }
+.made-by a:focus-visible { outline: var(--focus-ring); outline-offset: 2px; color: var(--color-text); }
+@media (pointer: coarse) { .made-by a { min-width: 44px; min-height: 44px; } }
 .key__notice { padding-top: var(--space-2); border-top: 1px solid var(--color-border); font-weight: 600; }
 
 /* ── Status notices and holding page ──────────────────────────────────── */
@@ -376,7 +401,7 @@
 .lenspanel__row button:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
 .lenspanel__row.is-lit { background: var(--color-selected-row); }
 .lenspanel__row.is-picked { box-shadow: inset 3px 0 0 var(--map-selected); }
-.lenspanel__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lenspanel__name { min-width: 0; overflow-wrap: anywhere; padding: 3px 0; line-height: 1.25; } /* VE-299: wraps, not ellipsis */
 .lenspanel__mark { display: inline-flex; line-height: 0; }
 .lenspanel__value { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (max-width: 1023px) {
@@ -426,7 +451,7 @@
   .railtable .link-btn { min-height: 44px; }
 }
 .railtable .link-btn .sq { margin-right: 6px; }
-.rail__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail__name { min-width: 0; overflow-wrap: anywhere; } /* VE-299: wraps, not ellipsis */
 .railtable tr.is-selected { box-shadow: inset 3px 0 0 var(--map-selected); }
 .sortbtn { display: inline-flex; gap: 3px; align-items: center; width: 100%; min-width: 44px; min-height: 44px; padding: 0; border: none; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
 .railtable .is-num .sortbtn { justify-content: flex-end; }
@@ -480,6 +505,10 @@
 .tc__pct { font-size: var(--text-xl); font-weight: 700; line-height: 1.1; }
 .tc__bar { position: relative; display: flex; height: 14px; background: var(--color-surface-alt); border-radius: 2px; overflow: hidden; }
 .tc__bar > span:not(.gauge__mark) { height: 100%; transition: width 400ms ease; }
+/* VE-284: the 50% line is dashed, in dark or light ink by the fill under it (midlineInk), so it shows on Nationals green too. */
+.tc__bar > .tc__mid { width: 2px; margin-left: -1px; background: repeating-linear-gradient(to bottom, var(--mid-ink, #141414) 0 3px, transparent 3px 5px); }
+.tc__bar > .tc__mid[data-ink="light"] { --mid-ink: rgba(255, 255, 255, 0.95); }
+.tc__bar > .tc__mid[data-ink="dark"] { --mid-ink: #141414; }
 .panel__line { font-size: var(--text-sm); }
 .night { margin: 0; }
 .night svg { display: block; width: 100%; height: 44px; overflow: visible; }
@@ -703,6 +732,16 @@
 /* The overlay canvas draws the flying shapes; while it is active the real views' shapes hide underneath. */
 .transition-overlay { z-index: 12; }
 .app[data-morph="true"] .hex, .app[data-morph="true"] .hex-outline, .app[data-morph="true"] .hex-pick { visibility: hidden; }
+/* VE-275: the % counted figures belong to the hexes, so they wait for the shapes to land. They go at once when a move
+   starts (either way) and fade in over 200 ms on arrival. No move (reduced motion) never sets data-morph, so they just show. */
+.hex-nums { opacity: 1; transition: opacity 200ms ease-out; }
+.app[data-morph="true"] .hex-nums { opacity: 0; transition: none; }
+:root[data-motion="off"] .hex-nums { transition: none; }
+/* VE-305: the "no figures yet" stripes (and the Trust hatch) are drawn over the real shapes, which hide in flight, so they
+   would hang as a striped ghost state behind the flying shapes. Same treatment as the figures: gone at once, 200 ms back. */
+.map-empty, .map-hatch, .hex-empty, .hex-hatch { opacity: 1; transition: opacity 200ms ease-out; }
+.app[data-morph="true"] .map-empty, .app[data-morph="true"] .map-hatch, .app[data-morph="true"] .hex-empty, .app[data-morph="true"] .hex-hatch { opacity: 0; transition: none; }
+:root[data-motion="off"] .map-empty, :root[data-motion="off"] .map-hatch, :root[data-motion="off"] .hex-empty, :root[data-motion="off"] .hex-hatch { transition: none; }
 
 /* No flight (reduced motion, or the map or geometry not ready): the new shape fades in over the old one in 150 ms (VE-103).
    The outgoing pane stays up underneath until the fade ends, so no frame is ever empty; only the incoming pane's opacity moves. */
@@ -804,6 +843,11 @@
    the Seats sheet open from the right edge so the map stays in view on the left. Portrait phones and desktop are untouched
    (the max-height guard keeps a small landscape tablet window on the portrait rules). */
 @media (max-width: 1023px) and (orientation: landscape) and (max-height: 500px) {
+  /* VE-269: the chips stand beside the lanes, not under them, and the lanes are thinner, so the band stays about as tall as the title row. */
+  .tl { display: flex; align-items: flex-end; gap: var(--space-2); }
+  .tl__lanes { --lp: 8px; flex: 1 1 0; min-width: 0; grid-template-rows: 10px 10px; row-gap: 6px; padding: 14px 0 3px var(--space-2); }
+  .tl__bar { height: 10px; }
+  .tl__key { flex: 0 1 46%; padding: 0 var(--space-2) 1px 0; }
   .app .band { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: var(--space-3); padding-block: 2px; }
   .band > .band__top { grid-column: 1; grid-row: 1; height: auto; padding: 0 0 0 var(--space-3); }
   .band > .tl { grid-column: 2; grid-row: 1; min-width: 0; }
@@ -968,11 +1012,28 @@
 @media (min-width: 1024px) {
   .stage { --peek-w: 300px; }
   .stage > .colour-chips { --chips-room: calc(100% - 72px - var(--peek-w) - 24px); }
-  .app[data-colour="gains"] .stage > .colour-chips { max-width: var(--chips-room); }
+  .stage > .colour-chips { max-width: var(--chips-room); }
+  /* The five chips plus "More ways" are wider than the room left of the card at 1280 and below, so the row wraps (chips first, More ways after) instead of running under the card. */
+  .stage > .colour-chips .colour-chips__row { flex-wrap: wrap; row-gap: 8px; }
+  .stage > .colour-chips .segmented { flex-wrap: wrap; row-gap: 8px; overflow: visible; max-width: 100%; }
   .colour-key:has(.gnet) { row-gap: 4px; }
+  /* The Leader key is one row as before: it may run past the (narrower) chips box, as it did when only the Gains and Labor v Coalition keys were boxed. */
+  .stage > .colour-chips .colour-key:has(.lkey__step) { flex-wrap: nowrap; width: max-content; }
+  /* VE-299: the Labor v Coalition key (long, one row) wraps clear of the "more ways" card. The room is set on .colour-chips, where the % resolves against the stage (as the Gains rule does); on the key itself it resolved against its own shrink-wrapped box and stacked Leader. */
+  .app .stage > .colour-chips:has([data-testid="key-other-contest"]) { max-width: var(--chips-room); }
 }
 @media (min-width: 1300px) and (max-width: 1439px) { .stage { --peek-w: 440px; } }
 @media (min-width: 1440px) { .stage { --peek-w: 510px; } }
+/* The chips box (two rows of chips plus the key) sits over the stage's foot, so the hexes keep that room clear in their bottom
+   padding: the box's height plus its 22 px inset and a little air. Measured in the 2022 replay: about 132 px at 1440 and 1280, up
+   to about 165 px at 1300 to 1439 (narrower room, more wrapping), up to 199 px at 1024. */
+@media (min-width: 1024px) {
+  .stage { --chips-pad: 230px; }
+  .hexes { padding-bottom: var(--chips-pad); }
+}
+@media (min-width: 1200px) and (max-width: 1299px) { .stage { --chips-pad: 160px; } }
+@media (min-width: 1300px) and (max-width: 1439px) { .stage { --chips-pad: 200px; } }
+@media (min-width: 1440px) { .stage { --chips-pad: 160px; } }
 
 /* VE-170 (review finding 4): a phone held sideways. The Gains key was boxed into the 230 px column and the net chips were cut at its
    edge. The free width is everything left of the Seats sheet (min(380px, 50%) from the right), so the key takes that and wraps onto
@@ -1010,8 +1071,8 @@
   .closest__card:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
   .closest__stripe { flex: 0 0 6px; }
   .closest__body { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 6px 8px; }
-  .closest__name { font-size: 14px; line-height: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .closest__line { font-size: 13px; line-height: 18px; color: var(--color-text-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .closest__name { font-size: 14px; line-height: 18px; font-weight: 700; overflow-wrap: anywhere; }
+  .closest__line { font-size: 13px; line-height: 18px; color: var(--color-text-subtle); overflow-wrap: anywhere; }
 }
 /* VE-235: the Map's resting layout (phone width only, as MapPane's rest) puts the key under Victoria too. */
 @media (max-width: 699px) and (orientation: portrait) {
@@ -1035,3 +1096,50 @@
   .rail__counted { font-size: 13px; }
   .railtable thead th { font-size: 12px; }
 }
+
+/* VE-286: the pick chip. A floating pill at the stage's top centre says what the outlined seats are. It uses the Hex hover
+   label's surface, border and shadow (above), so it is the app's own pill and not a new style. The wrap takes no clicks, and
+   its side padding keeps the pill clear of the shape control (left), the inset (right) and, on phone, the View button and "i". */
+.pickchip-wrap {
+  position: absolute; top: calc(var(--space-2) + 32px); left: 0; right: 0; z-index: 28; display: flex; justify-content: center; /* under the tally detail card, which rides the stage top */
+  padding: 0 260px 0 170px; pointer-events: none;
+}
+.pickchip {
+  --pickchip-edge: var(--pick-ink); --pickchip-fill: transparent;
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 32px; padding: 0 var(--space-2) 0 10px;
+  background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-md); color: var(--color-text); font-size: var(--text-sm, 0.875rem); line-height: 1.25;
+  pointer-events: auto; animation: pickchip-in 150ms var(--ease-decelerate, ease-out) backwards;
+}
+.pickchip[data-preview="true"] { opacity: 0.8; pointer-events: none; }
+.pickchip__glyph { width: 16px; height: 16px; flex: none; }
+.pickchip__glyph polygon { fill: var(--pickchip-fill); fill-opacity: 0.35; stroke: var(--pickchip-edge); stroke-width: 1.8; stroke-linejoin: round; }
+.pickchip__text { min-width: 0; font-variant-numeric: tabular-nums; }
+.pickchip__clear {
+  position: relative; flex: none; width: 24px; height: 24px; margin-right: -4px; padding: 0; display: inline-grid; place-items: center;
+  border: 0; border-radius: 50%; background: transparent; color: var(--color-text-subtle); font: inherit; font-size: 0.75rem; line-height: 1; cursor: pointer;
+}
+.pickchip__clear:hover { background: var(--color-bg-subtle, rgba(0, 0, 0, 0.06)); color: var(--color-text); }
+.pickchip__clear:focus-visible { outline: 2px solid var(--color-navy); outline-offset: 1px; }
+/* A 44 px target around the small button, so the pill itself stays slim. */
+.pickchip__clear::after { content: ""; position: absolute; inset: -10px; }
+@keyframes pickchip-in { from { opacity: 0; transform: translateY(-6px); } }
+:root[data-motion="off"] .pickchip { animation: none; }
+@media (prefers-reduced-motion: reduce) { .pickchip { animation: none; } }
+@media (max-width: 1023px) {
+  /* Under the seats sheet (--z-panel 15): at half or full the sheet reaches the chip, and its handle must stay tappable (VE-277 round 2). */
+  .pickchip-wrap { top: calc(var(--space-2) + 48px); padding: 0 var(--space-2); z-index: 14; }
+  .pickchip { padding-block: 4px; font-size: var(--text-xs); }
+}
+
+/* VE-286: the picked seats' outline is 2 px in the picked party's dark shade (--pick-edge, set on the stage), lighter than the
+   selected seat's 3 px navy ring. Without a pick colour it falls back to the old ink. */
+.map-pick { stroke: var(--pick-edge, var(--pick-ink)); stroke-width: 2; }
+.hex-pick { stroke: var(--pick-edge, var(--pick-ink)); stroke-width: 2; }
+
+/* VE-286: the chip is the one hover popup. The tally's own detail card (same words, now carried by the chip) stays in the page
+   for screen readers and tests, clipped to nothing. */
+.tally__detail { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0 !important; box-shadow: none !important; }
+.pickchip__text b { font-weight: 700; }
+.pickchip__text { white-space: nowrap; }
+@media (max-width: 1023px) { .pickchip__text { white-space: normal; } }

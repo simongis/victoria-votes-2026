@@ -101,7 +101,8 @@ export type RailFilter = 'doubt' | 'changing' | 'won'
  * here, not in gains.ts, because gains.ts imports from this file and the rail's "Changing hands" filter must use it too (VE-168,
  * FB-198); gains.ts re-exports it.
  */
-export const gainShown = (s: Seat): boolean => s.changing && (s.state === 'firm' || s.state === 'won' || s.likely)
+// VE-293: a seat whose VEC pair is in doubt is not a change of holder yet, whatever its colour step (pairDoubt is set by seatFromHistory).
+export const gainShown = (s: Seat): boolean => s.changing && !s.pairDoubt && (s.state === 'firm' || s.state === 'won' || s.likely)
 
 export const matchesRailFilter = (r: ListRow, f: RailFilter): boolean =>
   // VE-226 (finding 7): the close seats, plus the seats waiting for a count after preferences, which the rail lists apart

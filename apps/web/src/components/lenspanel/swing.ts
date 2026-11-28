@@ -9,7 +9,7 @@ import { PARTY_NAMES } from '../../parties'
 import type { Seat } from '../../derive/seats'
 
 /** The lens's three filters. Little change, too early and no-count seats sit in none of them, only in the full list. */
-export type SwingFilter = 'labor' | 'coalition' | 'other'
+export type SwingFilter = 'labor' | 'coalition' | 'other' | 'changed'
 
 /** 2022 final first-preference share by party, per district (percent). */
 export type FpBaseline = ReadonlyMap<number, Partial<Record<PartyBucket, number>>>
@@ -128,6 +128,8 @@ function tierOf(r: SwingRow): number {
     case 'early': return 2
     // VE-215 A15: an other contest that is still too early reads "Too early", so it sits with the too-early seats.
     case 'other': return r.detail?.early ? 2 : r.detail?.change != null || r.detail?.movers.length ? 3 : 4
+    // VE-285: Labor v Coalition now but a different 2022 pair: no figure to rank by, after the other contests that have a change.
+    case 'changed': return 4
     case 'notin': return 5
   }
 }
@@ -147,7 +149,7 @@ export function withBaseline(rows: readonly SwingRow[], baseline: FpBaseline | n
 export function swingRows(seats: Iterable<Seat>, statics: ReadonlyMap<number, DistrictStatic>, baseline: FpBaseline | null = null): SwingRow[] {
   const rows = [...seats].map((seat): SwingRow => {
     const mark = classifySeat(seat, statics.get(seat.id))
-    const filter: SwingFilter | null = mark.kind === 'arrow' ? (mark.toward === 'ALP' ? 'labor' : 'coalition') : mark.kind === 'other' ? 'other' : null
+    const filter: SwingFilter | null = mark.kind === 'arrow' ? (mark.toward === 'ALP' ? 'labor' : 'coalition') : mark.kind === 'other' ? 'other' : mark.kind === 'changed' ? 'changed' : null
     const size = mark.kind === 'arrow' || mark.kind === 'flat' ? Math.abs(mark.pts) : null
     return { id: seat.id, name: seat.name, seat, mark, filter, size, detail: mark.kind === 'other' ? detailOf(seat, baseline?.get(seat.id)) : null }
   })
@@ -189,6 +191,7 @@ export function swingCounts(rows: readonly SwingRow[]): Record<SwingFilter, numb
     labor: rows.filter((r) => r.filter === 'labor').length,
     coalition: rows.filter((r) => r.filter === 'coalition').length,
     other: rows.filter((r) => r.filter === 'other').length,
+    changed: rows.filter((r) => r.filter === 'changed').length,
   }
 }
 

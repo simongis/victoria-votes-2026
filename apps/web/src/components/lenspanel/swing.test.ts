@@ -116,10 +116,26 @@ describe('swingSummary', () => {
   })
 })
 
+describe('VE-285: a Labor v Coalition seat whose 2022 pair differed', () => {
+  // Bendigo East: Labor v Nationals now, Labor v Liberal in 2022.
+  const bendigo = seat({ id: 1, name: 'Bendigo East', tcp: { a: 'ALP', b: 'NAT', pctA: 57 } })
+  const alsoOther = other(2, 'Brunswick')
+  it('has its own filter and is not counted as not Labor v Coalition', () => {
+    const rows = swingRows([bendigo, alsoOther], new Map([[1, st({ base_tcp_party_b: 'LIB' })], [2, st()]]))
+    expect(rows.find((r) => r.id === 1)!.filter).toBe('changed')
+    expect(swingCounts(rows)).toEqual({ labor: 0, coalition: 0, other: 1, changed: 1 })
+    expect(filterSwing(rows, 'changed', '').map((r) => r.name)).toEqual(['Bendigo East'])
+  })
+  it('reads "Different contest from 2022" in the row sentence', () => {
+    const [r] = swingRows([bendigo], new Map([[1, st()]]))
+    expect(rowSentence(r!)).toContain('Different contest from 2022')
+  })
+})
+
 describe('filterSwing and swingCounts', () => {
   const rows = swingRows([lvc(1, 'Alpha', 4), lvc(2, 'Bravo', -5), other(3, 'Charlie'), lvc(4, 'Delta', 2)], statics(1, 2, 3, 4))
   it('counts each filter over every row, not narrowed by search', () => {
-    expect(swingCounts(rows)).toEqual({ labor: 2, coalition: 1, other: 1 })
+    expect(swingCounts(rows)).toEqual({ labor: 2, coalition: 1, other: 1, changed: 0 })
   })
   it('narrows by filter and by a name search together, keeping the order', () => {
     expect(filterSwing(rows, 'labor', '').map((r) => r.name)).toEqual(['Alpha', 'Delta'])

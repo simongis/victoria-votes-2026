@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode
 import { IN_DOUBT_TCP_PCT, type PartyBucket } from '@vic26/schema'
 import { FIRM_RULE, MAJORITY, SEATS, SIDE_NAMES, headlineOf, sideTotals, type Seat, type Side, type Tally } from '../derive/seats'
 import { DOUBT, focusDetail, focusName, focusSummary, parseFocus, type Focus, type FocusPart } from '../derive/focus'
-import { OTHERS_KEY, keyOthers } from '../derive/tallyKey'
+import { OTHERS_KEY, contenderName, raceChips, raceHeadline, raceLanes, raceStatus, type Contender } from '../derive/tallyKey'
 import { noPreferencesYet } from '../derive/closest'
 import { HEADLINE_MIN_PCT, declaredOf, headlineParts, headlineText, legibleOn, shortHeadlineParts } from '../derive/headline'
 import { DECLARED_NOTICE, PROVISIONAL_NOTICE } from '../footer'
 import { PARTY_NAMES } from '../parties'
-import { REPLAY_LABEL } from '../replayLabel'
+import { nightWords } from '../derive/nightWords'
 import { css, usePalette } from '../theme/theme'
 import { countedShare, countedWord } from '../derive/turnout'
 import { LEAD_STEP_WORDS, allDeclared, leadStep, partyCss, stepRgb, type LeadStep } from '../views/encoding'
@@ -48,10 +48,12 @@ export interface TopBandProps {
   colourInfo?: ReactNode
 }
 
-/** The bar's parts, left to right: Labor, Greens and the crossbench on the left, a gap for seats with no figures, the Coalition against the right edge. */
-const LEFT: PartyBucket[] = ['ALP', 'GRN', 'IND', 'OTH', 'ONP']
+/** The parties inside each lane (VE-269): the Coalition lane shows its two partners side by side, Liberal first. */
+const LANE_PARTIES: Record<Contender, PartyBucket[]> = { ALP: ['ALP'], COA: ['LIB', 'NAT'], ONP: ['ONP'], GRN: ['GRN'] }
 const COALITION: PartyBucket[] = ['NAT', 'LIB']
 const OTHERS: PartyBucket[] = OTHERS_KEY
+/** The lanes run from 0 to this many seats, so the shared 45 line sits at three quarters (45 of 60); a bigger lead stretches the scale. */
+const LANE_SCALE = 60
 
 /** A party's seats at each Leader step: early lead, likely, solid (firm or won). */
 type Steps = [number, number, number]
@@ -77,14 +79,16 @@ function stepCounts(seats: Map<number, Seat>): Map<PartyBucket, Steps> {
   return out
 }
 
-/** Within a party the solid part sits against the outer end and the faint part towards the middle (the Coalition mirrors it, so its faint seats sit next to the 45 line's gap). */
-function segsOf(seats: Map<number, Seat>): { left: Seg[]; right: Seg[] } {
+/** A lane's parts, drawn from the left: within a party the solid part comes first and the faint part after it. */
+function lanesOf(seats: Map<number, Seat>, lanes: readonly Contender[]): Record<Contender, Seg[]> {
   const counts = stepCounts(seats)
   const seg = (party: PartyBucket): Seg => {
     const steps = counts.get(party) ?? [0, 0, 0]
     return { key: party, party, steps, n: steps[0] + steps[1] + steps[2] }
   }
-  return { left: LEFT.map(seg), right: COALITION.map(seg) }
+  const out = { ALP: [], COA: [], ONP: [], GRN: [] } as Record<Contender, Seg[]>
+  for (const c of lanes) out[c] = LANE_PARTIES[c].map(seg)
+  return out
 }
 
 /** The step counts in words for a name: "6 won or firm, 3 likely, 2 early lead" (only the parts that exist). */
@@ -120,7 +124,7 @@ export function ReadingKey({ sourceNote, className, pollNote, colourInfo, holdin
   return (
     <InfoButton label="How to read this" className={className}>
       {dataLabel === 'Trial' && <p className="key__trial" data-testid="info-trial"><b>Trial:</b> this is test data, not real results.</p>}
-      {dataLabel === 'Replay' && <p className="key__trial" data-testid="info-replay"><b>Replay:</b> {REPLAY_LABEL}.</p>}
+      {dataLabel === 'Replay' && <p className="key__trial" data-testid="info-replay"><b>{nightWords('Replay')!.infoLead}</b> {nightWords('Replay')!.infoLine}.</p>}
       {!holding && stillLine && (
         <div className="key__counts" data-testid="info-counts">
           {stillLine && <p data-testid="info-still">{stillLine}</p>}
@@ -129,6 +133,8 @@ export function ReadingKey({ sourceNote, className, pollNote, colourInfo, holdin
       {!holding && colourInfo && <div className="key__colour" data-testid="colour-info">{colourInfo}</div>}
       {/* VE-221 (B3): the one line on when seats settle; at Final there is nothing left to settle. */}
       {!holding && !final && <p data-testid="info-settle">Most seats are clear on the night; close ones can take weeks.</p>}
+      {/* VE-296: the one place that says what 45 means and what a hung result does. */}
+      {!holding && <p data-testid="info-majority">{MAJORITY} of {SEATS} seats is a majority; short of that, the crossbench decides who governs.</p>}
       {/* VE-118 (FB-119): a few plain lines at rest; the detail folds away. */}
       {/* VE-170: the colour rule is said once, in colourInfo above; the tick key below is all this adds. */}
       {!holding && !final && (
@@ -140,10 +146,10 @@ export function ReadingKey({ sourceNote, className, pollNote, colourInfo, holdin
       {!holding && (
       <details className="key__more">
         <summary>More detail</summary>
-        <p><b>The top bar</b> is the key: tap a party to light its seats. A dark outline marks seats you picked.</p>
+        <p><b>The top bar</b> is the key: tap a party to light its seats. An outline marks the seats picked in the tally.</p>
         <p><b>Night</b> is each seat&apos;s lead through the night. Above the dashed line, the 2022 holder leads.</p>
         <p>
-          {!final && <><b>Close</b>: not declared, and the leader has under {IN_DOUBT_TCP_PCT}% after preferences, or the VEC is still working out the final two. </>}<b>{final ? 'Turnout' : 'Counted'}</b>: the share of enrolled voters counted. {MAJORITY} of {SEATS} seats wins. Small squares are crossbench seats.
+          {!final && <><b>Close</b>: not declared, and the leader has under {IN_DOUBT_TCP_PCT}% after preferences, or the VEC is still working out the final two. </>}<b>{final ? 'Turnout' : 'Counted'}</b>: the share of enrolled voters counted. Small squares are crossbench seats.
         </p>
         <p>{FIRM_RULE}</p>
       </details>
@@ -169,6 +175,16 @@ export function ReadingKey({ sourceNote, className, pollNote, colourInfo, holdin
         </button>
       </div>
       {motion.note && <p className="motion-note" data-testid="motion-note">Your device asks for less motion. Turn animations off?</p>}
+      {/* VE-280: the maker's name and two quiet links, last in the sheet. Inline SVG, so the CSP is unchanged. */}
+      <p className="made-by" data-testid="made-by">
+        <span>Made by Simon Jackson</span>
+        <a href="https://bsky.app/profile/simongis.bsky.social" target="_blank" rel="noopener noreferrer" aria-label="Simon Jackson on Bluesky" data-testid="link-bluesky">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden focusable="false"><path fill="currentColor" d="M12 10.8c-1.09-2.12-4.05-6.08-6.8-8.03C2.56.9 1.55 1.22.89 1.52.12 1.87 0 3.05 0 3.74c0 .7.38 5.74.63 6.58.82 2.74 3.72 3.67 6.39 3.37-3.92.58-7.4 2-2.83 7.07 5.02 5.19 6.88-1.11 7.81-4.28.93 3.17 2.01 9.19 7.9 4.28 4.36-4.28 1.2-6.49-2.72-7.07 2.67.3 5.57-.63 6.39-3.37.25-.84.63-5.88.63-6.58 0-.7-.12-1.87-.89-2.22-.66-.3-1.67-.62-4.31 1.27C16.05 4.72 13.09 8.68 12 10.8z"/></svg>
+        </a>
+        <a href="https://x.com/SimonGIS" target="_blank" rel="noopener noreferrer" aria-label="Simon Jackson on X" data-testid="link-x">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden focusable="false"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+      </p>
     </InfoButton>
   )
 }
@@ -190,12 +206,13 @@ export function TopBand(p: TopBandProps) {
   const [hover, setHover] = useState<Focus | null>(null)
   const sides = sideTotals(p.tally)
   const aria = (Object.keys(sides) as Side[]).filter((s) => sides[s].all > 0).map((s) => `${SIDE_NAMES[s]} ${sides[s].all} (${sides[s].firm} certain)`)
-  const majority = `${(MAJORITY / SEATS) * 100}%`
-  const { left, right } = useMemo(() => segsOf(p.seats), [p.seats])
+
+  // VE-269: the two contenders with the most seats get the lanes; everyone else is a chip below.
+  const lanes = raceLanes(p.tally)
+  const laneSegs = useMemo(() => lanesOf(p.seats, lanes), [p.seats, lanes[0], lanes[1]]) // eslint-disable-line react-hooks/exhaustive-deps
   const counts = useMemo(() => stepCounts(p.seats), [p.seats])
   // VE-142: once every seat is declared the tally says "won", not the three steps.
   const declared = useMemo(() => allDeclared(p.seats.values()), [p.seats])
-  const none = SEATS - [...left, ...right].reduce((a, x) => a + x.n, 0)
   const shown = hover ?? focus
   const detail = shown ? focusDetail(p.seats, shown) : null
   // The party name and count stay bold; the breakdown after it is plain. In doubt is one bold phrase.
@@ -268,6 +285,7 @@ export function TopBand(p: TopBandProps) {
       className={`tl__chip${opts.head ? ' tl__chip--head' : ''}${opts.wideOnlyAtZero && n === 0 ? ' tl__chip--wide-only' : ''}`}
       data-dim={!inShown(parties, null)}
       data-focus={f}
+      data-zero={n === 0 || undefined}
       {...target(f, `${full}: ${n} seats${n > 0 ? ` (${stepWords(stepsFor(parties), declared)})` : ''}. Highlight on the views`)}
     >
       {swatch(parties)}
@@ -287,8 +305,10 @@ export function TopBand(p: TopBandProps) {
 
   const alp = seatsOf(p.tally, 'ALP')
   const grn = seatsOf(p.tally, 'GRN')
-  const othersHeld = keyOthers((q) => seatsOf(p.tally, q)).others
+  const chips = raceChips((q) => seatsOf(p.tally, q), lanes)
+  const othersHeld = chips.others
   const onp = seatsOf(p.tally, 'ONP')
+  const seatsOf2 = (c: Contender): number => LANE_PARTIES[c].reduce((a, q) => a + seatsOf(p.tally, q), 0)
   const sum = (ps: readonly PartyBucket[], pick: (q: PartyBucket) => number) => ps.reduce((a, q) => a + pick(q), 0)
   const totalOf = (ps: readonly PartyBucket[]) => sum(ps, (q) => seatsOf(p.tally, q))
   const otherName = (q: PartyBucket, n: number): [string, string | null] =>
@@ -313,7 +333,16 @@ export function TopBand(p: TopBandProps) {
   // VE-257: the real declared counts always go in, because 45 declared for one side says "has a majority" before Final.
   const declaredFor = declaredOf(p.seats.values())
   const rich = p.headline === headlineOf(p.tally)
-  const bits = rich ? headlineParts(p.tally, p.inDoubt, declaredFor, p.countedPct, declared) : [{ text: p.headline }]
+  // Seats at likely or better by party (early leads left out): what "on track for a majority" needs 45 of.
+  const sure = useMemo(() => { const o = { ALP: 0, LIB: 0, NAT: 0, GRN: 0, ONP: 0, IND: 0, OTH: 0 } as Record<PartyBucket, number>; for (const [q, c] of counts) o[q] = c[1] + c[2]; return o }, [counts])
+  // VE-269: "on track for a majority" and "No one on track for 45" replace the lead wording; everything else stays headlineParts'.
+  const bits = rich ? (raceHeadline({ tally: p.tally, declared: declaredFor, countedPct: p.countedPct, allDeclared: declared, sure }) ?? headlineParts(p.tally, p.inDoubt, declaredFor, p.countedPct, declared, sure)) : [{ text: p.headline }]
+  // VE-289: under the early-count gate the line stays "45 to win", matching the "Too early to call" headline.
+  const race = raceStatus(p.tally, declaredFor, sure, p.countedPct)
+  const topLane = Math.max(...lanes.map((c) => seatsOf2(c)))
+  const scale = Math.max(LANE_SCALE, topLane)
+  const raceCss = race.who ? css(legibleOn(pal.party[sideParty(race.who)], pal.paper)) : undefined
+  const raceLine = race.who ? partyCss(sideParty(race.who), pal) : undefined
   const pct = Math.max(0, Math.min(100, p.countedPct))
   // VE-166 (FB-194): no close-seat count before the headline names a leader; the count then is early-count noise.
   const closeShown = p.countedPct >= HEADLINE_MIN_PCT
@@ -339,6 +368,7 @@ export function TopBand(p: TopBandProps) {
   }, [shortText, shortSide, closeCount, handleCounted])
   useEffect(() => () => setPhoneBit('handle', null), [])
 
+  const badge = nightWords('Replay')!.badge
   return (
     <header className="band">
       <div className="band__top">
@@ -348,7 +378,7 @@ export function TopBand(p: TopBandProps) {
             <span className="badge badge--replay" data-testid="data-label" title="These are not live results">
               {p.dataLabel === 'Replay' ? (
                 <>
-                  Replay<span className="badge__more">: {REPLAY_LABEL}</span>
+                  {badge.lead}<span className="badge__more">{badge.more}</span>{badge.tail}
                 </>
               ) : (
                 <>
@@ -398,27 +428,46 @@ export function TopBand(p: TopBandProps) {
       </div>
       <ReadingKey sourceNote={p.sourceNote} className="band__desk" pollNote={p.pollNote} colourInfo={p.colourInfo} final={declared} dataLabel={p.dataLabel} />
       {/* VE-227 (finding 6): before the first figures the party chips would read "Labor 0, Coalition 0"; CSS hides them and keeps the bar and the 45 mark. */}
-      <div className="tl" data-nofigures={p.asAt === null || undefined}>
-        <div className="tl__bar" role="group" aria-label={`${aria.join(', ') || 'No figures yet'}. ${MAJORITY} seats to win.`}>
-          {left.map((x) => seg(x, 'left'))}
-          <span className="tl__gap" aria-hidden style={{ flexGrow: none }} title={none > 0 ? `${none} seats with no figures yet` : undefined} />
-          {right.map((x) => seg(x, 'right'))}
-          <span className="tl__line" style={{ left: majority }} aria-hidden />
+      <div className="tl" data-nofigures={p.asAt === null || !Object.values(sides).some((x) => x.all > 0) || undefined} data-race={race.kind}>
+        {/* VE-269: two lanes run to one shared 45 line (the seats a party needs to govern alone). Names and counts are the buttons; the coloured parts of each lane pick too. */}
+        <div className="tl__lanes" role="group" aria-label={`${aria.join(', ') || 'No figures yet'}. ${MAJORITY} seats to win.`}>
+          {lanes.map((c, row) => {
+            const n = seatsOf2(c)
+            const parties = LANE_PARTIES[c]
+            return (
+              <div key={c} className="tl__lane" data-lane={c} style={{ ["--lane-row" as string]: row + 1 }}>
+                {chip(c === 'COA' ? 'COA' : c, contenderName(c), null, parties, n, { testId: c === 'ALP' ? 'tally-alp' : c === 'COA' ? 'tally-coa' : c === 'ONP' ? 'tally-onp' : undefined, head: true })}
+                <div className="tl__bar">{laneSegs[c].map((x) => seg(x, scale))}</div>
+              </div>
+            )
+          })}
+          <span className="tl__over" aria-hidden>
+            <span className="tl__line" style={{ left: `${(MAJORITY / scale) * 100}%`, background: raceLine }} />
+            <span className="tl__maj" data-testid="race-label" style={{ left: `${(MAJORITY / scale) * 100}%`, color: raceCss }} title={`${MAJORITY} seats to govern alone`}>{race.label}</span>
+          </span>
         </div>
-        <span className="tl__maj" style={{ left: majority }} aria-hidden title={`${MAJORITY} seats to govern alone`}>{MAJORITY}</span>
         <div className="tl__key">
-          {chip('ALP', 'Labor', null, ['ALP'], alp, { testId: 'tally-alp' })}
-          {grn > 0 && chip('GRN', 'Greens', null, ['GRN'], grn, {})}
+          {lanes.includes('COA') ? (
+            <span className="tl__parts tl__partners" role="group" aria-label="Coalition partners">
+              {COALITION.slice().reverse().map((q) => {
+                const [full, short] = q === 'NAT' ? ['Nationals', 'Nats'] : ['Liberal', 'Lib']
+                return chip(q, full, short, [q], seatsOf(p.tally, q), {})
+              })}
+            </span>
+          ) : (
+            totalOf(COALITION) > 0 && group('COA', 'Coalition', COALITION, 'tally-coa')
+          )}
+          {/* A party with no seats gets no chip (the rule before the first figures too); One Nation's stays (VE-131). */}
+          {!lanes.includes('ALP') && alp > 0 && chip('ALP', 'Labor', null, ['ALP'], alp, { testId: 'tally-alp' })}
+          {chips.greens && chip('GRN', 'Greens', null, ['GRN'], grn, {})}
           {/* VE-131: One Nation has its own chip in its own orange, even on no seats; on a phone a zero chip would wrap the key onto a second line, so there it waits for a first seat, as the Greens do. */}
-          {chip('ONP', 'One Nation', 'ON', ['ONP'], onp, { testId: 'tally-onp', wideOnlyAtZero: true })}
+          {chips.onp && chip('ONP', 'One Nation', 'ON', ['ONP'], onp, { testId: 'tally-onp', wideOnlyAtZero: true })}
           {othersHeld.length === 1 && (() => {
             const q = othersHeld[0]!
             const [full, short] = otherName(q, seatsOf(p.tally, q))
             return chip(q, full, short, [q], seatsOf(p.tally, q), {})
           })()}
           {othersHeld.length > 1 && group('XB', 'All others', othersHeld)}
-          <span className="tl__fill" />
-          {group('COA', 'Coalition', COALITION, 'tally-coa')}
         </div>
       </div>
       {/* The counted share: a hairline along the bottom edge of the band. */}
@@ -434,13 +483,12 @@ export function TopBand(p: TopBandProps) {
     </header>
   )
 
-  /** One party's part of the bar: its solid, likely and early seats in the three tones the map uses (VE-127). The whole part picks the party. */
-  function seg(x: Seg, side: 'left' | 'right'): ReactNode {
+  /** One party's part of a lane: its solid, likely and early seats in the three tones the map uses (VE-127), solid first. The whole part picks the party. */
+  function seg(x: Seg, scale: number): ReactNode {
     const name = x.party === 'IND' ? 'Independents' : x.party === 'OTH' ? 'Other parties' : PARTY_NAMES[x.party]
     const on = x.n > 0
     const Tag = on ? 'button' : 'span'
-    // Solid sits at the outer end: first on the left, last on the right (mirrored).
-    const order: LeadStep[] = side === 'left' ? [2, 1, 0] : [0, 1, 2]
+    const order: LeadStep[] = [2, 1, 0]
     return (
       <Tag
         key={x.key}
@@ -449,7 +497,7 @@ export function TopBand(p: TopBandProps) {
         data-empty={!on}
         data-focus={x.party}
         title={on ? `${name}: ${x.n} (${stepWords(x.steps, declared)})` : undefined}
-        style={{ width: `${(x.n / SEATS) * 100}%` }}
+        style={{ width: `${(x.n / scale) * 100}%` }}
         {...(on ? target(x.party, `${name} in the bar: ${x.n} seats (${stepWords(x.steps, declared)}). Highlight on the views`) : { 'aria-hidden': true })}
       >
         {on && order.filter((s) => x.steps[s] > 0).map((s) => <span key={s} className="tl__step" data-step={s} style={{ flexGrow: x.steps[s], background: css(stepRgb(x.party, s, pal)) }} />)}

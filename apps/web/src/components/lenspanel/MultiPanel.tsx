@@ -3,6 +3,10 @@ import { sparkPath } from '../../derive/pulse'
 import { leaderCss, stepRgb } from '../../views/encoding'
 import { css, usePalette } from '../../theme/theme'
 import { LensPanel, type LensFilterChip, type LensRowView } from './LensPanel'
+import { isFinal } from '../../derive/turnout'
+import { useNight } from '../explore/multiples/nightStore'
+import { setPicked, usePick } from '../explore/multiples/pickStore'
+import { SeatPanel } from '../explore/multiples/SeatPanel'
 import { multiSentence, type MultiRow } from './multi'
 
 const W = 58
@@ -30,6 +34,8 @@ function LineMark({ r, total }: { r: MultiRow; total: number }) {
 
 /** The small-multiples lens's panel (VE-86): races ranked by closeness, with the seat's own line. Rows and words are in multi.ts. */
 export function MultiPanel({ rows, summary, total }: { rows: readonly MultiRow[]; summary: string; total: number }) {
+  const pick = usePick()
+  const night = useNight()
   const pal = usePalette()
   const [filter, setFilter] = useState<Filter | null>(null)
   const [query, setQuery] = useState('')
@@ -43,9 +49,14 @@ export function MultiPanel({ rows, summary, total }: { rows: readonly MultiRow[]
         name: r.name,
         colour: leaderCss(r.seat, pal),
         mark: <LineMark r={r} total={total} />,
-        value: r.lead === null ? '-' : `${Math.round(r.lead)}`,
+        value: r.lead === null ? '-' : r.lead < 1 ? '<1' : `${Math.round(r.lead)}`,
         words: multiSentence(r),
       }))
   }, [rows, filter, query, pal, total])
+  const picked = pick.id === null ? null : rows.find((r) => r.id === pick.id) ?? null
+  if (picked) {
+    const open = pick.open
+    return <SeatPanel row={picked} total={total} times={night.times} final={isFinal(rows.map((r) => r.seat))} onBack={() => setPicked(null)} onOpen={open ? () => open(picked.id) : null} />
+  }
   return <LensPanel summary={summary} unit="Lead in points, closest race first" filters={chips} filter={filter} onFilter={(k) => setFilter(k as Filter | null)} query={query} onQuery={setQuery} rows={views} />
 }

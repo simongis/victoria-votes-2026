@@ -12,6 +12,8 @@ export interface Night {
   shownIdx: number
   /** Ticks in the night so far: the width every line is spread over. */
   total: number
+  /** When each tick was taken (ms), for the time marks on the seat trend (VE-276). Absent until the host sends it. */
+  times?: readonly number[]
 }
 
 const EMPTY: Night = { series: new Map(), shownIdx: -1, total: 0 }
@@ -23,7 +25,7 @@ const subscribe = (fn: () => void) => {
 }
 
 export function setNight(n: Night): void {
-  if (n.series === night.series && n.shownIdx === night.shownIdx && n.total === night.total) return
+  if (n.series === night.series && n.shownIdx === night.shownIdx && n.total === night.total && n.times === night.times) return
   night = n
   listeners.forEach((fn) => fn())
 }

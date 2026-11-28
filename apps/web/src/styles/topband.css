@@ -197,7 +197,6 @@
 @media (min-width: 1024px) { .key__counts { display: none; } }
 
 /* VE-227 (finding 6): no figures yet, so no party counts. The key keeps its height (no jump when the first figures land) but draws and reads as nothing. */
-.tl[data-nofigures] .tl__key { visibility: hidden; }
 
 /* VE-254 (F6, F7): a phone in portrait. The marker must say "Trial: not real results" (hard rule 2) and the pill must show its
    date in full ("Final · Thu 15 Dec, 6:00 pm"), and neither fits beside the title on one line. So the marker sits under the
@@ -214,3 +213,14 @@
   .state-pill__short { white-space: normal; }
   .state-pill__dot { display: inline-block; vertical-align: 0; }
 }
+
+/* VE-269: before the first figures the lanes stay as visible empty tracks waiting to fill, named but with no counts, and the
+   chip row (which would read "Labor 0, One Nation 0") is not drawn. The 45 line still crosses both tracks. */
+.tl[data-nofigures] .tl__chip b, .tl[data-nofigures] .tl__chip .fx-chip { visibility: hidden; }
+.tl[data-nofigures] .tl__chip { pointer-events: none; }
+.tl[data-nofigures] .tl__key { display: none; }
+
+/* VE-275: the header's "i" popover lives inside the band's stacking context (z 30), so the seat panel (z 40, in the root
+   context) covered it on desktop. While a popover is open (it is only in the DOM then) the band rises to the popover level;
+   at rest nothing changes, so the panel, rail lens and sheets keep their order. */
+.band:has(.info__pop) { z-index: var(--z-popover); }

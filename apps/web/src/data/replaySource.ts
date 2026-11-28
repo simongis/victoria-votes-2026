@@ -16,6 +16,7 @@ import {
   type KillSwitchState,
   type StatusAttributes,
 } from '@vic26/schema'
+import { nightWords, setSimulation, simulationOf } from '../derive/nightWords'
 import { staticEnrolment, statewidePct } from '../derive/enrolment'
 import { seatsFromRows, statsOf, tallyOf } from '../derive/seats'
 import { createReplayBoothSource } from './boothSource'
@@ -29,6 +30,8 @@ interface Manifest {
   source: string
   snapshots: { snapshotId: string; snapshotAt: number; file: string }[]
   synthetic?: string[]
+  /** Present on a made-up night (VE-256, VE-267): the app then says "Simulated", not "Replay: 2022" (VE-295). */
+  simulation?: { model?: { file?: string } } | null
 }
 
 interface Columns {
@@ -86,6 +89,7 @@ export function createReplaySource(opts: ReplayOptions): ResultsSource {
         fetchJson<GeoCollection<SeatHexStatic>>(`${base}static/seat-hexes.geojson`),
         fetchJson<Columns>(`${base}history/district_history.columns.json`),
       ])
+      setSimulation(simulationOf(manifest))
       const statics: Statics = {
         districts,
         seatHexes,
@@ -134,7 +138,10 @@ export function createReplaySource(opts: ReplayOptions): ResultsSource {
   return {
     kind: 'replay',
     pollMs: opts.pollMs ?? 5_000,
-    note: 'Replay of the 2022 count, not live results.',
+    // A getter: the manifest (so whether this is a simulated night) arrives after the source is made.
+    get note() {
+      return `${nightWords('Replay')!.marker}.`
+    },
     booths: createReplayBoothSource(base),
     statics: async () => (await load()).statics,
 

@@ -11,6 +11,7 @@ import { LensBar } from '../LensBar'
 import { hexView } from '../stageGeom'
 import { MovesBlock } from './MovesBlock'
 import { useNight } from './nightStore'
+import { setOpener, setPicked, usePick } from './pickStore'
 
 /** Points either side of zero that reach a tile's top and bottom edge (the rail's own scale). */
 const RANGE = 30
@@ -72,14 +73,30 @@ export default function MultiplesLens({ seats, statics, title, onShowSeat }: Len
   const onOver = (e: PointerEvent) => e.pointerType === 'mouse' && setHover(idOf(e.target))
   const onOut = (e: PointerEvent) => e.pointerType === 'mouse' && setHover(idOf(e.relatedTarget))
   const open = (id: number) => onShowSeat?.(id)
+  // VE-276: a tap picks the seat for the side panel (tap again to put it down); the panel's own link goes to the main map.
+  const picked = usePick().id
+  const toggle = (id: number) => setPicked(picked === id ? null : id)
+  useEffect(() => {
+    setOpener(onShowSeat ?? null)
+    return () => {
+      setOpener(null)
+      setPicked(null)
+    }
+  }, [onShowSeat])
   const onKey = (e: KeyboardEvent, id: number) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      open(id)
+      toggle(id)
     }
   }
   const hovered: MultiRow | null = hover === null ? null : byId.get(hover) ?? null
-  const ringItem = ring === null ? null : view.items.find((it) => it.id === ring) ?? null
+  // A phone's seat list is a collapsed sheet: a pick opens it so the facts are on screen (the lens cannot reach the sheet's state, so it presses its handle).
+  useEffect(() => {
+    if (picked === null) return
+    document.querySelector<HTMLButtonElement>('.rail[data-open="false"] .rail__handle')?.click()
+  }, [picked])
+  const ringId = ring ?? picked
+  const ringItem = ringId === null ? null : view.items.find((it) => it.id === ringId) ?? null
 
   return (
     <div className="arrows multi" data-mode="hex" data-testid="multi-lens">
@@ -88,12 +105,17 @@ export default function MultiplesLens({ seats, statics, title, onShowSeat }: Len
         info={
           <InfoButton label="About the small charts" align="right">
             <p>Each hexagon is a seat, in its place on the Hex. The line is the 2022 holder&apos;s lead over the night: above the faint middle line they are ahead, below it they trail, and a line that crosses it is a lead changing. The colour is {final ? 'the winner' : "tonight's leader"}.</p>
-            <p>{final ? '' : 'Faded seats are won or certain. '}Heavier lines are races within {CLOSE_PTS} points. Tap a seat to open it.</p>
+            <p>{final ? '' : 'Faded seats are won or certain. '}Shaded hexagons with heavier lines are races within {CLOSE_PTS} points. Tap a seat to see its line and the key facts.</p>
             <LensNotice seats={seats} />
           </InfoButton>
         }
       />
-      <div className="arrows__stage" onPointerOver={onOver} onPointerOut={onOut} style={portrait ? { aspectRatio: `${view.vb[2]} / ${view.vb[3]}` } : undefined}>
+      {rows.some((r) => r.state === 'close') && (
+        <p className="multi__key" data-testid="multi-key">
+          <span className="multi__swatch" aria-hidden /> Shaded: race within {CLOSE_PTS} points
+        </p>
+      )}
+      <div className="arrows__stage" onPointerOver={onOver} onPointerOut={onOut} onClick={(e) => idOf(e.target) === null && setPicked(null)} style={portrait ? { aspectRatio: `${view.vb[2]} / ${view.vb[3]}` } : undefined}>
         <svg className="arrows__svg" viewBox={view.vb.join(' ')} preserveAspectRatio={portrait ? 'xMidYMin meet' : 'xMidYMid meet'} role="group" aria-label="The 88 races, each a small chart of the lead over the night, on the hexagons">
           <g>
             {tiles.map(({ it, r, w, h, d }) => {
@@ -131,7 +153,7 @@ export default function MultiplesLens({ seats, statics, title, onShowSeat }: Len
                   role="button"
                   tabIndex={0}
                   aria-label={r ? multiSentence(r) : 'No figures'}
-                  onClick={() => open(it.id)}
+                  onClick={() => toggle(it.id)}
                   onKeyDown={(e) => onKey(e, it.id)}
                   onFocus={() => setHover(it.id)}
                   onBlur={() => setHover(null)}

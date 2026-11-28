@@ -3,6 +3,7 @@ import { PARTY_NAMES } from '../../parties'
 import type { HexLabelText } from '../../derive/hexLabel'
 import type { Focus } from '../../derive/focus'
 import { evcRing } from './evc'
+import { centresOf } from './panelInput'
 import type { EvcGroup } from './evc'
 import { boothAt, boothInFocus, boothSummary, dotRadius, type BoothRow, type BoothStatic } from './model'
 
@@ -36,6 +37,10 @@ export interface BoothDot {
   outlined: boolean
   /** An early voting centre: drawn as a ringed dot. */
   evc?: true
+  /** VE-301: an early voting centre whose point is outside every district it serves (the VEC places some so). */
+  outside?: true
+  /** A joint voting centre (VE-292): how many districts this building serves, when two or more. */
+  joint?: number
 }
 
 export interface DotInput {
@@ -54,6 +59,8 @@ export interface DotInput {
    * live edge the waiting booths stay as faint specks, which tell the viewer what is still to come.
    */
   reportedOnly?: boolean
+  /** VE-301: ids of places whose point is outside their own district. Absent where the shapes are not known. */
+  outside?: ReadonlySet<number>
 }
 
 /**
@@ -61,6 +68,7 @@ export interface DotInput {
  * so a small dot is never buried under a big one.
  */
 export function buildDots(i: DotInput): BoothDot[] {
+  const centres = centresOf(i.booths)
   const out = i.booths.map((b): BoothDot => {
     const s = boothSummary(boothAt(i.byBooth.get(b.id) as BoothRow[] | undefined, i.at))
     const seat = i.seats.get(b.districtId)
@@ -82,6 +90,7 @@ export function buildDots(i: DotInput): BoothDot[] {
       lit: boothInFocus(i.focus, leader, seat),
       outlined: i.selected !== null && b.districtId === i.selected,
       faded: i.selected !== null && b.districtId !== i.selected,
+      ...(centres.has(b.id) ? { joint: centres.get(b.id)!.length } : {}),
     }
   })
   for (const [k, g] of (i.evc ?? []).entries()) {
@@ -91,9 +100,16 @@ export function buildDots(i: DotInput): BoothDot[] {
     for (const r of rows.slice(1)) for (const p of Object.keys(fp) as (keyof typeof fp)[]) fp[p] += r.fp[p]
     const s = boothSummary({ at: i.at, fp })
     if (s.state !== 'counted') continue
-    const seat = i.seats.get(g.districtIds[0]!)
+    // VE-301: a centre serving several seats opens the record whose own district holds the point, so the panel's seat is one
+    // the dot sits in. Where none does, it opens the first and says the centre is outside.
+    const members = g.members ?? g.ids.map((id, x) => ({ id, districtId: g.districtIds[x] ?? g.districtIds[0]! }))
+    const inside = i.outside ? members.find((m) => !i.outside!.has(m.id)) : undefined
+    const chosen = inside ?? members[0] ?? { id: g.ids[0]!, districtId: g.districtIds[0]! }
+    const isOutside = i.outside !== undefined && inside === undefined && i.outside.has(chosen.id)
+    const seat = i.seats.get(chosen.districtId)
     out.push({
-      id: -(k + 1), pick: g.ids[0]!, name: g.name, districtId: g.districtIds[0]!, seatName: g.districtIds.length > 1 ? 'Several seats' : (seat?.name ?? ''),
+      id: -(k + 1), pick: chosen.id, name: g.name, districtId: chosen.districtId, seatName: isOutside || g.districtIds.length <= 1 ? (seat?.name ?? '') : 'Several seats',
+      ...(isOutside ? { outside: true as const } : {}),
       e: g.e, n: g.n, state: 'counted', leader: s.leader, formal: s.formal, share: s.share,
       r0: evcRing(dotRadius(s.formal, i.maxFormal, R_MAX, R_FLOOR)).radius,
       lit: boothInFocus(i.focus, s.leader, seat), outlined: g.districtIds.includes(i.selected ?? -1), faded: i.selected !== null && !g.districtIds.includes(i.selected), evc: true,
@@ -103,10 +119,16 @@ export function buildDots(i: DotInput): BoothDot[] {
   return shown.sort((a, b) => (a.state !== b.state ? (a.state === 'waiting' ? -1 : 1) : b.formal - a.formal || a.id - b.id))
 }
 
+/** VE-301: the one phrase for a centre placed outside the district it serves, shared by the hover label and the panel. */
+export const outsideWords = (seat: string): string => `Early voting centre for ${seat} voters, located outside the district`
+
 const votes = (n: number): string => n.toLocaleString('en-AU')
 
 /** The words on a dot's hover or focus label: booth, leader and share, then seat and votes. */
 export function boothLabel(d: BoothDot): HexLabelText {
+  // A stacked dot: name the centre and how many districts it serves; the panel has each district's result (VE-292).
+  if (d.joint) return { name: d.name, leader: d.leader, lead: `Joint voting centre, serves ${d.joint} districts`, extra: 'Tap for each district' }
   if (d.state === 'waiting' || d.leader === null) return { name: d.name, leader: null, lead: 'No figures yet', extra: d.seatName }
+  if (d.outside) return { name: d.name, leader: d.leader, lead: `${PARTY_NAMES[d.leader]} ${d.share}%`, extra: `${outsideWords(d.seatName)}, ${votes(d.formal)} votes` }
   return { name: d.name, leader: d.leader, lead: `${PARTY_NAMES[d.leader]} ${d.share}%`, extra: `${d.seatName}, ${votes(d.formal)} votes` }
 }

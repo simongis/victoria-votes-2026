@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react'
 import { flushSync } from 'react-dom'
 import type { CandidateAttributes, PartyBucket } from '@vic26/schema'
 import type { Position } from './data/types'
@@ -12,6 +12,8 @@ import { VIC_OUTLINE_PATH, VIC_OUTLINE_VIEWBOX } from './components/map/vicOutli
 import { readMinimised, writeMinimised } from './components/inset/pref'
 import { FxAnnouncer, FxProvider, useUpdateEffects } from './components/Effects'
 import { MapPane, type MapApi } from './components/MapPane'
+import { PickChip } from './components/PickChip'
+import { pickEdge } from './derive/pickChip'
 import { Rewind } from './components/Rewind'
 import { ClosestSeats } from './components/ClosestSeats'
 import { SeatsPane } from './components/SeatsPane'
@@ -34,7 +36,7 @@ import { ColourChips, ColourInfo, StageControls, ViewSheet } from './components/
 import { BoothSourceContext, useBoothData, useBoothsAvailable } from './components/booths/data'
 import { buildDots, type BoothDot } from './components/booths/dots'
 import { BoothPanelHost, type BoothPanelData } from './components/booths/BoothPanel'
-import { findPlace, placeInput, placesInSeat } from './components/booths/panelInput'
+import { findPlace, outsideOf, placeInput, placesInSeat } from './components/booths/panelInput'
 import { ReadingKey, TopBand } from './components/TopBand'
 import { createSource } from './data'
 import { autoStartTour } from './tour'
@@ -48,9 +50,11 @@ import { PARTY_NAMES } from './parties'
 import { gainShown, type RailFilter } from './derive/list'
 import { aboutVotes, stillToCountTotal, SEATS, blankSeat, headlineOf, seatsFromRows, statsOf, tallyOf, type Seat } from './derive/seats'
 import { notLiveMarker, staleLine, statusView } from './derive/status'
+import { nightWords } from './derive/nightWords'
 import { HEADLINE_MIN_PCT } from './derive/headline'
 import { DOUBT, inFocus, withFocus, withStatus, type Focus, type Picks } from './derive/focus'
 import { pulseSeries } from './derive/pulse'
+import { useBoothFlash } from './components/booths/flash'
 import { clockLabel } from './format'
 import { getMotion, useMotion } from './state/motion'
 import { useResults } from './state/useResults'
@@ -258,6 +262,12 @@ export function App() {
     () => new Map([...seats.values()].map((s) => [s.id, seatPaint(s, statics?.districtById.get(s.id), view.colour, palette, changingLit ? gainShown(s) : inFocus(lit, s), lit !== null || changingLit, gainsParty)])),
     [seats, statics, view.colour, palette, lit, gainsParty, changingLit],
   )
+  // VE-286: the picked seats wear the picked party's dark shade; the stage carries it so Map, Hex and inset share it. The chip clears the pick the way the tally's Clear does.
+  const pickEdgeStyle = useMemo(() => (lit ? ({ '--pick-edge': pickEdge(lit, seats) } as CSSProperties) : undefined), [lit, seats])
+  const clearPick = useCallback(() => {
+    setPreview(null)
+    pickFocus(null)
+  }, [pickFocus])
   // Polling places (VE-77c) are offered wherever the source has booths (VE-136): the replay always, the live layer once it has rows. A source with none leaves the chip out without an error.
   const boothSource = source.booths ?? null
   const placesOffered = useBoothsAvailable(boothSource)
@@ -272,7 +282,7 @@ export function App() {
   const dots = useMemo(
     () =>
       placesOn && boothLoad.status === 'ready'
-        ? buildDots({ booths: boothLoad.data.booths, byBooth: boothLoad.data.byBooth, maxFormal: boothLoad.data.maxFormal, at: tick?.snapshotAt ?? 0, focus: lit, seats, selected: view.selected, evc: boothLoad.data.evcGroups, reportedOnly: view.viewIdx !== null })
+        ? buildDots({ booths: boothLoad.data.booths, byBooth: boothLoad.data.byBooth, maxFormal: boothLoad.data.maxFormal, at: tick?.snapshotAt ?? 0, focus: lit, seats, selected: view.selected, evc: boothLoad.data.evcGroups, reportedOnly: view.viewIdx !== null, outside: statics ? outsideOf(boothLoad.data, statics.districts) : undefined })
         : null,
     [placesOn, boothLoad, tick, lit, seats, view.selected, view.viewIdx],
   )
@@ -284,9 +294,13 @@ export function App() {
   // What changed since the previous tick, as cues for Hex, Map, the rail and the band (VE-60). Cues wait for a morph to land.
   useMotion() // re-render when the Animations switch changes, so every getMotion() read below is fresh
   const fx = useUpdateEffects({ idx, seats, paints, seatsAt, ticks, morphing, live: view.viewIdx === null, playing: view.playing, speed: view.speed })
+  // VE-288: a soft ring at each booth whose figures changed on the tick that just landed (the seat flash is off here).
+  const boothFlash = useBoothFlash({ idx, at: tick?.snapshotAt ?? 0, data: placesOn && boothLoad.status === 'ready' ? boothLoad.data : null, reduced: fx.reduced })
   // Each seat's margin at every tick of the night, for the rail's count-pulse lines.
   const pulse = useMemo(() => pulseSeries(seatsAt), [seatsAt])
-  useEffect(() => setNight({ series: pulse, shownIdx: idx, total: ticks.length }), [pulse, idx, ticks.length])
+  // VE-276: tick times give the multiples seat trend its hour marks; memoised so the store's identity check holds.
+  const tickTimes = useMemo(() => ticks.map((t) => t.snapshotAt), [ticks])
+  useEffect(() => setNight({ series: pulse, shownIdx: idx, total: ticks.length, times: tickTimes }), [pulse, idx, ticks.length, tickTimes])
   // Resolve a pending ?explore= link. Declared after setNight, so a lens that reads the night sees it in the same commit.
   useEffect(() => {
     if (!pendingLink) return
@@ -430,7 +444,8 @@ export function App() {
     const runner = runnerRef.current
     const panes = panesRef.current
     if (!prev || !runner || !panes || !geometry || Math.abs(idx - prev.idx) !== 1 || runner.running) return
-    if (latest.current.shape !== 'map' || fx.reduced) return
+    // VE-288: none on Polling places, where the dots carry the view and a seat ring would read as a booth.
+    if (latest.current.shape !== 'map' || fx.reduced || placesOn) return
     const ids = flippedIds(prev.seats, seats)
     if (ids.length === 0) return
     const m = measure(panes, mapApi.current)
@@ -453,7 +468,7 @@ export function App() {
       }
     }
     if (halos.length) runner.pulse({ width: m.size.w, height: m.size.h, halos })
-  }, [idx, seats, geometry, palette, fx.reduced])
+  }, [idx, seats, geometry, palette, fx.reduced, placesOn])
 
   useEffect(() => {
     if (!view.playing) return
@@ -490,7 +505,9 @@ export function App() {
   const select = useCallback((id: number | null) => dispatch({ type: 'select', id }), [])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented) dispatch({ type: 'select', id: null })
+      // An open "i" popover takes the first Escape (its own listener runs after this one, so it cannot set defaultPrevented in time):
+      // one press closes one layer (VE-298).
+      if (e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('.info__pop')) dispatch({ type: 'select', id: null })
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -557,11 +574,10 @@ export function App() {
   }, [view.colour, placesOn, lensOpen, seats, nets, gainsParty, allWon, view.selected, select])
   const selectedSeat = view.selected === null ? null : seats.get(view.selected) ?? null
   // The polling place panel (VE-208): derived from the same tick as the stage (`tick`), so Rewind and a ?now= link move it with the map.
-  const tickTimes = useMemo(() => ticks.map((t) => t.snapshotAt), [ticks])
   const panelAt = tick?.snapshotAt ?? 0
   const boothPanel = useMemo<BoothPanelData | null>(() => {
     if (!placesOn || view.booth === null || boothLoad.status !== 'ready' || !tick) return null
-    const made = placeInput(boothLoad.data, view.booth, { at: panelAt, seats, ticks: tickTimes.slice(0, idx + 1), sameElection: source.kind === 'replay' })
+    const made = placeInput(boothLoad.data, view.booth, { at: panelAt, seats, ticks: tickTimes.slice(0, idx + 1), sameElection: source.kind === 'replay', districts: statics?.districts })
     return made ? { ...made, maxFormal: boothLoad.data.maxFormal } : null
   }, [placesOn, view.booth, boothLoad, tick, panelAt, seats, tickTimes, idx, source.kind])
   const boothSeat = boothPanel ? seats.get(boothPanel.input.place.districtId) : undefined
@@ -680,11 +696,17 @@ export function App() {
           </main>
         ) : (
           <div className="workspace">
-            <div className="stage">
+            <div className="stage" style={pickEdgeStyle}>
+              {/* VE-286: says what the outlined seats are; a hover preview shows it fainter and without the clear button. */}
+              {lit && !lensOpen && (
+                <div className="pickchip-wrap">
+                  <PickChip focus={lit} seats={seats} pal={palette} preview={preview !== null && preview !== focus} onClear={clearPick} />
+                </div>
+              )}
               <main ref={panesRef} className={`panes${fade ? ` panes--fade-${fade}` : ''}`}>
                 {/* Both shapes fill the one stage and only the chosen one shows, so a morph is the same rect to the same rect. */}
                 <section className="pane pane--map" aria-label="Map" data-active={view.shape === 'map'} data-leaving={leaving === 'map'}>
-                  <MapPane apiRef={mapApi} districts={statics.districts} seats={seats} paints={placesOn ? quietPaints : paints} certainty={view.colour === 'certainty' && !placesOn} selected={view.selected} pop={pop} onSelect={select} ring={ringId} dots={placesOn ? (dots ?? []) : null} onPickBooth={pickDot} pickedBooth={boothPanel ? view.booth : null} railOpen={railOpen && !lensOpen} rest={view.shape === 'map' && !placesOn && !lensOpen} />
+                  <MapPane apiRef={mapApi} districts={statics.districts} seats={seats} paints={placesOn ? quietPaints : paints} certainty={view.colour === 'certainty' && !placesOn} selected={view.selected} pop={pop} onSelect={select} ring={ringId} dots={placesOn ? (dots ?? []) : null} flash={boothFlash} onPickBooth={pickDot} pickedBooth={boothPanel ? view.booth : null} railOpen={railOpen && !lensOpen} rest={view.shape === 'map' && !placesOn && !lensOpen} />
                 </section>
                 <section className="pane pane--seats" aria-label="Hex" data-active={view.shape === 'hex'} data-leaving={leaving === 'hex'}>
                   <SeatsPane seatHexes={statics.seatHexes} seats={seats} paints={paints} colour={view.colour} certainty={view.colour === 'certainty'} selected={view.selected} pop={pop} onSelect={select} ring={ringId} />
@@ -734,12 +756,14 @@ export function App() {
                 earlyOnly={[...seats.values()].some((s) => !s.leader) && [...seats.values()].every((s) => (leadStep(s) ?? 0) === 0)}
                 hexNumbers={view.shape === 'hex' && view.colour !== 'gains' && [...seats.values()].some((s) => s.pct !== null && s.state !== 'won')}
                 stillLine={stillLine}
+                tally={tally}
+                pick={lit}
                 off={chipsOff}
                 places={placesOffered ? { on: placesOn, onPick: pickPlaces, parties: placeParties } : undefined}
               />
               <ClosestSeats seats={seats} countedPct={tick?.countedPct ?? 0} final={allWon} party={gainsParty} active={!placesOn && !lensOpen} ring={ringId} onRing={setRingId} onSelect={select} />
               {placesOn && sv.dataLabel && (
-                <p className="places-marker" role="note" data-testid="places-marker" data-short={sv.dataLabel}>{notLiveMarker(sv.dataLabel)}</p>
+                <p className="places-marker" role="note" data-testid="places-marker" data-short={nightWords(sv.dataLabel)?.pill ?? sv.dataLabel}>{notLiveMarker(sv.dataLabel)}</p>
               )}
               {placesOn && boothLoad.status !== 'ready' && (
                 <p className="places-note" role="status" data-testid="places-note">
@@ -781,6 +805,7 @@ export function App() {
               onClose={() => select(null)}
               onPick={openPlace}
               handoff={panelHandoff}
+              candidates={candKey ? cands.get(candKey) ?? null : null}
             />
             <DistrictPanelHost
               seat={boothPanel ? null : selectedSeat}

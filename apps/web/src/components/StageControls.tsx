@@ -2,7 +2,8 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } f
 import { createPortal } from 'react-dom'
 import type { PartyBucket } from '@vic26/schema'
 import { usePhoneBits, setPhoneBit } from '../state/phoneBits'
-import { COLOURS, EMPTY_ALPHA, EMPTY_STRIPE, HATCH_BASE, HATCH_BASE_ALPHA, HATCH_STRIPE, SWING_MIN_PCT, TRUST_NA, TRUST_PALETTE } from '../derive/colour'
+import { useMotion } from '../state/motion'
+import { COLOURS, lvcRgb, EMPTY_ALPHA, EMPTY_STRIPE, HATCH_BASE, HATCH_BASE_ALPHA, HATCH_STRIPE, SWING_MIN_PCT, TRUST_NA, TRUST_NA_ALPHA, TRUST_PALETTE } from '../derive/colour'
 import { PARTY_NAMES } from '../parties'
 import { signedNet, type PartyNet } from '../derive/gains'
 import { netChip, netSentence } from '../derive/netChange'
@@ -11,6 +12,9 @@ import { LEAD_STEP_WORDS, partyCss, stepRgb, type LeadStep } from '../views/enco
 import { css } from '../theme/theme'
 import type { Colour, Shape } from '../state/view'
 import { PlacesInfo, PlacesKey } from './booths/PlacesKey'
+import type { Tally } from '../derive/seats'
+import type { Focus } from '../derive/focus'
+import { cycleIndex, keyParties } from './leaderKeyParties'
 import '../styles/leader.css'
 
 
@@ -58,7 +62,7 @@ export function StageControls({ shape, onShape }: Props) {
 const COLOUR_INFO_FINAL = 'Each seat takes the colour of the party that won it. Every seat has been declared by the VEC.'
 
 /** VE-156: what counts as changing hands, in plain words. Three short lines in the "i" (ColourInfo); the first is the colour's own sentence. */
-const GAINS_INFO = 'A seat has changed hands when a different party leads or won it than held it at the last election (2022).'
+const GAINS_INFO = 'A seat whose leader differs from the 2022 winner.'
 const GAINS_MORE = [
   'Prahran and Narracan are compared with their later contests (the 2025 by-election and the 2023 supplementary election).',
   'Until the VEC declares a seat its lead can still change. A paler colour means the lead is not yet certain.',
@@ -68,6 +72,7 @@ const COLOUR_INFO: Record<Colour, string> = {
   leader: 'Each seat takes its leader’s colour: faint early, stronger once likely, solid once certain or won. ✓ marks a seat the VEC has declared.',
   trust: `Colour is the swing to or from Labor since 2022, set against how close the seat is. Swing shows once ${SWING_MIN_PCT}% of a seat is counted.`,
   gains: GAINS_INFO,
+  lvc: 'Labor against the Liberals or Nationals: red where Labor leads, blue where the Coalition leads, darker the bigger the lead (under 2, 2 to 6, 6 to 12, 12 to 20, 20 points or more). Pale seats are not Labor v Coalition: another pair is in the final two, or that pair may be wrong.',
   certainty: "How sure we are of each seat's leader. Blurred seats have little counted yet. Votes to come include early and postal votes, which arrive later.",
 }
 
@@ -87,21 +92,41 @@ const STEP_LABELS: readonly { step: LeadStep; text: string }[] = [
   { step: 1, text: LEAD_STEP_WORDS[1] },
   { step: 2, text: LEAD_STEP_WORDS[2] },
 ]
-const RAMP_PARTY: PartyBucket = 'ALP'
+/** VE-273: how long each party's ramp stays on the key; the colour cross-fades in leader.css. */
+export const KEY_CYCLE_MS = 5000
 
-function LeaderKey({ noFigures, earlyOnly }: { noFigures?: boolean; earlyOnly?: boolean }) {
+
+/** The party whose ramp the Leader key shows now: steps through the list on a timer, paused while the tab is hidden. */
+function useKeyParty(parties: readonly PartyBucket[]): PartyBucket {
+  const [step, setStep] = useState(0)
+  const n = parties.length
+  useEffect(() => {
+    if (n < 2) return
+    const id = setInterval(() => {
+      if (!document.hidden) setStep((x) => x + 1)
+    }, KEY_CYCLE_MS)
+    return () => clearInterval(id)
+  }, [n])
+  return parties[cycleIndex(step, n)] ?? 'ALP'
+}
+
+function LeaderKey({ noFigures, earlyOnly, tally, pick }: { noFigures?: boolean; earlyOnly?: boolean; tally?: Tally; pick?: Focus | null }) {
   const pal = usePalette()
+  // VE-287: only the app's Animations switch stops the cycle; the device's reduced-motion setting just drops the fade (CSS).
+  const animationsOff = useMotion().mode === 'reduced'
+  const parties = tally ? keyParties(tally, pick ?? null, animationsOff) : (['ALP'] as PartyBucket[])
+  const party = useKeyParty(parties)
   return (
     <>
       {STEP_LABELS.map(({ step, text }) => (
         <span key={step} className={`lkey__item lkey__step${earlyOnly && step > 0 ? ' lkey__item--late' : ''}`} data-step={step}>
-          <i className="lkey__sw" style={{ background: css(stepRgb(RAMP_PARTY, step, pal)) }} aria-hidden />
+          <i className="lkey__sw lkey__sw--ramp" data-party={party} style={{ background: css(stepRgb(party, step, pal)) }} aria-hidden />
           {text}
         </span>
       ))}
       {/* VE-226 (finding 6): the tick means declared everywhere, so it has its own entry rather than sitting beside "certain". */}
       <span className={`lkey__item lkey__tick${earlyOnly ? ' lkey__item--late' : ''}`} data-testid="key-declared">
-        <b aria-hidden>{'✓'}</b> declared
+        <b className="lkey__ticksym" aria-hidden>{'✓'}</b> declared
       </span>
       {/* VE-254 (F2): grey at rest was unnamed. A striped pale swatch, drawn as the seats are, says "No figures yet" while any seat has none. */}
       {noFigures && (
@@ -118,21 +143,57 @@ function LeaderKey({ noFigures, earlyOnly }: { noFigures?: boolean; earlyOnly?: 
  * Swing's key at rest (FB-127, FB-128): the three swing colours in a row with plain ends, and what depth means. The full
  * 3 x 3 grid and the "shows once 50% is counted" rule are behind the "i".
  */
+/** The at-rest key's three swatches, left to right: toward Labor, little change (paler neutral), toward the Coalition. */
+const SWING_KEY_SWATCHES = [TRUST_PALETTE[2]![2]!, TRUST_PALETTE[1]![1]!, TRUST_PALETTE[2]![0]!]
+/** A seat that is not Labor v Coalition: very pale paper, as the map draws it (derive/colour.ts trustNaRgb). */
+const NA_SWATCH = `color-mix(in srgb, ${TRUST_NA} ${TRUST_NA_ALPHA * 100}%, var(--map-paper))`
+
+/** VE-297: Labor v Coalition's key. A light, middle and dark step of each ramp; the five cuts are on the map's seats and in the "i" sentence. */
+function LvcKey() {
+  const pal = usePalette()
+  const ramp = (labor: boolean) => (
+    <span className="lkey__item" aria-hidden>
+      {([0, 2, 4] as const).map((s) => (
+        <i key={s} className="lkey__sw" style={{ background: css(lvcRgb(labor, s, pal)) }} />
+      ))}
+    </span>
+  )
+  return (
+    <>
+      <span className="lkey__item" data-testid="key-lvc-labor">Labor ahead</span>
+      {ramp(true)}
+      <span className="lkey__item" data-testid="key-lvc-coalition">Coalition ahead</span>
+      {ramp(false)}
+      <span className="lkey__item">darker = larger margin</span>
+      <span className="lkey__item" data-testid="key-other-contest" title="Another pair is in the final two">
+        <i className="lkey__sw lkey__sw--empty" style={{ backgroundColor: NA_SWATCH }} aria-hidden />
+        Not Labor v Coalition
+      </span>
+      {/* Always named: App's "no figures" flag counts seats with no leader, not seats with no two-candidate count. */}
+      <span className="lkey__item" data-testid="key-no-figures">
+          <i className="lkey__sw lkey__sw--empty" style={{ backgroundColor: `color-mix(in srgb, var(--map-no-result) ${EMPTY_ALPHA * 100}%, var(--map-paper))`, backgroundImage: `repeating-linear-gradient(45deg, ${EMPTY_STRIPE} 0 1.5px, transparent 1.5px 4px)` }} aria-hidden />
+          No figures yet
+      </span>
+    </>
+  )
+}
+
 function SwingKey({ tooEarly }: { tooEarly?: boolean }) {
   // VE-142 (FB-184): two plain ends and the swatches; "darker = safer" lives in the 3 x 3 key behind the "i". The hatch is keyed only while a hatched seat is on screen.
   return (
     <>
-      <span className="lkey__item">Away from Labor</span>
+      <span className="lkey__item">Toward Labor</span>
+      {/* VE-293 (FB-289): the arrows lens's order and words, red then a clearly paler middle (little change) then blue. */}
       <span className="lkey__item" aria-hidden>
-        {TRUST_PALETTE[2]!.map((c) => (
+        {SWING_KEY_SWATCHES.map((c) => (
           <i key={c} className="lkey__sw" style={{ background: c }} />
         ))}
       </span>
-      <span className="lkey__item">Toward Labor</span>
+      <span className="lkey__item">Toward the Coalition</span>
       {/* VE-224: about half the seats may not be Labor v Coalition on the night, so grey is named at rest. */}
       <span className="lkey__item" data-testid="key-other-contest">
-        <i className="lkey__sw" style={{ background: TRUST_NA }} aria-hidden />
-        Other contest
+        <i className="lkey__sw lkey__sw--empty" style={{ backgroundColor: NA_SWATCH }} aria-hidden />
+        Not Labor v Coalition
       </span>
       {/* VE-221 (B5): one scale at rest. "Little change" (VE-168) and the safe-or-close axis are in the "i" (TrustKey). */}
       {tooEarly && (
@@ -156,21 +217,21 @@ function TrustKey() {
         </div>
         <div>
           <div className="ckey__grid" aria-hidden>
-            {[2, 1, 0].flatMap((m) => [0, 1, 2].map((s) => <span key={`${m}${s}`} style={{ background: TRUST_PALETTE[m]![s] }} />))}
+            {[2, 1, 0].flatMap((m) => [2, 1, 0].map((s) => <span key={`${m}${s}`} style={{ background: TRUST_PALETTE[m]![s] }} />))}
           </div>
           <div className="ckey__xaxis" aria-hidden>
-            <span>Away from Labor</span>
             <span>Toward Labor</span>
+            <span>Toward the Coalition</span>
           </div>
         </div>
       </div>
       <ul className="ckey__list">
-        <li>Across: Labor lost votes, no change (grey to purple), or gained votes since 2022. Down: how close the contest is.</li>
+        <li>Across: Labor gained votes since 2022 (red), little change (pale), or lost votes to the Coalition (blue). Down: how close the contest is.</li>
         <li>
           <span className="ckey__sw ckey__sw--hatch" style={{ backgroundColor: `color-mix(in srgb, ${HATCH_BASE} ${HATCH_BASE_ALPHA * 100}%, transparent)`, backgroundImage: `repeating-linear-gradient(45deg, ${HATCH_STRIPE} 0 2px, transparent 2px 5px)` }} aria-hidden /> Hatched: too early to compare.
         </li>
         <li>
-          <span className="ckey__sw" style={{ background: TRUST_NA }} aria-hidden /> Grey: no like-for-like contest.
+          <span className="ckey__sw" style={{ backgroundColor: NA_SWATCH, border: '1px solid var(--color-border-strong)' }} aria-hidden /> Pale, outlined: not Labor v Coalition, so no swing to show.
         </li>
       </ul>
     </div>
@@ -224,14 +285,43 @@ function CertaintyKey() {
 }
 
 /**
+ * VE-302: the Changed hands "i" diagram. The same hex before and after: Labor red in 2022, then Liberal blue with the
+ * map's changed-hands mark (the near-black edge, .map-gain / .hex--gain). Static, so nothing to switch off for reduced motion.
+ */
+function GainsDiagram() {
+  const title = useId()
+  const hex = (cx: number, fill: string, marked: boolean) => (
+    <polygon points={[0, 1, 2, 3, 4, 5].map((i) => `${(cx + 22 * Math.cos(Math.PI / 6 + (i * Math.PI) / 3)).toFixed(1)},${(36 + 22 * Math.sin(Math.PI / 6 + (i * Math.PI) / 3)).toFixed(1)}`).join(' ')} fill={fill} stroke={marked ? 'var(--pick-ink)' : 'var(--color-border-strong)'} strokeWidth={marked ? 3 : 1} strokeLinejoin="round" />
+  )
+  return (
+    <svg className="gains-diagram" viewBox="0 0 360 96" role="img" aria-labelledby={title} style={{ display: 'block', width: '100%', maxWidth: 360, height: 'auto' }}>
+      <title id={title}>A seat held by Labor in 2022 that a Liberal now leads is drawn with a dark outline: it has changed hands.</title>
+      {hex(40, 'var(--party-alp)', false)}
+      <text x="40" y="78" textAnchor="middle" fontSize="12" fill="var(--color-text)">2022: Labor</text>
+      <path d="M92 36h72m-9-7 9 7-9 7" fill="none" stroke="var(--color-text-subtle)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {hex(216, 'var(--party-lib)', true)}
+      <text x="216" y="78" textAnchor="middle" fontSize="12" fill="var(--color-text)">Tonight: Liberal leads</text>
+    </svg>
+  )
+}
+
+/**
  * What the colour on the stage means, in a sentence and a tiny key. It sits first in the one "i" (VE-141), so the
  * stage has a single "i" instead of a colour one beside the reading key.
  */
 export function ColourInfo({ colour, placesOn, final, noFaint }: { colour: Colour; placesOn: boolean; /** Every seat is declared (VE-153): the Leader words talk of results, not leads. */ final?: boolean; /** No dot is waiting, or "faint" would mean another seat's (VE-168): Polling places says nothing about faint. */ noFaint?: boolean }) {
+  // VE-302: the "i" follows the colour, so it opens by naming the view (the chip's own word, so the two match).
+  const view = placesOn ? 'Polling places' : colour === 'gains' && final ? 'Changed hands' : (COLOURS.find((c) => c.colour === colour)?.label ?? 'How sure')
+  const heading = <p className="key__colour-h" data-testid="colour-info-heading"><b>About this map: {view}</b></p>
   return placesOn ? (
-    <PlacesInfo final={noFaint ?? final} />
+    <>
+      {heading}
+      <PlacesInfo final={noFaint ?? final} />
+    </>
   ) : (
     <>
+      {heading}
+      {colour === 'gains' && <GainsDiagram />}
       <p>{final && colour === 'leader' ? COLOUR_INFO_FINAL : COLOUR_INFO[colour]}</p>
       {colour === 'gains' && GAINS_MORE.map((t) => <p key={t}>{t}</p>)}
       {colour === 'trust' && <TrustKey />}
@@ -267,13 +357,16 @@ interface ColourProps {
    * results to draw (the live feed until the 2026 booth layer is published), so the chip is never offered empty.
    */
   places?: { on: boolean; onPick: () => void; parties?: readonly PartyBucket[] }
+  /** VE-273: seat totals and the tally pick (or hover preview), so the Leader key shows every party's ramp in turn, or the picked one. */
+  tally?: Tally
+  pick?: Focus | null
 }
 
 /**
  * The colour chips at the stage's bottom left (ADR 0018): how the seats are filled, on either shape. Same radio-group
  * pattern as the shape control. The one "i" (ReadingKey) carries the active colour's text first (VE-141).
  */
-export function ColourChips({ colour, onColour, declared, noFaint, tooEarly, noFigures, earlyOnly, hexNumbers, stillLine, off, gains, places }: ColourProps) {
+export function ColourChips({ colour, onColour, declared, noFaint, tooEarly, noFigures, earlyOnly, hexNumbers, stillLine, off, gains, places, tally, pick }: ColourProps) {
   // VE-144a: on a phone the chips live in the View sheet. While it is open the row (and the reason a chip is off) is drawn
   // into its slot; the same component and handlers, so choosing, the arrow keys and Polling places work as on the stage.
   const { colourSlot, moreWays } = usePhoneBits()
@@ -340,7 +433,7 @@ export function ColourChips({ colour, onColour, declared, noFaint, tooEarly, noF
       {colourSlot ? createPortal(row, colourSlot) : row}
       {!keyEmpty && (
       <p className="colour-key" data-testid="colour-key">
-        {placesOn ? <PlacesKey parties={places?.parties} final={noFaint ?? declared === true} /> : colour === 'leader' ? <LeaderKey noFigures={noFigures} earlyOnly={earlyOnly} /> : colour === 'trust' ? <SwingKey tooEarly={tooEarly} /> : colour === 'gains' ? <GainsKey nets={gains?.nets ?? []} party={gains?.party ?? null} onParty={gains?.onParty ?? (() => {})} /> : COLOUR_KEY_CERTAINTY}
+        {placesOn ? <PlacesKey parties={places?.parties} final={noFaint ?? declared === true} /> : colour === 'leader' ? <LeaderKey noFigures={noFigures} earlyOnly={earlyOnly} tally={tally} pick={pick} /> : colour === 'trust' ? <SwingKey tooEarly={tooEarly} /> : colour === 'lvc' ? <LvcKey /> : colour === 'gains' ? <GainsKey nets={gains?.nets ?? []} party={gains?.party ?? null} onParty={gains?.onParty ?? (() => {})} /> : COLOUR_KEY_CERTAINTY}
         {/* VE-221 (B8): the hexes print a bare figure, so the key says what it is wherever one shows. */}
         {!placesOn && hexNumbers && <span className="lkey__item lkey__hexnum" data-testid="key-hex-number">Number: % counted</span>}
       </p>

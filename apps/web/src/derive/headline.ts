@@ -40,8 +40,9 @@ export function declaredOf(seats: Iterable<Seat>): Record<PartyBucket, number> {
  * `declared` is the VEC-declared wins by party (declaredOf), always the real counts. `final` is true only when every
  * seat is declared (allDeclared); "has won" and the no-majority result need it plus nothing in doubt. Before that, a side with
  * 45 or more declared "has a majority"; anything less is a lead. `final` defaults to false so a caller can never say "won" by omission.
+ * `sure` (VE-285) is the seats at likely or better by party; when it is given and the leader's are short of 45, a lead of 45 or more is early leads only and the line does not say it is past what the side needs.
  */
-export function headlineParts(t: Tally, inDoubt: number, declared: Record<PartyBucket, number> = ZERO, countedPct: number | null = null, final = false): HeadlinePart[] {
+export function headlineParts(t: Tally, inDoubt: number, declared: Record<PartyBucket, number> = ZERO, countedPct: number | null = null, final = false, sure?: Record<PartyBucket, number>): HeadlinePart[] {
   const sides = sideTotals(t)
   const finished = final && isFinished(t, inDoubt, declared)
   const ranked = [...SIDES].sort((a, b) => sides[b].all - sides[a].all)
@@ -77,6 +78,7 @@ export function headlineParts(t: Tally, inDoubt: number, declared: Record<PartyB
     const margin = over === 0 ? `exactly the ${MAJORITY}` : `${over} more than the ${MAJORITY}`
     // Past tense once won: the 45 was what it needed, not what it needs (VE-167).
     if (finished && sideDeclared === n) return [name(first), { text: ` ${v('has', 'have')} won ${seats(n)}, ${margin} ${v('it', 'they')} needed.` }]
+    if (sure && declaredFor(first, sure) < MAJORITY) return [name(first), { text: ` ${v('leads', 'lead')} in ${seats(n)}. ${MAJORITY} wins a majority.` }]
     return [name(first), { text: ` ${v('leads', 'lead')} in ${seats(n)}, ${margin} ${v('it needs', 'they need')}` }, tail()]
   }
   return [name(first), { text: ` ${v('leads', 'lead')} ` }, name(second), { text: ` by ${seats(n - sides[second].all)}. ${v('It needs', 'They need')} ${more}` }, tail()]

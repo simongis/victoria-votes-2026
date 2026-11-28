@@ -11,6 +11,8 @@ interface Props {
   onFocusDot: (dot: BoothDot | null, el: SVGCircleElement | null) => void
   /** Enter or Space on a focused dot opens its panel (VE-208): the keyboard route to a place, since a tap needs a pointer. */
   onPick?: (dot: BoothDot) => void
+  /** VE-288: booths whose figures changed this tick (by `pick` id); each wears a soft ring that grows and fades. */
+  flash?: ReadonlySet<number> | null
 }
 
 const spoken = (d: BoothDot): string => {
@@ -26,7 +28,7 @@ const spoken = (d: BoothDot): string => {
  * 1,700 dots are too many to tab through or to read out, so the layer is one labelled group and only the picked seat's
  * dots are focusable and named; every other dot is hidden from assistive technology (the seats list is the keyboard route).
  */
-export function BoothLayer({ dots, ring, onFocusDot, onPick }: Props) {
+export function BoothLayer({ dots, ring, onFocusDot, onPick, flash = null }: Props) {
   const pal = usePalette()
   const ink = css(pal.selected)
   const paper = css(pal.paper)
@@ -77,6 +79,12 @@ export function BoothLayer({ dots, ring, onFocusDot, onPick }: Props) {
           />
         )
       })}
+      {flash &&
+        dots.map((d) =>
+          d.state === 'counted' && flash.has(d.pick) ? (
+            <circle key={`f${d.id}`} className="booth-flash" data-flash={d.id} data-e={d.e} data-n={d.n} data-r={d.r0} data-pad={2} fill="none" stroke={d.leader ? partyCss(d.leader, pal) : ink} strokeWidth={2} aria-hidden />
+          ) : null,
+        )}
       {ring && <circle className="booth-ring" data-e={ring.e} data-n={ring.n} data-r={ring.r0} data-pad={3} fill="none" stroke={ink} strokeWidth={1.8} aria-hidden />}
     </g>
   )

@@ -5,6 +5,7 @@ import type { SeatPaint } from '../derive/colour'
 import type { Seat } from '../derive/seats'
 import type { Rgb } from '../theme/theme'
 import { getMotion } from '../state/motion'
+import { rollChipText } from './rollChip'
 import '../styles/effects.css'
 
 /**
@@ -141,6 +142,8 @@ export function useRoll(value: number, digits = 0, chip = false) {
   const valueRef = useRef<HTMLSpanElement>(null)
   const chipRef = useRef<HTMLSpanElement>(null)
   const shown = useRef<number | null>(null)
+  /** The last value asked for: what the reader was told, while `shown` may be half way through a roll. */
+  const target = useRef<number | null>(null)
   const raf = useRef(0)
   useLayoutEffect(() => {
     fxRef.current = fx
@@ -150,6 +153,8 @@ export function useRoll(value: number, digits = 0, chip = false) {
     if (!el) return
     const f = fxRef.current
     const from = shown.current
+    const last = target.current
+    target.current = value
     const write = (n: number) => {
       el.textContent = n.toFixed(digits)
     }
@@ -160,9 +165,10 @@ export function useRoll(value: number, digits = 0, chip = false) {
       return
     }
     const chipEl = chipRef.current
-    const diff = value - from
-    if (chip && chipEl && diff !== 0 && typeof chipEl.animate === 'function') {
-      chipEl.textContent = `${diff > 0 ? '+' : '-'}${Math.abs(diff).toFixed(digits)}`
+    // VE-291: the change is from the last count given, not the half-rolled number on screen (that wrote "+0").
+    const text = rollChipText(last ?? from, value, digits)
+    if (chip && chipEl && text !== null && typeof chipEl.animate === 'function') {
+      chipEl.textContent = text
       chipEl.getAnimations().forEach((x) => x.cancel())
       if (f.reduced) {
         chipEl.animate([{ opacity: 1 }, { opacity: 1, offset: 0.9 }, { opacity: 0 }], { duration: CHIP_HOLD_MS })

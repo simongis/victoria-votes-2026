@@ -1,4 +1,5 @@
 import { DATA_MODES, KILL_SWITCH_STATES, type StatusAttributes } from '@vic26/schema'
+import { nightWords } from './nightWords'
 
 /**
  * How the shell honours the status table (ADR 0009). `live` shows results; `paused` freezes the last good
@@ -18,7 +19,7 @@ export interface StatusView {
 
 /** The words that mark replay, trial or other not-live data on a lens body or the polling places (hard rule 2). */
 export function notLiveMarker(label: NonNullable<StatusView['dataLabel']>): string {
-  return label === 'Replay' ? 'Replay of the 2022 count, not live results' : label === 'Trial' ? 'Trial data, not live results' : 'Not live results'
+  return nightWords(label)!.marker
 }
 
 const PAUSED_TEXT = 'Updates paused. Showing the last confirmed figures.'

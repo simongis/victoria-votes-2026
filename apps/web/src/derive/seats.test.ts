@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DistrictHistoryRow, DistrictStatic } from '@vic26/schema'
-import { WITHHELD_LINE, aboutVotes, countedLeadLine, headlineOf, panelLeadLine, projectedLeadLine, seatFromHistory, seatsFromRows, sideTotals, statsOf, stillToCountTotal, tallyOf, tcpBasisLine, type Seat } from './seats'
+import { gainShown } from './list'
+import { FIRM_RULE, WITHHELD_LINE, aboutVotes, countedLeadLine, headlineOf, panelLeadLine, projectedLeadLine, seatFromHistory, seatsFromRows, sideTotals, statsOf, stillToCountTotal, tallyOf, tcpBasisLine, type Seat } from './seats'
 
 // Only the fields the derivation reads; the rest of DistrictStatic is irrelevant here.
 const st = (over: Partial<DistrictStatic> = {}): DistrictStatic =>
@@ -38,6 +39,13 @@ const row = (over: Partial<DistrictHistoryRow> = {}): DistrictHistoryRow =>
     ...over,
   }) as DistrictHistoryRow
 
+describe('FIRM_RULE (VE-285)', () => {
+  it('says only the VEC declares a seat won, never that the app calls seats', () => {
+    expect(FIRM_RULE).toContain('Only the VEC declares a seat won.')
+    expect(FIRM_RULE).not.toMatch(/calls a seat/)
+  })
+})
+
 describe('seatFromHistory', () => {
   it('has no leader before any figures', () => {
     const s = seatFromHistory(
@@ -69,6 +77,17 @@ describe('seatFromHistory', () => {
     const s = seatFromHistory(row({ fp_total: 46_000, pct_counted: 92, tcp_pct_a: 80 }), st())
     expect(s.state).toBe('firm')
     expect(s.marginVotes).toBeGreaterThan(s.stillToCount ?? Infinity)
+  })
+
+  it('VE-285: a seat whose pair is in doubt (a third party well ahead of one of the pair) is at most leading, never firm', () => {
+    const wrongPair = row({ fp_total: 46_000, pct_counted: 92, tcp_pct_a: 80, fp_ALP: 20_000, fp_LIB: 8_000, fp_ONP: 15_000, fp_GRN: 2_000, fp_OTH: 1_000 })
+    const s = seatFromHistory(wrongPair, st())
+    expect(s.state).toBe('leading')
+    expect(s.likely).toBe(true)
+    // The same count with the pair right is firm.
+    expect(seatFromHistory({ ...wrongPair, fp_ONP: 0, fp_LIB: 15_000, fp_ALP: 25_000 }, st()).state).toBe('firm')
+    // A declared seat is the VEC's word, whatever our pair check says.
+    expect(seatFromHistory({ ...wrongPair, status: 'declared' }, st()).state).toBe('won')
   })
 
   it('falls back to the first-preference leader when the 2CP count is withheld, and is never firm', () => {
@@ -337,7 +356,7 @@ describe('close is a real count; no preference count yet is its own state (findi
 // VE-226 (finding 4): the panel's lead line. The candidates' votes after preferences say how much of the count the share is
 // built on; under half, the panel says the gap counted, not a projection.
 describe('panelLeadLine (finding 4)', () => {
-  const prahran = seatFromHistory(row({ pct_counted: 40, fp_total: 19_500, tcp_party_a: 'GRN', tcp_party_b: 'LIB', tcp_pct_a: 74.96, lead_party: 'GRN' }), st({ enrolment: 21_000 }))
+  const prahran = seatFromHistory(row({ pct_counted: 40, fp_total: 19_500, fp_ALP: 1_000, tcp_party_a: 'GRN', tcp_party_b: 'LIB', tcp_pct_a: 74.96, lead_party: 'GRN' }), st({ enrolment: 21_000 }))
 
   it('says the counted gap while preferences cover under half the counted votes', () => {
     expect(panelLeadLine(prahran, { a: 859, b: 287 }, 18_492)).toBe('Greens ahead by 572 of 1,146 votes counted after preferences.')
@@ -349,7 +368,7 @@ describe('panelLeadLine (finding 4)', () => {
   })
 
   it('says the counted gap from the seat alone when the history knew the preferences were thin', () => {
-    const thin = seatFromHistory(row({ pct_counted: 40, fp_total: 19_500, tcp_party_a: 'GRN', tcp_party_b: 'LIB', tcp_pct_a: 74.96, lead_party: 'GRN' }), st({ enrolment: 21_000 }), 1_146)
+    const thin = seatFromHistory(row({ pct_counted: 40, fp_total: 19_500, fp_ALP: 1_000, tcp_party_a: 'GRN', tcp_party_b: 'LIB', tcp_pct_a: 74.96, lead_party: 'GRN' }), st({ enrolment: 21_000 }), 1_146)
     expect(panelLeadLine(thin, null, null)).toBe('Greens ahead by 572 votes counted after preferences.')
   })
 
@@ -403,5 +422,26 @@ describe('VE-247: the static enrolment (2022 baseline) never reaches a shown fig
   it('seatsFromRows takes the supplied 2026 enrolment for a seat that has not reported', () => {
     const seats = seatsFromRows([row({ fp_total: 0, pct_counted: 0 })], [st({ enrolment: 7 })], new Map([[1, 50_000]]))
     expect(seats.get(1)!.stillToCount).toBe(Math.round(50_000 * 0.9 * 0.95))
+  })
+})
+
+// VE-293: a seat whose VEC pair is in doubt never shows a projection and is never a gain on show.
+describe('a seat whose pair is in doubt (VE-293)', () => {
+  const doubtRow = { pct_counted: 80, fp_ALP: 9_000, fp_LIB: 3_000, fp_GRN: 6_000, fp_OTH: 2_000, fp_total: 20_000, tcp_pct_a: 70, lead_party: 'ALP' as const }
+  const soundRow = { ...doubtRow, fp_LIB: 7_000, fp_GRN: 2_000 }
+  const doubt = seatFromHistory(row(doubtRow), st({ enrolment: 25_000 }))
+  const sound = seatFromHistory(row(soundRow), st({ enrolment: 25_000 }))
+
+  it('flags the seat and gives no lead line, projected or counted', () => {
+    expect(doubt.pairDoubt).toBe(true)
+    expect(sound.pairDoubt).toBe(false)
+    expect(panelLeadLine(doubt, null, null)).toBeNull()
+    expect(panelLeadLine(doubt, { a: 100, b: 50 }, 20_000)).toBeNull()
+    expect(panelLeadLine(sound, null, null)).not.toBeNull()
+  })
+  it('is not a gain on show, where the same seat with a sound pair is', () => {
+    expect(doubt.changing).toBe(true)
+    expect(gainShown(doubt)).toBe(false)
+    expect(gainShown({ ...sound, state: 'firm' })).toBe(true)
   })
 })

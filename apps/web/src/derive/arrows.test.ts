@@ -30,9 +30,21 @@ describe('classifySeat', () => {
   it('is a ring below the swing threshold, not an arrow', () => {
     expect(classifySeat(seat({ pct: 30 }), st()).kind).toBe('early')
   })
-  it('is a dot for another pairing, or when the 2022 pair differed', () => {
+  it('is a dot for another pairing', () => {
     expect(classifySeat(seat({ leader: 'GRN', tcp: { a: 'GRN', b: 'ALP', pctA: 55 } }), st()).kind).toBe('other')
-    expect(classifySeat(seat(), st({ base_tcp_party_b: 'GRN' })).kind).toBe('other')
+  })
+  it('VE-285: Labor v Coalition now but a different pair in 2022 is its own kind, not "not Labor v Coalition"', () => {
+    // Bendigo East: Labor v Nationals now, Labor v Liberal in 2022.
+    const m = classifySeat(seat({ leader: 'ALP', tcp: { a: 'ALP', b: 'NAT', pctA: 55 } }), st())
+    expect(m.kind).toBe('changed')
+    expect(markSentence(m)).toContain('Different contest from 2022')
+    expect(markSentence(m)).not.toContain('not a Labor v Coalition')
+    expect(classifySeat(seat(), st({ base_tcp_party_b: 'GRN' })).kind).toBe('changed')
+    // Still too early: the ring, as before.
+    expect(classifySeat(seat({ pct: 30, tcp: { a: 'ALP', b: 'NAT', pctA: 55 } }), st()).kind).toBe('early')
+  })
+  it('captionCounts leaves a changed contest out of the Labor v Coalition seats ready to compare', () => {
+    expect(captionCounts([classifySeat(seat({ tcp: { a: 'ALP', b: 'NAT', pctA: 55 } }), st()), classifySeat(seat(), st())])).toEqual({ ready: 1, all: 1 })
   })
   it('has no mark before a two-candidate count', () => {
     expect(classifySeat(seat({ tcp: null }), st()).kind).toBe('notin')

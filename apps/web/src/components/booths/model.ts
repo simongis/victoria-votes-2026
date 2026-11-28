@@ -26,6 +26,9 @@ export interface BoothStatic {
   districtId: number
   /** The previous election's result at this place, for the panel's swing. Absent when the source gave none. */
   base?: BoothBase
+  /** Degrees as the layer gives them, kept for the point-in-district check (VE-301). */
+  lng?: number
+  lat?: number
   /** VicGrid metres, the same grid as the map's outlines. */
   e: number
   n: number
@@ -143,7 +146,7 @@ export function parseBoothStatics(gj: { features: Feature[] }): ParsedStatics {
       continue
     }
     const [e, n] = vicgrid(lng, lat)
-    const b: BoothStatic = { id: p.booth_id, name: p.booth_name ?? `Polling place ${p.booth_id}`, districtId: p.district_id, e, n }
+    const b: BoothStatic = { id: p.booth_id, name: p.booth_name ?? `Polling place ${p.booth_id}`, districtId: p.district_id, lng, lat, e, n }
     const base = baseOf(p)
     if (base) b.base = base
     if (p.booth_type === 'election_day') booths.push(b)

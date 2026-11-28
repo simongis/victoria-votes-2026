@@ -3,7 +3,7 @@ import type { DistrictStatic } from '@vic26/schema'
 import { readPalette } from '../theme/theme'
 import type { Seat } from './seats'
 import { GAINS_KEEP } from './gains'
-import { BLUR_PX, COLOURS, COUNTED_ALPHA, countedInk, countedRgb, countedScale, countedStep, TRUST_MIN_SEATS, trustReady, SWING_MIN_PCT, TRUST_NA, TRUST_PALETTE, certaintyBand, gainsTintRgb, laborSwing, marginOfTcp, seatPaint, strengthRgb, swingShown, trustAlpha, trustCell } from './colour'
+import { BLUR_PX, COLOURS, COUNTED_ALPHA, countedInk, countedRgb, countedScale, countedStep, TRUST_MIN_SEATS, trustReady, SWING_MIN_PCT, trustNaRgb, TRUST_PALETTE, certaintyBand, gainsTintRgb, laborSwing, marginOfTcp, seatPaint, strengthRgb, swingShown, trustAlpha, trustCell, lvcStep, LVC_ALPHA } from './colour'
 
 const pal = readPalette(
   (n) => ({ '--party-alp': '#ff0000', '--map-tint-base': '#ffffff', '--map-tint-amount': '0.5', '--map-no-result': '#eeeeee', '--map-paper': '#000000' })[n] ?? '',
@@ -94,8 +94,8 @@ describe('counted steps (VE-97)', () => {
   it('uses the no-result fill for a seat with no count', () => {
     expect(countedRgb(null, pal)).toEqual([238, 238, 238])
   })
-  it('offers three chips: Leader, Swing and Gains (VE-156); How sure is folded into Leader (VE-127)', () => {
-    expect(COLOURS.map((c) => c.colour)).toEqual(['leader', 'trust', 'gains'])
+  it('offers four chips: Leader, Swing, Gains and Labor v Coalition (VE-156); How sure is folded into Leader (VE-127)', () => {
+    expect(COLOURS.map((c) => c.colour)).toEqual(['leader', 'trust', 'gains', 'lvc'])
   })
 })
 
@@ -149,7 +149,7 @@ describe('seatPaint', () => {
     expect(seatPaint(leading, st(), 'certainty', pal, true).rgb).toEqual(strengthRgb(leading, pal))
   })
   it('the chip reads Swing, not Trust, while the id stays trust', () => {
-    expect(COLOURS.map((c) => c.label)).toEqual(['Leader', 'Swing', 'Changing hands'])
+    expect(COLOURS.map((c) => c.label)).toEqual(['Leader', 'Swing', 'Changing hands', 'Labor v Coalition'])
     expect(COLOURS[1]!.colour).toBe('trust')
   })
   it('certainty keeps the leader colour and adds the band', () => {
@@ -179,7 +179,14 @@ describe('seatPaint', () => {
     expect(seatPaint(seat({ pct: 5 }), st(), 'leader', pal, true).hatch).toBe(false)
   })
   it('trust is grey with no margin or swing, and the no-result colour with no leader', () => {
-    expect(seatPaint(seat({ pct: 80, tcp: null }), st(), 'trust', pal, true).rgb).toEqual(rgbOf(TRUST_NA))
+    // VE-293: very pale paper, not mid grey, so it cannot read as the "no change" swatch (light paper, as on screen).
+    const light = readPalette((n) => ({ '--party-alp': '#ff0000', '--map-tint-base': '#ffffff', '--map-tint-amount': '0.5', '--map-no-result': '#eeeeee', '--map-paper': '#f6f4ef' })[n] ?? '')
+    const na = seatPaint(seat({ pct: 80, tcp: null }), st(), 'trust', light, true).rgb
+    expect(na).toEqual(trustNaRgb(light))
+    expect(Math.min(...na)).toBeGreaterThan(225)
+    expect(na).not.toEqual([...light.paper])
+    // Paler than the flat-swing middle swatch, which is a mid neutral.
+    expect(Math.min(...na)).toBeGreaterThan(Math.max(...rgbOf(TRUST_PALETTE[1]![1]!)))
     expect(seatPaint(seat({ leader: null, tcp: null, state: 'none' }), st(), 'trust', pal, true).rgb).toEqual([238, 238, 238])
   })
   it('dims whatever the colour is when the seat is out of focus', () => {
@@ -403,5 +410,51 @@ describe('swing colour covers Labor v Liberal or Nationals only', () => {
       expect(p.rgb).toEqual(seatPaint(seat({ tcp: { a: 'ALP', b: 'LIB', pctA: 55 } }), st({ base_tcp_pct_a: 60 }), 'trust', pal, true).rgb)
       expect(cell).not.toBeNull()
     }
+  })
+})
+
+describe('Labor v Coalition colour (VE-297)', () => {
+  const lvc = (s: Seat | undefined) => seatPaint(s, st(), 'lvc', pal, true)
+  const fadeTo = (c: number[], a: number) => [0, 1, 2].map((i) => Math.round(pal.paper[i]! + (c[i]! - pal.paper[i]!) * a))
+  it('cuts the lead at 2, 6, 12 and 20 points of margin', () => {
+    expect(lvcStep(1.9)).toBe(0)
+    expect(lvcStep(2)).toBe(1)
+    expect(lvcStep(5.9)).toBe(1)
+    expect(lvcStep(6)).toBe(2)
+    expect(lvcStep(12)).toBe(3)
+    expect(lvcStep(20)).toBe(4)
+    expect(lvcStep(40)).toBe(4)
+  })
+  it('paints Labor ahead in the Labor red ramp, darker with the margin', () => {
+    const tight = lvc(seat({ tcp: { a: 'ALP', b: 'LIB', pctA: 50.5 } })).rgb
+    const safe = lvc(seat({ tcp: { a: 'ALP', b: 'LIB', pctA: 60 } })).rgb
+    expect(tight).toEqual(fadeTo(pal.party.ALP, LVC_ALPHA[0]!))
+    expect(safe).toEqual(fadeTo(pal.party.ALP, LVC_ALPHA[4]!))
+  })
+  it('paints the Coalition ahead in the Liberal blue, whichever way round the pair is listed and for the Nationals too', () => {
+    const want = fadeTo(pal.party.LIB, LVC_ALPHA[4]!)
+    expect(lvc(seat({ leader: 'LIB', tcp: { a: 'LIB', b: 'ALP', pctA: 60 } })).rgb).toEqual(want)
+    expect(lvc(seat({ leader: 'LIB', tcp: { a: 'ALP', b: 'LIB', pctA: 40 } })).rgb).toEqual(want)
+    expect(lvc(seat({ leader: 'NAT', tcp: { a: 'ALP', b: 'NAT', pctA: 40 } })).rgb).toEqual(want)
+  })
+  it('follows the VEC winner on a declared seat whose last count has the loser a hair ahead', () => {
+    const won = seat({ leader: 'ALP', state: 'won', tcp: { a: 'LIB', b: 'ALP', pctA: 50.12 } })
+    expect(lvc(won).rgb).toEqual(fadeTo(pal.party.ALP, LVC_ALPHA[0]!))
+  })
+  it('gives every other pair the pale not-Labor-v-Coalition fill, and a seat with no two-candidate figures the stripes', () => {
+    expect(lvc(seat({ leader: 'GRN', tcp: { a: 'ALP', b: 'GRN', pctA: 45 } })).rgb).toEqual(trustNaRgb(pal))
+    expect(lvc(seat({ leader: 'LIB', tcp: { a: 'LIB', b: 'IND' as never, pctA: 55 } })).rgb).toEqual(trustNaRgb(pal))
+    const none = lvc(seat({ tcp: null }))
+    expect(none.empty).toBe(true)
+    expect(lvc(seat({ leader: null, tcp: null })).empty).toBe(true)
+    expect(lvc(seat()).empty).toBeUndefined()
+  })
+  it('does not draw a pair that may be the wrong two as a certain Labor v Coalition seat', () => {
+    const doubt = seat({ leader: 'ALP', tcp: { a: 'ALP', b: 'LIB', pctA: 55 }, fp: [{ party: 'ALP', pct: 30 }, { party: 'LIB', pct: 20 }, { party: 'GRN', pct: 28 }] } as Partial<Seat>)
+    expect(lvc(doubt).rgb).toEqual(trustNaRgb(pal))
+  })
+  it('fades a seat outside the pick like every other colour', () => {
+    const out = seatPaint(seat(), st(), 'lvc', pal, false)
+    expect(out.rgb).not.toEqual(lvc(seat()).rgb)
   })
 })

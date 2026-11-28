@@ -8,7 +8,7 @@ import { coverage, partyLabel } from '../../derive/oneNation'
 import type { Statics } from '../../data/types'
 import { PARTY_NAMES } from '../../parties'
 import { flowSentence, type SeatFlow } from '../explore/one-nation/flow'
-import { loadPartyAsset, useFlow, useParty } from '../explore/one-nation/partyStore'
+import { loadPartyAsset, useFinal, useFlow, useLive, useParty } from '../explore/one-nation/partyStore'
 
 export interface PartyRow {
   id: number
@@ -36,9 +36,13 @@ export function partyRows(shares: readonly PartySharesSeat[], party: ShareParty,
 const f1 = (n: number) => n.toFixed(1)
 
 /** One line for the top of the panel, the same words for every party. Seats where the party did not stand are not "strongest". */
-export function partySummary(rows: readonly PartyRow[], party: ShareParty): string {
-  const top = rows.filter((r) => !r.notStanding).slice(0, 3)
-  if (top.length === 0) return 'These figures are not available.'
+export function partySummary(rows: readonly PartyRow[], party: ShareParty, final = false): string {
+  // VE-270: once any seat is on tonight's count the line is about those seats (rows are LiveRow from the lens; mixing in 2025 seats would rank unlike figures).
+  const isLive = (r: PartyRow) => (r as { live?: boolean }).live === true
+  const onTonight = rows.some(isLive) || rows.some((r) => (r as { noFigures?: boolean }).noFigures === true)
+  const top = rows.filter((r) => !r.notStanding && (!onTonight || isLive(r))).slice(0, 3)
+  if (top.length === 0) return rows.some((r) => (r as { noFigures?: boolean }).noFigures === true) ? 'Counting has started. Seats appear here once 5% of each is counted.' : 'These figures are not available.'
+  if (onTonight) return `Strongest for ${partyLabel(party)} ${final ? 'in the final count' : 'tonight'}: ${top.map((r) => `${r.name} ${f1(r.pct)}%`).join(', ')}.`
   return `Strongest seats for ${partyLabel(party)} at the 2025 federal election: ${top.map((r) => `${r.name} ${f1(r.pct)}%`).join(', ')}.`
 }
 
@@ -63,6 +67,8 @@ export function filterParty(rows: readonly PartyRow[], filter: PartyFilter | nul
 export function usePartySummary(statics: Statics | null, enabled: boolean): string {
   const party = useParty()
   const flow = useFlow()
+  const live = useLive()
+  const final = useFinal()
   const [shares, setShares] = useState<readonly PartySharesSeat[] | null>(null)
   useEffect(() => {
     if (!enabled || !statics) return
@@ -77,9 +83,11 @@ export function usePartySummary(statics: Statics | null, enabled: boolean): stri
     const names = new Map([...statics.districtById].map(([id, d]) => [id, d.short_name] as const))
     // The lens's Other votes view is open: the handle says what the panel ranks.
     if (flow) return flowPanelSummary(flowPanelRows(flow, names))
+    // The lens publishes the rows its map shows (tonight's count where counted), so the handle agrees with it.
+    if (live) return partySummary(live, party, final)
     if (!shares) return ''
     return partySummary(partyRows(shares, party, names), party)
-  }, [enabled, statics, shares, party, flow])
+  }, [enabled, statics, shares, party, flow, live, final])
 }
 
 // ---- the "Other votes" view's panel (VE-101g) ----

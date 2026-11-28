@@ -30,6 +30,12 @@ describe('headline', () => {
     expect(headlineText(headlineParts(tally({ LIB: 20 }, { LIB: 10, NAT: 2, ALP: 29 }), 24))).toBe('Coalition leads Labor by 3 seats. It needs 13 more.')
   })
 
+  it('VE-285: when only early leads reach 45 (sure seats short of it), it says what wins, not that the lead beats the 45', () => {
+    const t = tally({ ALP: 6 }, { ALP: 48 })
+    expect(headlineText(headlineParts(t, 10, zero(), 40, false, won({ ALP: 6 })))).toBe('Labor leads in 54 seats. 45 wins a majority.')
+    expect(headlineText(headlineParts(t, 10, zero(), 40, false, won({ ALP: 45 })))).toBe('Labor leads in 54 seats, 9 more than the 45 it needs.')
+  })
+
   it('at or over a majority: the margin over the line, and what could still change', () => {
     expect(headlineText(headlineParts(tally({ ALP: 44 }, { ALP: 10, LIB: 20 }), 10))).toBe('Labor leads in 54 seats, 9 more than the 45 it needs.')
     // Exactly 45 is a majority of 88.
@@ -216,5 +222,52 @@ describe('has a majority only from VEC declarations (VE-257)', () => {
   it('Final is only said when the caller says every seat is declared (87 of 88 stays a lead or a majority)', () => {
     expect(long(tally({ ALP: 60, LIB: 27 }), 0, won({ ALP: 60, LIB: 27 }), 90)).toBe('Labor has a majority: 60 seats declared.')
     expect(long(tally({ ALP: 30, LIB: 20 }), 0, won({ ALP: 30, LIB: 20 }), 90)).toMatch(/leads/)
+  })
+})
+
+// VE-289: a hung parliament. Final with no side on 45 says so plainly and never "has a majority" or "will form government".
+describe('hung parliament (VE-289)', () => {
+  const hung = tally({ LIB: 34, NAT: 8, ALP: 29, ONP: 13, GRN: 4 })
+  const decl = won({ LIB: 34, NAT: 8, ALP: 29, ONP: 13, GRN: 4 })
+
+  it('at Final, the simulated hung night says no party has the 45 and names no government', () => {
+    const text = headlineText(headlineParts(hung, 0, decl, null, true))
+    expect(text).toBe('Coalition won 42 seats and Labor 29. No party has the 45 needed for a majority.')
+    expect(text).not.toMatch(/has a majority|has won|govern/i)
+    expect(headlineText(shortHeadlineParts(hung, 0, decl, null, true))).toBe('Coalition won 42 of 88')
+  })
+
+  it('a side on exactly 44 at Final is not a majority', () => {
+    const t = tally({ ALP: 44, LIB: 30, ONP: 14 })
+    const d = won({ ALP: 44, LIB: 30, ONP: 14 })
+    expect(headlineText(headlineParts(t, 0, d, null, true))).toBe('Labor won 44 seats and Coalition 30. No party has the 45 needed for a majority.')
+    expect(headlineText(shortHeadlineParts(t, 0, d, null, true))).toBe('Labor won 44 of 88')
+  })
+
+  it('exactly 45 declared is a majority, before and at Final', () => {
+    const t = tally({ ALP: 45, LIB: 30, ONP: 13 })
+    const d = won({ ALP: 45, LIB: 30, ONP: 13 })
+    expect(headlineText(headlineParts(t, 0, d, null, true))).toBe('Labor has won 45 seats, exactly the 45 it needed.')
+    expect(headlineText(headlineParts(t, 3, won({ ALP: 45 }), null, false))).toBe('Labor has a majority: 45 seats declared.')
+  })
+
+  it('the Coalition reaches 45 only when Liberal and Nationals are added', () => {
+    const t = tally({ LIB: 37, NAT: 8, ALP: 30, ONP: 13 })
+    const d = won({ LIB: 37, NAT: 8, ALP: 30, ONP: 13 })
+    expect(headlineText(headlineParts(t, 0, d, null, true))).toBe('Coalition has won 45 seats, exactly the 45 it needed.')
+    // Liberal alone (37) is nowhere near, yet the side counts.
+    expect(headlineText(headlineParts(t, 3, won({ LIB: 37, NAT: 8 }), null, false))).toBe('Coalition has a majority: 45 seats declared.')
+  })
+
+  it('a tie for most seats at Final says level, never a winner', () => {
+    const t = tally({ LIB: 30, NAT: 4, ALP: 34, ONP: 16, GRN: 4 })
+    const d = won({ LIB: 30, NAT: 4, ALP: 34, ONP: 16, GRN: 4 })
+    const text = headlineText(headlineParts(t, 0, d, null, true))
+    expect(text).toMatch(/^(Labor and Coalition|Coalition and Labor) won 34 seats each\. No party has the 45 needed for a majority\.$/)
+    expect(headlineText(shortHeadlineParts(t, 0, d, null, true))).toMatch(/level on 34$/)
+  })
+
+  it('during the night a hung count only leads, and says who needs how many more', () => {
+    expect(headlineText(headlineParts(tally({ LIB: 20 }, { LIB: 14, NAT: 8, ALP: 29, ONP: 13, GRN: 4 }), 5, won({ LIB: 20 }), 60))).toBe('Coalition leads Labor by 13 seats. It needs 3 more.')
   })
 })

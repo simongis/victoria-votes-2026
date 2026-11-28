@@ -13,6 +13,8 @@ import {
 import { PARTY_NAMES } from '../parties'
 import { votesRounded } from './panel'
 import { enrolmentOf } from './enrolment'
+import { pairInDoubt } from './colour'
+import { isPairDoubt } from './pairNote'
 
 export const SEATS = 88
 export const MAJORITY = 45
@@ -73,6 +75,8 @@ export interface Seat {
   /** Counted, but no count after preferences yet: unknown rather than close. */
   noPrefs: boolean
   changing: boolean
+  /** VE-293: the VEC's two-candidate pair looks wrong (pairInDoubt), so nothing built on it (projection, change of holder) is shown. */
+  pairDoubt?: boolean
   base: PartyBucket | null
   baseNote: string
   /** First preferences by party bucket, largest first; parties with no votes left out. */
@@ -173,13 +177,16 @@ export function seatFromHistory(
   const prefsShare = tcp && tcpVotes !== null && formalCounted > 0 ? Math.min(1, tcpVotes / formalCounted) : null
   // Unknown coverage does not block: the count and margin floors still apply (see tcpVotesOf).
   const prefsEnough = prefsShare === null || prefsShare >= PREFS_MIN_SHARE
+  // VE-285: a seat whose two-candidate pair looks wrong (VE-224's test) is never certain: the margin is measured between the wrong two.
+  const fp = fpShares(r)
+  const pairDoubt = pairInDoubt({ pct: r.pct_counted, tcp, tcpWithheld: withheld, fp } as Seat)
   let firm = false
   if (tcp && counted && enrolment) {
     const gap = Math.abs(2 * tcp.pctA - 100) / 100
     if (prefsEnough) {
       marginVotes = Math.round(gap * formalCounted)
       // Only a seat with a two-candidate count can be firm.
-      firm = marginVotes > (stillToCount ?? 0)
+      firm = marginVotes > (stillToCount ?? 0) && !pairDoubt
     } else {
       // Finding 4: a share from a sliver of the count is not applied to every counted vote; say the gap actually counted.
       marginVotes = Math.round(gap * (tcpVotes ?? 0))
@@ -211,7 +218,8 @@ export function seatFromHistory(
     close,
     noPrefs,
     changing: leader !== null && blank.base !== null && leader !== blank.base,
-    fp: fpShares(r),
+    pairDoubt: !declared && isPairDoubt({ state, pct: r.pct_counted, tcp, tcpWithheld: withheld, fp } as Seat), // a declared seat is the VEC's settled result
+    fp,
   }
 }
 
@@ -295,7 +303,7 @@ export function statsOf(seats: Map<number, Seat>): { inDoubt: number; close: num
 }
 
 export const FIRM_RULE =
-  "Certain means the lead is bigger than the votes still to come. Only the VEC calls a seat: Won."
+  "Certain means the lead is bigger than the votes still to come. Only the VEC declares a seat won."
 
 /** Estimated formal votes still to count across the state; null until at least one seat has an estimate. */
 export function stillToCountTotal(seats: Map<number, Seat>): number | null {
@@ -355,7 +363,8 @@ export function countedLeadLine(leader: string, gap: number, tcpVotes: number | 
  * preferences (a withheld seat has its own line).
  */
 export function panelLeadLine(s: Seat, pair: { a: number; b: number } | null, formal: number | null): string | null {
-  if (s.state === 'won' || !s.tcp) return null
+  // VE-293: the gap between a pair that may be the wrong two says nothing about the seat, so no lead line at all.
+  if (s.state === 'won' || !s.tcp || isPairDoubt(s)) return null
   const name = PARTY_NAMES[s.tcp.a]
   const total = pair ? pair.a + pair.b : 0
   if (pair && formal && total > 0 && total / formal < PREFS_MIN_SHARE) return countedLeadLine(name, Math.abs(pair.a - pair.b), total)

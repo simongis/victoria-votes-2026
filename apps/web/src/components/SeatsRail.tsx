@@ -17,6 +17,7 @@ import { findPlaces, loadPlaces, type PlaceIndex } from './lookup/lookup'
 import { PlaceMatches } from './lookup/PlaceMatches'
 import { FLOAT_ROW_PX, LIST_HALF, sheetGrows } from './sheet/sheet'
 import { PANEL_SHEET_QUERY, useSheet } from './sheet/useSheet'
+import { scrollRowIntoView } from './scrollRowIntoView'
 
 /** The status chips, in reading order. The titles carry the longer meaning so the chips stay short. */
 const CHIPS: { key: RailFilter; label: string; title: string }[] = [
@@ -126,7 +127,7 @@ export function SeatsRail({ seats, statics, selected, focus, onFocus, onSelect, 
   // A seat chosen on the stage: bring its row into view (the header is sticky, scroll-margin clears it).
   useEffect(() => {
     if (selected === null) return
-    root.current?.querySelector(`tr[data-district="${selected}"]`)?.scrollIntoView({ block: 'nearest' })
+    scrollRowIntoView(root.current?.querySelector(`tr[data-district="${selected}"]`))
   }, [selected])
 
   // The district panel covers the rail while a seat is selected, which drops keyboard focus from a row. When the

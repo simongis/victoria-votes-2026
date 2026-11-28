@@ -1,7 +1,8 @@
 import type { DistrictStatic, PartyBucket } from '@vic26/schema'
 import { PARTY_NAMES } from '../parties'
 import type { Colour } from '../state/view'
-import { swingShown } from './colour'
+import { lvcRead, swingShown } from './colour'
+import { isPairDoubt } from './pairNote'
 import type { Seat } from './seats'
 
 export interface HexLabelText {
@@ -18,7 +19,9 @@ export interface HexLabelText {
  */
 export function hexLabel(s: Seat, colour: Colour, st: DistrictStatic | undefined): HexLabelText {
   if (!s.leader) return { name: s.name, leader: null, lead: 'No figures yet', extra: colour === 'certainty' ? 'Nothing counted yet' : null }
-  const lead = `${PARTY_NAMES[s.leader]} ${s.state === 'won' ? 'won' : s.state === 'firm' ? 'certain lead' : 'leading'}`
+  // VE-293: a lead between a pair that may be the wrong two is the VEC's count, not the seat's result.
+  const doubt = s.state === 'leading' && isPairDoubt(s)
+  const lead = doubt ? `${PARTY_NAMES[s.leader]} leading on the VEC's count (final two in doubt)` : `${PARTY_NAMES[s.leader]} ${s.state === 'won' ? 'won' : s.state === 'firm' ? 'certain lead' : 'leading'}`
   const share = s.tcp ? `${PARTY_NAMES[s.tcp.a]} ${s.tcp.pctA.toFixed(1)}%` : null
   // FB-182: the hex prints a bare % counted, so the label says what it is on every colour (a declared seat prints none).
   const counted = s.pct !== null && s.state !== 'won' ? `${Math.round(s.pct)}% counted` : null
@@ -29,6 +32,14 @@ export function hexLabel(s: Seat, colour: Colour, st: DistrictStatic | undefined
     const r = sw === null ? 0 : Math.round(Math.abs(sw) * 10) / 10
     const swing = sw === null || r === 0 ? null : `swing ${r.toFixed(1)} ${sw > 0 ? 'to' : 'from'} Labor`
     extra = [share, swing, counted].filter(Boolean).join(', ') || null
+  }
+  else if (colour === 'lvc') {
+    // VE-297: say why a seat is pale, or how far ahead the coloured side is. The lead line above stays the VEC's count.
+    const r = lvcRead(s)
+    if (r.kind === 'none') extra = 'Labor v Coalition count not started'
+    else if (r.kind === 'other') extra = `${PARTY_NAMES[s.tcp!.a]} v ${s.tcp!.b ? PARTY_NAMES[s.tcp!.b] : 'no other'}: not a Labor v Coalition contest`
+    else if (r.kind === 'doubt') extra = 'Final two may be wrong: not shown as Labor v Coalition'
+    else extra = `${r.laborAhead ? 'Labor' : 'Coalition'} ahead by ${r.margin.toFixed(1)} points (Labor v ${PARTY_NAMES[r.coalition]})`
   }
   return { name: s.name, leader: s.leader, lead, extra }
 }

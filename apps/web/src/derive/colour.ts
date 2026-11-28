@@ -18,6 +18,8 @@ export const COLOURS: readonly { colour: Colour; label: string }[] = [
   { colour: 'trust', label: 'Swing' },
   // VE-156: which seats changed hands. Offered once one has (StageControls, App); the id is the URL value too.
   { colour: 'gains', label: 'Changing hands' },
+  // VE-297: who leads the Labor v Coalition seats, by margin; every other seat is pale.
+  { colour: 'lvc', label: 'Labor v Coalition' },
   // How sure is folded into Leader's three steps (VE-127, FB-143). The `certainty` colour and its blur stay in the code, reachable from state but not offered.
 ]
 
@@ -104,9 +106,14 @@ export const TRUST_PALETTE: readonly (readonly string[])[] = [
   ['#8aa6d8', '#b9b4c4', '#e08a90'],
   ['#3f66b0', '#7d7487', '#c0313a'],
 ]
-/** A seat with a leader but no margin or swing to show (no Labor candidate, a changed pairing, 2CP withheld). */
-/** Darker than the flat-swing greys and the light no-result fill (VE-100): it was #d4d4d4, 1.15 against flat-tight and level with the new waiting fill. */
-export const TRUST_NA = '#9a9a9a'
+/**
+ * A seat with a leader but no margin or swing to show (no Labor candidate, a changed pairing, 2CP withheld, Labor v Greens).
+ * VE-293 (FB-289): was a mid grey that read as "no change"; now very pale paper, a faint grey over the paper, so it sits behind
+ * every swing colour. `TRUST_NA` is the grey and `TRUST_NA_ALPHA` how much of it shows; the key draws it with an outline.
+ */
+export const TRUST_NA = '#808080'
+export const TRUST_NA_ALPHA = 0.1
+export const trustNaRgb = (pal: Palette): Rgb => fade(hexRgb(TRUST_NA), TRUST_NA_ALPHA, pal.paper)
 /**
  * Share counted below which a seat's swing is not shown (VE-98). Measured on the 2022 replay, where the baseline is the
  * 2022 result so every shown swing is early-count bias: the median error halves from 30 to 50% counted and then
@@ -166,6 +173,36 @@ export const belowSwingMin = (pct: number | null | undefined): boolean => (pct ?
 
 export const trustAlpha = (pct: number | null | undefined): number =>
   TRUST_MIN_ALPHA + (1 - TRUST_MIN_ALPHA) * Math.min(1, Math.max(0, (pct ?? 0) / TRUST_FULL_AT))
+
+/**
+ * VE-297: Labor v Coalition fill. Margin is the gap between the two candidates' shares (marginOfTcp), cut at 2, 6, 12 and 20
+ * points into five steps (the pendulum's marginal under 6 and safe over 10 points of share, as gaps: 12 and 20; the AEC's close seat is under 6); each step is the leader's party colour mixed over the paper at LVC_ALPHA. Both Coalition parties
+ * use the Liberal blue, the two-party-preferred convention.
+ */
+export const LVC_EDGES = [2, 6, 12, 20] as const
+export const LVC_ALPHA = [0.25, 0.45, 0.65, 0.85, 1] as const
+export const LVC_LABELS = ['Under 2 points', '2 to 6', '6 to 12', '12 to 20', '20 or more'] as const
+export const lvcStep = (margin: number): 0 | 1 | 2 | 3 | 4 => (margin < LVC_EDGES[0] ? 0 : margin < LVC_EDGES[1] ? 1 : margin < LVC_EDGES[2] ? 2 : margin < LVC_EDGES[3] ? 3 : 4)
+
+/** One step of the Labor (red) or Coalition (blue) margin ramp; the seats and the key share it. */
+export const lvcRgb = (laborAhead: boolean, step: 0 | 1 | 2 | 3 | 4, pal: Palette): Rgb => fade(pal.party[laborAhead ? 'ALP' : 'LIB'], LVC_ALPHA[step]!, pal.paper)
+
+/**
+ * VE-297: what the Labor v Coalition colour says about a seat, shared by the paint and the hover label. Only a count that is
+ * Labor against the Liberals or Nationals is coloured; none = no two-candidate figures yet; other = another pair is in the
+ * final two; doubt = that pair may be the wrong two (VE-224). A declared seat goes to the VEC's winner (ADR 0034): the last
+ * count's pair can sit the other way on a razor-thin seat (2022 Hastings-type case: 50.12 for the loser).
+ */
+export type LvcRead = { kind: 'none' } | { kind: 'other' } | { kind: 'doubt' } | { kind: 'lvc'; laborAhead: boolean; margin: number; coalition: PartyBucket }
+export function lvcRead(s: Seat): LvcRead {
+  const t = s.tcp
+  if (!t) return { kind: 'none' }
+  if (!t.b || !isLaborVCoalition(t)) return { kind: 'other' }
+  if (pairInDoubt(s)) return { kind: 'doubt' }
+  const winnerSide = s.state === 'won' && s.leader && (t.a === s.leader || t.b === s.leader) ? s.leader === 'ALP' : null
+  const laborAhead = winnerSide ?? (t.pctA === 50 ? s.leader === 'ALP' || t.a === 'ALP' : (t.a === 'ALP') === t.pctA > 50)
+  return { kind: 'lvc', laborAhead, margin: marginOfTcp(t.pctA) ?? 0, coalition: t.a === 'ALP' ? t.b : t.a }
+}
 
 /** VE-261 (F3): Labor against Liberal or Nationals, either way round (the same test as derive/arrows.ts). */
 const isLaborVCoalition = (t: NonNullable<Seat['tcp']>): boolean =>
@@ -294,7 +331,11 @@ export function seatPaint(s: Seat | undefined, st: DistrictStatic | undefined, c
     const laborV = s.tcp === null || isLaborVCoalition(s.tcp)
     hatch = laborV && belowSwingMin(s.pct) && (s.tcp === null || rawLaborSwing(s, st) !== null)
     const cell = laborV ? trustCell(swingShown(s, st), marginOfTcp(s.tcp?.pctA)) : null
-    rgb = hatch ? fade(hexRgb(HATCH_BASE), HATCH_BASE_ALPHA, pal.paper) : fade(hexRgb(cell ? TRUST_PALETTE[cell.margin]![cell.swing]! : TRUST_NA), trustAlpha(s.pct), pal.paper)
+    rgb = hatch ? fade(hexRgb(HATCH_BASE), HATCH_BASE_ALPHA, pal.paper) : (cell ? fade(hexRgb(TRUST_PALETTE[cell.margin]![cell.swing]!), trustAlpha(s.pct), pal.paper) : trustNaRgb(pal))
+  } else if (colour === 'lvc') {
+    // VE-297: no figures yet is striped below; another pair, or a pair that may be the wrong two (VE-224), is pale and never a certain red or blue.
+    const r = s ? lvcRead(s) : null
+    rgb = r?.kind === 'lvc' ? lvcRgb(r.laborAhead, lvcStep(r.margin), pal) : trustNaRgb(pal)
   } else if (colour === 'leader') {
     // VE-127: faint (early lead), mid (likely), solid (firm or won); the tick marks won. No blur: nobody else blurs, and steps read at a glance.
     rgb = leaderRgb(s, pal)
@@ -303,7 +344,7 @@ export function seatPaint(s: Seat | undefined, st: DistrictStatic | undefined, c
     if (colour === 'certainty' && s?.leader) band = certaintyBand(s.pct)
   }
   // VE-254 (F2): paler than the flat no-result grey, and striped by the views.
-  const empty = !s?.leader && (colour === 'leader' || colour === 'gains')
+  const empty = colour === 'lvc' ? !s?.tcp : !s?.leader && (colour === 'leader' || colour === 'gains')
   if (empty) rgb = fade(pal.noResult, EMPTY_ALPHA, pal.paper)
   return { rgb: inFocus ? rgb : fadeGreyRgb(rgb, pal), band, lit: picking && inFocus, hatch: hatch && inFocus, ...(empty && inFocus ? { empty: true as const } : {}), ...(gain && inFocus ? { gain: true as const } : {}) }
 }

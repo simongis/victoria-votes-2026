@@ -49,6 +49,8 @@ interface Props {
   dots?: readonly BoothDot[] | null
   /** A tap (or Enter on a focused dot) on a polling place (VE-208). Without it the tap picks the place's seat, as before. */
   onPickBooth?: (dot: BoothDot) => void
+  /** VE-288: the booths to ring this tick (Polling places only). */
+  flash?: ReadonlySet<number> | null
   /** VE-208b: the place whose panel is open; its dot keeps the ring while the panel is open (a hover or focus ring wins). */
   pickedBooth?: number | null
   /** VE-227 (finding 2): the phone's Seats list is open over the bottom of the stage; the map refits to the part above it. */
@@ -122,7 +124,7 @@ const ZOOMED = 0.97
  * Each layer's paths sit under one matrix group, set by hand during a gesture (a React render per frame would be
  * wasteful); the blur and shadow filters sit outside that group, so they stay in screen pixels as the map zooms.
  */
-export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSelect, ring = null, dots = null, onPickBooth, pickedBooth = null, railOpen = false, rest = false }: Props) {
+export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSelect, ring = null, dots = null, flash = null, onPickBooth, pickedBooth = null, railOpen = false, rest = false }: Props) {
   const pal = usePalette()
   const fx = useFx()
   // Phones show one Victoria map the reader pinches and pans (ADR 0032, VE-217); the Melbourne close-up is gone.
@@ -575,7 +577,8 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
   // Update effects (VE-60). Cut down for the same reasons as before: no wipe or landing (the fill swap is the flip's
   // colour change, and the canvas halo still rings it), and no fresh mark (VE-75b: recency is said in words in the top band).
   const ink = darkPaper(pal) ? 'rgb(255, 255, 255)' : 'rgb(26, 26, 26)'
-  const animateTint = fx.active && !fx.reduced
+  // VE-288: no electorate flash on the Polling places view; the booth dots are the data there.
+  const animateTint = fx.active && !fx.reduced && dots === null
   useEffect(() => {
     const tint = tintRef.current
     if (!tint) return
@@ -838,7 +841,7 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
           })}
         </g>
         {/* Polling places (VE-77c): above the seats and ticks, below the picks, hover and selection outlines. */}
-        {dots && <BoothLayer dots={dots} ring={tipDot ?? pickedDot ?? null} onFocusDot={onFocusDot} onPick={onPickBooth} />}
+        {dots && <BoothLayer dots={dots} ring={tipDot ?? pickedDot ?? null} onFocusDot={onFocusDot} onPick={onPickBooth} flash={flash} />}
         {/* The pick's outline sits above the fills and stays sharp even under Certainty's blur. */}
         <g className="map-marks" data-layer="picked">
           <g className="world">

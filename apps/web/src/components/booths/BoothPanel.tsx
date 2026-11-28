@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import type { PartyBucket } from '@vic26/schema'
-import { MIN_COMPARE_FORMAL, placePanel, rankWords, swingWords, vsSeatWords, type PlaceInput, type PlacePanel, type TwoCp } from '../../derive/boothPanel'
+import type { CandidateAttributes, PartyBucket } from '@vic26/schema'
+import { bucketLabels, MIN_COMPARE_FORMAL, placePanel, rankWords, swingWords, vsSeatWords, type PlaceInput, type PlacePanel, type TwoCp } from '../../derive/boothPanel'
 import { num } from '../../format'
 import { PARTY_NAMES } from '../../parties'
 import { usePalette } from '../../theme/theme'
 import { partyCss } from '../../views/encoding'
+import { midlineInk } from '../../derive/midline'
+import { nightWords } from '../../derive/nightWords'
 import { currentMotion, usePresence } from '../DistrictPanel'
 import { InfoButton } from '../InfoButton'
+import { outsideWords } from './dots'
 import { FLOAT_ROW_PX, PANEL_HALF, sheetGrows } from '../sheet/sheet'
 import { PANEL_SHEET_QUERY, panelSheetMemory, useSheet } from '../sheet/useSheet'
 import '../../styles/panel.css'
@@ -17,6 +20,10 @@ export interface BoothPanelData {
   input: PlaceInput
   /** The seat's places for the keyboard's "another place" list. */
   others: { id: number; name: string }[]
+  /** Places at this spot (VE-292, VE-301): each record for a district it serves or a neighbour at the same address, in district order. */
+  centre?: { id: number; districtId: number; seat: string }[]
+  /** VE-301: an early voting centre whose point is outside the district it reports for. */
+  outside?: boolean
   /** The biggest place's votes, for the size of the dots in the strip. */
   maxFormal: number
 }
@@ -38,6 +45,8 @@ interface Props {
   motion?: 'full' | 'reduced'
   /** VE-208b: the seat panel is leaving for this one (or this one for it): the frame stays still, only the content changes. */
   handoff?: boolean
+  /** The seat's candidates, when the source has them: they name the Independent and Other rows (FB-271). */
+  candidates?: readonly CandidateAttributes[] | null
 }
 
 const pct1 = (n: number): string => `${n.toFixed(1)}%`
@@ -46,7 +55,7 @@ const pct1 = (n: number): string => `${n.toFixed(1)}%`
  * The polling place panel (VE-208, variant B of the VE-206 prototype). Opens where the seat panel opens, over the rail
  * on desktop and as the bottom sheet on a phone, and takes its figures from `placePanel`, which reads the same tick as the stage.
  */
-export function BoothPanel({ data, dataLabel, since, label, nightEnds, onSeat, onClose, onPick, closing = false, motion = 'full', handoff = false }: Props) {
+export function BoothPanel({ data, dataLabel, since, label, nightEnds, onSeat, onClose, onPick, closing = false, motion = 'full', handoff = false, candidates = null }: Props) {
   const { input } = data
   const p = placePanel(input)
   const pal = usePalette()
@@ -115,8 +124,20 @@ export function BoothPanel({ data, dataLabel, since, label, nightEnds, onSeat, o
       <div className="panel__body bp" key={input.place.id}>
         <p className="bp__sub" data-sheet-peek>
           {kind}
-          {dataLabel && <span className="bp__chip" data-testid="booth-panel-label">{dataLabel === 'Replay' ? 'Replay of 2022' : dataLabel === 'Trial' ? 'Trial data' : 'Not live'}</span>}
+          {/* VE-295: the pill's words come from the one helper, so a simulated night says so here too. */}
+          {dataLabel && <span className="bp__chip" data-testid="booth-panel-label">{nightWords(dataLabel as 'Replay' | 'Trial' | 'Not live')?.pill ?? 'Not live'}</span>}
         </p>
+        {data.outside && input.isEvc && <p className="bp__sub" data-testid="booth-outside">{outsideWords(seat)}</p>}
+        {data.centre &&data.centre.length > 1 && (
+          <div className="bp__joint" role="group" aria-label="Results for each place at this spot" data-testid="booth-joint">
+            <span className="bp__nav-label">Results for:</span>
+            {data.centre.map((m) => (
+              <button key={m.id} type="button" className="bp__joint-btn" aria-pressed={m.id === input.place.id} data-testid="booth-joint-btn" onClick={() => m.id !== input.place.id && onPick(m.id)}>
+                {m.seat}
+              </button>
+            ))}
+          </div>
+        )}
         {data.others.length > 1 && (
           <div className="bp__nav">
             {/* A visible label so the list reads as a way to move, not a repeat of the title; the accessible name stays "Another place in ...". */}
@@ -135,7 +156,7 @@ export function BoothPanel({ data, dataLabel, since, label, nightEnds, onSeat, o
         {p.state === 'evc-no-result' && <EvcNoResult p={p} seat={seat} />}
         {(p.state === 'first-preferences' || p.state === 'counted') && (
           <>
-            {p.twoCp ? <TwoCpBar two={p.twoCp} title="VEC's two-candidate count" /> : <FirstPrefs p={p} />}
+            {p.twoCp ? <TwoCpBar two={p.twoCp} title="VEC's two-candidate count" /> : <FirstPrefs p={p} labels={bucketLabels(candidates)} />}
             <dl className="bp__facts" data-testid="booth-facts">
               {swing && !p.tooFew && (
                 <>
@@ -256,13 +277,13 @@ function TwoCpBar({ two, title }: { two: TwoCp; title: string }) {
       <div className="bp__two-bar" role="img" aria-label={`${PARTY_NAMES[two.a]} ${pct1(two.pctA)}, ${PARTY_NAMES[two.b]} ${pct1(pctB)}, tick at 50%`}>
         <span style={{ width: `${two.pctA}%`, background: partyCss(two.a, pal) }} />
         <span style={{ width: `${pctB}%`, background: partyCss(two.b, pal) }} />
-        <i style={{ left: '50%' }} />
+        <i data-ink={midlineInk(pal.party[two.pctA >= 50 ? two.a : two.b])} style={{ left: '50%' }} />
       </div>
     </div>
   )
 }
 
-function FirstPrefs({ p }: { p: PlacePanel }) {
+function FirstPrefs({ p, labels }: { p: PlacePanel; labels: Partial<Record<PartyBucket, string>> }) {
   const pal = usePalette()
   const top = Math.max(1, ...p.fp.map((f) => f.pct))
   return (
@@ -271,7 +292,7 @@ function FirstPrefs({ p }: { p: PlacePanel }) {
       <ol className="bp__fp">
         {p.fp.slice(0, 4).map((f) => (
           <li key={f.party}>
-            <span>{PARTY_NAMES[f.party]}</span>
+            <span>{labels[f.party] ?? PARTY_NAMES[f.party]}</span>
             <span className="bp__track">
               <i style={{ width: `${(100 * f.pct) / top}%`, background: partyCss(f.party, pal) }} />
             </span>

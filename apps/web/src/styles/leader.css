@@ -1,6 +1,14 @@
 /* Leader's key (VE-127): three steps of one party ramp (the party swatches left in VE-166). */
 .lkey__step b, .lkey__tick b { font-weight: 700; }
 
+/* VE-273: bigger chips and tick (Simon, 28 Nov). The ramp chips cross-fade to the next party's colour (StageControls cycles
+   them every 4.5 s); reduced motion gets no cycling at all, so no transition either. */
+.colour-key .lkey__sw { width: 14px; height: 14px; }
+.colour-key .lkey__sw--empty { width: 14px; height: 14px; }
+.colour-key .lkey__sw--ramp { transition: background-color 900ms ease-in-out; }
+.colour-key .lkey__ticksym { font-size: 15px; line-height: 1; }
+@media (prefers-reduced-motion: reduce) { .colour-key .lkey__sw--ramp { transition: none; } }
+
 /* Phones keep the three steps on one line. */
 @media (max-width: 640px) {
   /* VE-254 (F2): the steps stay on one line; "No figures yet", when shown, takes a second line rather than run off the screen. */

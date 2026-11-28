@@ -14,6 +14,15 @@ describe('closestSeats', () => {
     expect(r.cards[0]!.margin).toBeCloseTo(0.2)
   })
 
+  it('orders by the votes the cards show, closest first, even when the points disagree', () => {
+    // South Barwon: the narrower margin in points but the larger lead in votes (a bigger seat); the card says votes.
+    const seats = [
+      { ...seat(1, 'South Barwon', 'ALP', 50.1), marginVotes: 400 } as Seat,
+      { ...seat(2, 'Carrum', 'LIB', 50.3), marginVotes: 300 } as Seat,
+    ]
+    expect(closestSeats(seats, 40, false)!.cards.map((c) => c.name)).toEqual(['Carrum', 'South Barwon'])
+  })
+
   it('breaks ties by seat name', () => {
     const seats = [seat(1, 'Zed', 'ALP', 51), seat(2, 'Abbey', 'GRN', 51), seat(3, 'Mid', 'LIB', 51)]
     expect(closestSeats(seats, 40, false)!.cards.map((c) => c.name)).toEqual(['Abbey', 'Mid', 'Zed'])

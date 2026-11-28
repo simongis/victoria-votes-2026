@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PartyBucket } from '@vic26/schema'
 import type { BoothBase, BoothFp, BoothRow, BoothStatic } from '../components/booths/model'
-import { MIN_COMPARE_FORMAL, placePanel, rankWords, swingWords, vsSeatWords, type PlaceInput, type SeatNow } from './boothPanel'
+import { bucketLabels, MIN_COMPARE_FORMAL, placePanel, rankWords, swingWords, vsSeatWords, type PlaceInput, type SeatNow } from './boothPanel'
 
 const fp = (o: Partial<BoothFp>): BoothFp => ({ ALP: 0, LIB: 0, NAT: 0, GRN: 0, ONP: 0, IND: 0, OTH: 0, ...o })
 const T = (h: number): number => Date.UTC(2022, 10, 26, h) // a stand-in clock: hours after midnight UTC
@@ -303,5 +303,26 @@ describe('sanity', () => {
         expect(v).toBeLessThanOrEqual(100)
       }
     }
+  })
+})
+
+describe('bucketLabels (FB-271: name the independent or minor party where the seat has only one)', () => {
+  const c = (name: string, party: PartyBucket, aff: string | null = null) => ({ candidate_name: name, party, affiliation_name: aff })
+
+  it('names a lone independent', () => {
+    expect(bucketLabels([c('SMITH, Jane', 'IND', 'Independent'), c('X, Y', 'ALP', 'Australian Labor Party')])).toEqual({ IND: 'Independent: Jane Smith' })
+  })
+  it('names the party of a lone minor-party candidate', () => {
+    expect(bucketLabels([c('NG, LI', 'OTH', 'Victorian Socialists')])).toEqual({ OTH: 'Victorian Socialists' })
+  })
+  it('falls back to the candidate when the party has no name', () => {
+    expect(bucketLabels([c('NG, Li', 'OTH', null)])).toEqual({ OTH: 'Li Ng' })
+  })
+  it('counts when there are several', () => {
+    expect(bucketLabels([c('A, A', 'IND'), c('B, B', 'IND'), c('C, C', 'IND'), c('D, D', 'OTH', 'P1'), c('E, E', 'OTH', 'P2')])).toEqual({ IND: '3 independents', OTH: '2 other parties' })
+  })
+  it('says nothing without candidates or with none in the bucket', () => {
+    expect(bucketLabels(null)).toEqual({})
+    expect(bucketLabels([c('X, Y', 'ALP')])).toEqual({})
   })
 })

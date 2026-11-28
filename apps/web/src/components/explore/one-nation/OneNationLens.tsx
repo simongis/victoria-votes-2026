@@ -7,7 +7,7 @@ import type { ExploreMode } from '../../../state/view'
 import { usePalette } from '../../../theme/theme'
 import { InfoButton } from '../../InfoButton'
 import { loadTier, type Tier } from '../../map/tiers'
-import { partyRows, partySentence, type PartyRow } from '../../lenspanel/party'
+import { partyRows } from '../../lenspanel/party'
 import type { LensProps } from '../lenses'
 import { LensBar } from '../LensBar'
 import { hexView, mapView, useSize, type View } from '../stageGeom'
@@ -16,7 +16,10 @@ import { FlowKey, FlowView } from './FlowView'
 import { flowLanes, flowReady, flowRows, flowSentence, parseFlowHistory } from './flow'
 import { MEASURES, valueOf } from './measures'
 import { PartyKey, PartyView } from './PartyView'
-import { loadPartyAsset, resetParty, setFlow, setParty, useParty } from './partyStore'
+import { LIVE_MIN_PCT, countingStarted, liveMarker, liveRows, liveSentence } from './live'
+import { clearSeatPick, setSeatPick } from './seatStore'
+import { isFinal } from '../../../derive/turnout'
+import { loadPartyAsset, resetParty, setFinal, setFlow, setLive, setParty, useParty } from './partyStore'
 import { hasResults, ONP_POLLS, pollsLineFor } from './polls'
 import { isCoarsePointer, moreHint } from './moreHint'
 import { useSeatPick } from './useSeatPick'
@@ -126,15 +129,21 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
   const view: View | null = useMemo(() => (shape === 'hex' ? hexView(statics) : tier ? mapView(tier, statics, false) : null), [shape, tier, statics])
 
   // One row per seat for the chosen party; the same function the side panel ranks.
-  const list = useMemo(() => partyRows(ready?.party_shares ?? [], party, names), [ready, party, names])
+  const list = useMemo(() => liveRows(partyRows(ready?.party_shares ?? [], party, names), seats.values(), party), [ready, party, names, seats])
+  const liveCount = useMemo(() => list.filter((r) => r.live).length, [list])
+  // VE-282: from the first figures on the map shows only tonight's count; before that, the 2025 estimate.
+  const final = useMemo(() => isFinal(seats.values()), [seats])
+  useEffect(() => { setFinal(final); return () => setFinal(false) }, [final])
+  const started = useMemo(() => countingStarted(seats.values()), [seats])
   const byId = useMemo(() => new Map(list.map((r) => [r.id, r] as const)), [list])
-  const max = useMemo(() => rampMax(list.filter((r) => !r.notStanding).map((r) => r.pct)), [list])
+  const max = useMemo(() => rampMax(list.filter((r) => !r.notStanding && !r.noFigures).map((r) => r.pct)), [list])
   const measure = MEASURES.find((m) => m.key === measureKey) ?? MEASURES[0]!
   const censusById = useMemo(() => new Map((ready?.districts ?? []).map((s) => [s.district_id, s] as const)), [ready])
   const bands = useMemo(
     () =>
       quintileBands(
         list.flatMap((r) => {
+          if (r.noFigures) return []
           const seat = censusById.get(r.id)
           const x = seat ? valueOf(measure, seat) : null
           return x === null ? [] : [{ id: r.id, x, share: r.pct }]
@@ -150,19 +159,25 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
     setFlow(shownFlow)
     return () => setFlow(null)
   }, [shownFlow])
+  // The panel and the phone handle rank the same rows the vote map draws (VE-270).
+  const shownLive = top === 'flow' || !ready ? null : list
+  useEffect(() => {
+    setLive(shownLive)
+    return () => setLive(null)
+  }, [shownLive])
   const wordsFor = (id: number): string => {
     if (top === 'flow') {
       const f = flowById.get(id)
       return f ? flowSentence(f, names.get(id) ?? '') : ''
     }
-    const r: PartyRow | undefined = byId.get(id)
+    const r = byId.get(id)
     if (!r) return ''
     if (top === 'share') {
       const seat = censusById.get(id)
       const v = seat ? valueOf(measure, seat) : null
-      return `${partySentence(r, party)} ${measure.chip}: ${v === null ? 'no figure' : measure.fmt(v)}.`
+      return `${liveSentence(r, party, final)} ${measure.chip}: ${v === null ? 'no figure' : measure.fmt(v)}.`
     }
-    return partySentence(r, party)
+    return liveSentence(r, party, final)
   }
 
   const setTop = (t: Top) => {
@@ -174,8 +189,22 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
     pick.clear()
     setParty(p)
   }
-  const activeId = pick.active
-  const holding = activeId !== null && pick.sticky === activeId && pick.hover === null
+  // VE-282: the pill follows hover and focus. The held seat's details are in the side panel (published below); only the Other
+  // votes view, which has no panel for a seat, keeps its held pill with the "Show this seat" button.
+  const activeId = top === 'flow' ? pick.active : pick.previewing
+  const holding = top === 'flow' && activeId !== null && pick.sticky === activeId && pick.hover === null
+  const pickedId = top === 'flow' ? null : pick.sticky
+  const notLiveWord = replay ? notLiveMarker(dataLabel ?? 'Replay') : null
+  const { clear: clearPick, select: selectSeat } = pick
+  useEffect(() => {
+    setSeatPick({ id: pickedId, seats, replay, final, notLive: notLiveWord, clear: clearPick, show: onShowSeat ?? null, pickOther: selectSeat })
+  }, [pickedId, seats, replay, final, notLiveWord, clearPick, selectSeat, onShowSeat])
+  useEffect(() => clearSeatPick, [])
+  // A phone's seat list is a collapsed sheet: a pick opens it so the facts are on screen (the lens cannot reach the sheet's state, so it presses its handle, as the Multiples lens does).
+  useEffect(() => {
+    if (pickedId === null) return
+    document.querySelector<HTMLButtonElement>('.rail[data-open="false"] .rail__handle')?.click()
+  }, [pickedId])
 
   if (asset === 'failed') {
     return (
@@ -188,11 +217,15 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
   }
 
   const name = partyLabel(party)
+  // Seats on tonight's count are named in the marker; replay or trial figures say so too (hard rule 2), whatever the view.
+  const liveOn = top !== 'flow' && started
+  const liveLine = liveMarker(liveCount, list.length, started, final)
+  const markerText = top === 'flow' ? (replay ? notLiveMarker(dataLabel ?? 'Replay') : MARKER) : liveOn ? (replay ? `${notLiveMarker(dataLabel ?? 'Replay')}. ${liveLine}` : liveLine) : MARKER
   // The third view is offered only once enough seats have both counts (FB-148: hide until there is something to see).
   const tops = TOPS.filter((t) => t.id !== 'flow' || flowOk)
-  const standing = list.filter((r) => !r.notStanding)
-  const partialCount = list.filter((r) => r.partial && !r.notStanding).length
-  const noneCount = list.length - standing.length
+  const partialCount = list.filter((r) => r.partial && !r.notStanding && !r.noFigures).length
+  const noneCount = list.filter((r) => r.notStanding).length
+  const waitCount = list.filter((r) => r.noFigures).length
   const caption =
     top === 'flow'
       ? 'The votes of candidates outside the top two, split between the top two. Seats, not people.'
@@ -217,7 +250,7 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
             </InfoButton>
           ) : (
           <InfoButton label="About this view" align="right">
-            <p>Federal votes from 2025, placed into state seats by polling place; postal and other votes are left out.</p>
+            <p>Federal votes from 2025 show until counting starts, then tonight&apos;s count only. &quot;No figures yet&quot;: under {LIVE_MIN_PCT}% counted.</p>
             <p>The Coalition is the Liberals and Nationals together. Hatched: the party stood in part of the seat.</p>
             <p>About seats, never people; a link is not a cause. The state results take over. Sources: © Commonwealth of Australia, Australian Electoral Commission (CC BY 4.0); ABS Census 2021.</p>
             {!resultsIn && pollsLineFor(party, ONP_POLLS) !== '' && <p data-testid="onl-polls">{pollsLineFor(party, ONP_POLLS)}</p>}
@@ -244,7 +277,7 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
         </div>
       </LensBar>
 
-      <p className="onl__marker" data-testid="onl-marker" data-kind={top === 'flow' && replay ? 'notlive' : 'source'}>{top === 'flow' && replay ? notLiveMarker(dataLabel ?? 'Replay') : MARKER}</p>
+      <p className="onl__marker" data-testid="onl-marker" data-kind={top === 'flow' && replay ? 'notlive' : 'source'} data-live={started && top !== 'flow'}>{markerText}</p>
 
       {top === 'share' && (
         <div className="onl__chips" role="group" aria-label="Sort seats by" data-testid="onl-measures">
@@ -264,9 +297,9 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
           ) : top === 'flow' ? (
             <FlowView lanes={lanes} names={names} words={wordsFor} pal={pal} pick={pick} />
           ) : top === 'vote' ? (
-            <PartyView view={view} shape={shape} rows={byId} base={base} max={max} partyName={name} names={names} words={wordsFor} pal={pal} pick={pick} />
+            <PartyView final={final} view={view} shape={shape} rows={byId} base={base} max={max} partyName={name} names={names} words={wordsFor} pal={pal} pick={pick} />
           ) : (
-            <BandsView bands={bands} rows={byId} measure={measure} base={base} max={max} partyName={name} names={names} words={wordsFor} pal={pal} pick={pick} />
+            <BandsView final={final} bands={bands} rows={byId} measure={measure} base={base} max={max} partyName={name} names={names} words={wordsFor} pal={pal} pick={pick} />
           )}
         </div>
         {activeId !== null && byId.has(activeId) && (
@@ -284,7 +317,7 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
         )}
       </div>
 
-      {ready && top === 'vote' && <PartyKey partyName={name} base={base} max={max} partial={partialCount} none={noneCount} />}
+      {ready && top === 'vote' && <PartyKey wait={waitCount} partyName={name} base={base} max={max} partial={partialCount} none={noneCount} />}
       {ready && top === 'share' && <BandsKey base={base} max={max} />}
       {ready && top === 'flow' && <FlowKey parties={lanes} />}
     </div>

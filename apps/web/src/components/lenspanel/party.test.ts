@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PartySharesSeat, ShareParty } from '@vic26/schema'
 import type { SeatFlow } from '../explore/one-nation/flow'
-import { filterParty, flowPanelRows, flowPanelSummary, partyCounts, partyRows, partySentence, partySummary } from './party'
+import { filterParty, flowPanelRows, flowPanelSummary, partyCounts, partyRows, partySentence, partySummary, type PartyRow } from './party'
 
 const SHARES: Record<ShareParty, number> = { ALP: 30, COA: 35, LIB: 35, NAT: 0, GRN: 10, ONP: 5, IND: 15, OTH: 5 }
 const seat = (id: number, over: Partial<Record<ShareParty, number>> = {}, stood: Partial<Record<ShareParty, number>> = {}): PartySharesSeat => ({
@@ -92,5 +92,20 @@ describe('other votes panel (VE-101g)', () => {
   })
   it('says plainly when nothing can be ranked', () => {
     expect(flowPanelSummary([])).toBe('These figures are not available.')
+  })
+})
+
+describe('partySummary on tonight\'s count (VE-270: the panel agrees with the map)', () => {
+  const row = (id: number, name: string, pct: number, live: boolean): PartyRow & { live: boolean } => ({ id, name, pct, stood: 1, partial: false, notStanding: false, live })
+  it('names tonight\'s count and ranks only the seats on it', () => {
+    const rows = [row(1, 'Alpha', 30, false), row(2, 'Bravo', 18.5, true), row(3, 'Charlie', 12, true)]
+    expect(partySummary(rows, 'ONP')).toBe("Strongest for One Nation tonight: Bravo 18.5%, Charlie 12.0%.")
+  })
+  it('keeps the 2025 wording when no seat is on tonight\'s count', () => {
+    expect(partySummary([row(1, 'Alpha', 30, false)], 'ONP')).toBe('Strongest seats for One Nation at the 2025 federal election: Alpha 30.0%.')
+  })
+  it('says plainly when counting has started but no seat is past the gate (VE-282)', () => {
+    const wait = { ...row(1, 'Alpha', 0, false), noFigures: true }
+    expect(partySummary([wait], 'ONP')).toBe("Counting has started. Seats appear here once 5% of each is counted.")
   })
 })

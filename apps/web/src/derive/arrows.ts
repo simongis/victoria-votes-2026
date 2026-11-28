@@ -5,7 +5,7 @@
  */
 import type { DistrictStatic, PartyBucket } from '@vic26/schema'
 import { PARTY_NAMES } from '../parties'
-import { SWING_EDGE, SWING_MIN_PCT, belowSwingMin, swingShown } from './colour'
+import { SWING_EDGE, SWING_MIN_PCT, belowSwingMin, pairInDoubt, swingShown } from './colour'
 import type { Seat } from './seats'
 
 export type Mark =
@@ -14,8 +14,10 @@ export type Mark =
   | { kind: 'flat'; seat: Seat; pts: number }
   /** Labor v Coalition but under the swing threshold: a ring. */
   | { kind: 'early'; seat: Seat }
-  /** Another pairing, or no comparable baseline pairing: a dot. */
+  /** Another pairing (not Labor v Coalition): a dot. */
   | { kind: 'other'; seat: Seat }
+  /** VE-285: Labor v Coalition now, but the 2022 pair was different (Labor v Nationals now, Labor v Liberal then): no comparable swing, a diamond. */
+  | { kind: 'changed'; seat: Seat }
   /** No two-candidate figure yet: nothing drawn. */
   | { kind: 'notin'; seat: Seat }
 
@@ -29,7 +31,8 @@ export function classifySeat(seat: Seat, st: DistrictStatic | undefined): Mark {
   if (!isLaborVCoalition(seat as Seat & { tcp: { b: PartyBucket } })) return { kind: 'other', seat }
   if (belowSwingMin(seat.pct)) return { kind: 'early', seat }
   const pts = swingShown(seat, st) // positive is toward Labor; null when the baseline pair differed
-  if (pts === null) return { kind: 'other', seat }
+  // A pair that looks wrong (VE-224) is not a different 2022 contest: it stays with the dots.
+  if (pts === null) return pairInDoubt(seat) ? { kind: 'other', seat } : { kind: 'changed', seat }
   // A zero swing has no direction: a Labor arrow would be a claim the data does not make.
   if (Math.abs(pts) < SWING_EDGE) return { kind: 'flat', seat, pts }
   return { kind: 'arrow', seat, toward: pts >= 0 ? 'ALP' : 'COA', pts }
@@ -100,7 +103,9 @@ export function markSentence(m: Mark): string {
     case 'early':
       return `${m.seat.name}: ${pairWords(m.seat)}. ${counted}; the swing shows from ${SWING_MIN_PCT}%.`
     case 'other':
-      return `${m.seat.name}: ${pairWords(m.seat)}. No arrow: not a Labor v Coalition seat, or the pair was different last time. ${counted}.`
+      return `${m.seat.name}: ${pairWords(m.seat)}. No arrow: not a Labor v Coalition seat. ${counted}.`
+    case 'changed':
+      return `${m.seat.name}: ${pairWords(m.seat)}. Different contest from 2022, so no swing to compare. ${counted}.`
     case 'notin':
       return `${m.seat.name}: no two-candidate count yet. ${counted}.`
   }

@@ -32,7 +32,7 @@ describe('ReadingKey poll note (VE-75)', () => {
     const text = open().textContent ?? ''
     expect(text).not.toContain('A ring round a seat')
     expect(text).toContain('Declared by the VEC')
-    expect(text).toContain('A dark outline marks seats you picked')
+    expect(text).toContain('An outline marks the seats picked in the tally')
     expect(text).toContain('The top bar is the key')
     expect(text).toContain('Night')
     expect(text).toContain('No figures yet')
@@ -45,6 +45,20 @@ describe('ReadingKey poll note (VE-75)', () => {
     expect(text.match(/solid once certain or won/g)).toHaveLength(1)
     expect(text).not.toContain('Seats take')
     expect(text).not.toContain('plain colours')
+  })
+  it('starts the colour text with a heading naming the view, matching the chip (VE-302)', () => {
+    const head = (c: 'leader' | 'trust' | 'gains' | 'lvc', placesOn = false, final = false) =>
+      open(null, false, <ColourInfo colour={c} placesOn={placesOn} final={final} />).querySelector('[data-testid=colour-info-heading]')?.textContent
+    expect(head('leader')).toBe('About this map: Leader')
+    expect(head('trust')).toBe('About this map: Swing')
+    expect(head('lvc')).toBe('About this map: Labor v Coalition')
+    expect(head('gains')).toBe('About this map: Changing hands')
+    expect(head('gains', false, true)).toBe('About this map: Changed hands')
+    expect(head('leader', true)).toBe('About this map: Polling places')
+  })
+  it('shows a changed-hands diagram only in that view (VE-302)', () => {
+    expect(open(null, false, <ColourInfo colour="gains" placesOn={false} />).querySelector('svg.gains-diagram')).not.toBeNull()
+    expect(open(null, false, <ColourInfo colour="leader" placesOn={false} />).querySelector('svg.gains-diagram')).toBeNull()
   })
   it('drops the tick line at Final, when no tick is drawn (VE-166)', () => {
     expect(open(null, true).textContent).not.toContain('Declared by the VEC')

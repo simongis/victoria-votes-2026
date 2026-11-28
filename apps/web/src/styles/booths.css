@@ -23,3 +23,10 @@
    over Liberal in Melbourne to near black. The picked seat's dots get a soft shadow so they lift off the rest. */
 .booth-dot[data-halo] { stroke-width: var(--booth-halo, 1.1px); }
 .booth-dot[data-outlined] { filter: drop-shadow(0 0 2.5px var(--color-text)); }
+
+/* VE-288: a soft ring at each booth whose figures changed this tick. It grows from the dot and fades; it is placed in
+   pixels by booths/place.ts like the dots, and reduced motion never mounts it (the flash hook returns none). */
+.booth-flash { pointer-events: none; transform-box: fill-box; transform-origin: center; opacity: 0; animation: booth-flash calc(1.4s * var(--fx-scale, 1)) var(--fx-ease-out, ease-out) both; }
+/* Simon, 28 Nov: subtler and a smaller radius than the first cut (2.4x, 0.9). */
+@keyframes booth-flash { 0% { transform: scale(0.9); opacity: 0.5; } 100% { transform: scale(1.8); opacity: 0; } }
+:root[data-motion="off"] .booth-flash { display: none; }

@@ -16,8 +16,11 @@ export function useSeatPick() {
   const [focused, setFocused] = useState<number | null>(null)
   const [tabStop, setTabStop] = useState<number | null>(null)
   const active = hover ?? focused ?? sticky
+  // VE-282: the one-line pill follows hover and keyboard focus only; the held seat's details live in the side panel.
+  const previewing = hover ?? focused
 
   const toggle = useCallback((id: number) => setSticky((s) => (s === id ? null : id)), [])
+  const select = useCallback((id: number) => setSticky(id), [])
   const clear = useCallback(() => {
     setSticky(null)
     setHover(null)
@@ -70,6 +73,6 @@ export function useSeatPick() {
     if (next !== id) e.currentTarget.querySelector<HTMLElement | SVGElement>(`[data-id="${next}"]`)?.focus()
   }
 
-  return { active, sticky, hover, container, mark, onKey, clear }
+  return { active, previewing, sticky, hover, select, container, mark, onKey, clear }
 }
 export type SeatPick = ReturnType<typeof useSeatPick>

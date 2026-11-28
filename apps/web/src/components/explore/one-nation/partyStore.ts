@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import type { OneNationAsset, ShareParty } from '@vic26/schema'
 import { DEFAULT_PARTY, validateAsset } from '../../../derive/oneNation'
 import type { SeatFlow } from './flow'
+import type { LiveRow } from './live'
 
 /**
  * The chosen party, shared by the lens (which draws it) and the side panel (which ranks it). The lens owns the setting;
@@ -48,4 +49,31 @@ export function setFlow(rows: readonly SeatFlow[] | null): void {
   flow = rows
   flowListeners.forEach((fn) => fn())
 }
+/**
+ * The rows the lens's map shows for the chosen party (tonight's share where a seat is counted, else 2025), published by the lens
+ * so the side panel and the phone handle rank exactly what the map draws (VE-270). Null when the lens is not showing the vote view.
+ */
+let live: readonly LiveRow[] | null = null
+const liveListeners = new Set<() => void>()
+const subscribeLive = (fn: () => void) => {
+  liveListeners.add(fn)
+  return () => liveListeners.delete(fn)
+}
+export function setLive(rows: readonly LiveRow[] | null): void {
+  if (rows === live) return
+  live = rows
+  liveListeners.forEach((fn) => fn())
+}
+export const useLive = (): readonly LiveRow[] | null => useSyncExternalStore(subscribeLive, () => live, () => null)
+
+/** The count is final (every seat declared), so words say "final count" rather than "tonight". Published by the lens. */
+let final = false
+const finalListeners = new Set<() => void>()
+export function setFinal(v: boolean): void {
+  if (v === final) return
+  final = v
+  finalListeners.forEach((fn) => fn())
+}
+export const useFinal = (): boolean => useSyncExternalStore((fn) => { finalListeners.add(fn); return () => finalListeners.delete(fn) }, () => final, () => false)
+
 export const useFlow = (): readonly SeatFlow[] | null => useSyncExternalStore(subscribeFlow, () => flow, () => null)

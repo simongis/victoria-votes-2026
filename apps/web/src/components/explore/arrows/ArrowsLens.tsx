@@ -1,7 +1,7 @@
 import { isFinal } from '../../../derive/turnout'
 import { LensNotice } from '../LensNotice'
 import { useEffect, useMemo, useState, type PointerEvent } from 'react'
-import { arrowLength, captionCounts, captionOf, classifySeat, markSentence, rankedArrows, type Mark } from '../../../derive/arrows'
+import { arrowLength, captionCounts, captionOf, classifySeat, rankedArrows, type Mark } from '../../../derive/arrows'
 import { SWING_MIN_PCT } from '../../../derive/colour'
 import type { ExploreMode } from '../../../state/view'
 import { css, usePalette, type Palette, type Rgb } from '../../../theme/theme'
@@ -12,7 +12,8 @@ import { LensBar } from '../LensBar'
 import { Shape } from '../Shape'
 import { hexView, mapView, useSize } from '../stageGeom'
 import { biggestMover, fpMovers, type Mover } from '../../lenspanel/swing'
-import { fpChangeLine } from '../../swing/fpChange'
+import { ArrowsDiagram } from './ArrowsExplain'
+import { buildReadout, type Readout } from './readout'
 import { partyCss } from '../../../views/encoding'
 import { useFp2022 } from './fp2022'
 import { pointsAttr, taperArrow, type Taper } from './taper'
@@ -61,7 +62,9 @@ function MoverMark({ mover, halo, pal }: { mover: Mover; halo: string; pal: Pale
   )
 }
 
-function Dot({ kind }: { kind: 'early' | 'other' | 'flat' }) {
+function Dot({ kind }: { kind: 'early' | 'other' | 'flat' | 'changed' }) {
+  // VE-285: a diamond for a Labor v Coalition seat whose 2022 pair differed, so it reads apart from the round dot of another contest.
+  if (kind === 'changed') return <rect x="-2.4" y="-2.4" width="4.8" height="4.8" transform="rotate(45)" fill="var(--color-text-subtle)" stroke="var(--map-paper)" strokeWidth="0.8" />
   if (kind === 'flat') return <path d="M-4 0H4" stroke="var(--color-text-subtle)" strokeWidth="2.4" strokeLinecap="round" />
   return kind === 'early' ? (
     <circle r="2.8" fill="var(--map-paper)" stroke="var(--color-text-subtle)" strokeWidth="1.2" />
@@ -134,10 +137,11 @@ export default function ArrowsLens({ seats, statics, mode, title, onMode }: Lens
         onMode={onMode}
         info={
           <InfoButton label="About the swing arrows" align="right">
-            <p>Tap or hover a seat for how each party's first preferences changed since the last election, then the two-candidate swing where there is one. A new party shows as new, not as a gain.</p>
-            <p>An arrow points toward Labor (red) or toward the Coalition (blue, Liberal or National). Longer means a bigger swing in the two-candidate vote since the last election.</p>
-            <p>Arrows are for seats where the top two after preferences are Labor and a Coalition party, shown once {SWING_MIN_PCT}% of the seat is counted, because early booths mislead. A ring means too early.</p>
-            <p>Where another party is in the top two (One Nation included), a party-coloured triangle shows who gained or lost most first-preference votes since the last election: up for a gain, down for a loss, as the ABC does. A dot means another pairing, so there is no swing to compare.</p>
+            <ArrowsDiagram />
+            <p>Tap a seat to see how each party's first preferences changed since the last election.</p>
+            <p>Arrows are Labor v Coalition seats: longer means a bigger swing.</p>
+            <p>Triangles are other seats, for the party whose first preferences changed most.</p>
+            <p>Marks show from {SWING_MIN_PCT}% counted.</p>
             <LensNotice seats={seats} />
           </InfoButton>
         }
@@ -181,22 +185,13 @@ export default function ArrowsLens({ seats, statics, mode, title, onMode }: Lens
           <p className="explore-lens__loading" role="status">Loading...</p>
         )}
         {active !== null && activeMark && (
-          <div className="arrows__pill" role="status" data-testid="arrows-pill">
-            {/* VE-234: the first-preference change leads, in every seat; the two-candidate sentence follows. */}
-            {fpChangeLine(activeMark.seat, fp) && <b className="arrows__fp" data-testid="arrows-pill-fp">{fpChangeLine(activeMark.seat, fp)}. </b>}
-            {markSentence(activeMark)}
-            {sticky !== null && hover === null ? ' Tap again to clear.' : ''}
+          <div className="arrows__pill arrows__card" role="status" data-testid="arrows-pill">
+            <Card r={buildReadout(activeMark, fp?.get(activeMark.seat.id))} pal={pal} />
           </div>
         )}
       </div>
 
       <ul className="arrows__legend" aria-label="Key">
-        {anyMover && (
-          <li data-testid="arrows-legend-mover">
-            <svg width="14" height="14" viewBox="-7 -7 14 14" aria-hidden focusable="false"><polygon points="0,-5 5,5 -5,5" fill="var(--color-text-subtle)" /></svg>
-            Biggest vote change
-          </li>
-        )}
         <li>
           <svg width="34" height="18" viewBox="0 0 34 18" aria-hidden focusable="false">
             <g transform="translate(29 14)"><ArrowShape len={5 * 4.5} toward="ALP" halo={paper} /></g>
@@ -209,10 +204,15 @@ export default function ArrowsLens({ seats, statics, mode, title, onMode }: Lens
           </svg>
           Toward the Coalition
         </li>
-        <li>
-          <svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden focusable="false"><Dot kind="flat" /></svg>
-          Little change
-        </li>
+        {anyMover && (
+          <li data-testid="arrows-legend-mover">
+            <svg width="24" height="14" viewBox="0 -7 24 14" aria-hidden focusable="false">
+              <polygon points="6,-5 11,4 1,4" fill="var(--color-text-subtle)" />
+              <polygon points="18,4 23,-5 13,-5" fill="var(--color-text-subtle)" />
+            </svg>
+            Biggest vote change
+          </li>
+        )}
         {/* VE-153: once every seat has enough counted, nothing is "too early", so the key drops it. */}
         {counts.all > counts.ready && (
           <li>
@@ -224,11 +224,60 @@ export default function ArrowsLens({ seats, statics, mode, title, onMode }: Lens
           <svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden focusable="false"><Dot kind="other" /></svg>
           Not Labor v Coalition
         </li>
+        {[...marks.values()].some((m) => m.kind === 'changed') && (
+          <li data-testid="arrows-legend-changed">
+            <svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden focusable="false"><Dot kind="changed" /></svg>
+            Different contest from 2022
+          </li>
+        )}
       </ul>
     </div>
   )
 }
 
+
+/**
+ * VE-274: the seat readout. A heading line (seat and pair), then one row per party with its colour, the change as a signed
+ * number and a small bar from the centre line (left down, right up). The row the map's triangle stands for carries the
+ * triangle itself, so the triangle's party and change can be read straight off.
+ */
+function Card({ r, pal }: { r: Readout; pal: Palette }) {
+  return (
+    <>
+      <div className="arrows__card-head">
+        <b>{r.name}</b>
+        {r.pair && <span>{r.pair}</span>}
+      </div>
+      {r.rows.length > 0 && (
+        <ul className="arrows__card-rows" data-testid="arrows-pill-fp" aria-label={`First preference change since ${r.since}`}>
+          {r.rows.map((row) => {
+            const ink = row.party ? partyCss(row.party, pal) : 'var(--color-text-subtle)'
+            return (
+              <li key={row.party ?? 'others'} data-mover={row.mover || undefined}>
+                <svg className="arrows__card-mark" width="12" height="12" viewBox="-6 -6 12 12" aria-hidden focusable="false">
+                  {row.mover ? <polygon points={row.bar >= 0 ? '0,-5 5,4 -5,4' : '0,5 5,-4 -5,-4'} fill={ink} /> : <rect x="-4" y="-4" width="8" height="8" rx="2" fill={ink} />}
+                </svg>
+                <span className="arrows__card-name">{row.name}</span>
+                <span className="arrows__card-chg" data-fresh={row.fresh || undefined}>{row.text}</span>
+                <span className="arrows__card-bar" aria-hidden>
+                  <i style={{ background: ink, [row.bar < 0 ? 'right' : 'left']: '50%', width: `${Math.abs(row.bar) * 50}%` }} />
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      {r.swing && (
+        <div className="arrows__card-swing" data-toward={r.swing.toward}>
+          <svg width="30" height="12" viewBox="0 -6 30 12" aria-hidden focusable="false"><g transform={`translate(${r.swing.toward === 'ALP' ? 28 : 2} 0)`}><ArrowDraw t={taperArrow(24, r.swing.toward === 'ALP' ? -1 : 1, false)} ink={`var(${r.swing.toward === 'ALP' ? '--party-alp' : '--party-lib'})`} halo="var(--color-surface)" /></g></svg>
+          <b>{r.swing.pts} pts</b> {r.swing.words}
+        </div>
+      )}
+      {r.note && <div className="arrows__card-note">{r.note}</div>}
+      <small className="arrows__card-foot">{r.counted}</small>
+    </>
+  )
+}
 
 /** Seats ranked by swing: the most toward Labor at the top, the most toward the Coalition at the bottom. */
 function Strip({ marks, width, paper, active }: { marks: Map<number, Mark>; width: number; paper: string; active: number | null }) {

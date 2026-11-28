@@ -5,6 +5,7 @@
  * same-election swing, a lone place, a rewind) can be tested, and so the panel reads the same `at` as the stage.
  */
 import { PARTY_BUCKETS, type PartyBucket } from '@vic26/schema'
+import { personName } from '../format'
 import { boothAt, formalOf, type BoothRow, type BoothStatic } from '../components/booths/model'
 
 /** What the panel needs of a seat at the time shown. `Seat` satisfies it. */
@@ -206,4 +207,28 @@ export function swingWords(s: Swing, partyName: (p: PartyBucket) => string, sinc
   const pts = Math.abs(s.points).toFixed(1)
   if (pts === '0.0') return `No change since ${since}`
   return `${pts} points ${s.points > 0 ? 'to' : 'away from'} ${partyName(s.party)} since ${since}`
+}
+
+/** The bits of a seat's candidates the labels need. `CandidateAttributes` satisfies it. */
+export interface CandidateLite {
+  candidate_name: string
+  party: PartyBucket
+  affiliation_name: string | null
+}
+
+/**
+ * FB-271: booth first preferences come in seven buckets with no per-candidate figures, so the Independent and Other rows
+ * can only be named from who is standing. One candidate in the bucket names them; several give a count, because the
+ * bucket's votes are all of them added together.
+ */
+export function bucketLabels(cands: readonly CandidateLite[] | null): Partial<Record<'IND' | 'OTH', string>> {
+  if (!cands) return {}
+  const out: Partial<Record<'IND' | 'OTH', string>> = {}
+  const ind = cands.filter((c) => c.party === 'IND')
+  const oth = cands.filter((c) => c.party === 'OTH')
+  if (ind.length === 1) out.IND = `Independent: ${personName(ind[0]!.candidate_name)}`
+  else if (ind.length > 1) out.IND = `${ind.length} independents`
+  if (oth.length === 1) out.OTH = oth[0]!.affiliation_name ?? personName(oth[0]!.candidate_name)
+  else if (oth.length > 1) out.OTH = `${oth.length} other parties`
+  return out
 }

@@ -51,3 +51,13 @@ describe('labelDelay (VE-120)', () => {
     expect(SHOW_DELAY_MS).toBeLessThanOrEqual(300)
   })
 })
+
+describe('hexLabel, pair in doubt (VE-293)', () => {
+  const doubt = seat({ fp: [{ party: 'ALP', votes: 1, pct: 40 }, { party: 'GRN', votes: 1, pct: 28 }, { party: 'LIB', votes: 1, pct: 17 }], pct: 60 })
+  it("does not call the VEC's pair the seat's result", () => {
+    expect(hexLabel(doubt, 'leader', st).lead).toBe("Labor leading on the VEC's count (final two in doubt)")
+  })
+  it('leaves a declared seat alone', () => {
+    expect(hexLabel({ ...doubt, state: 'won' }, 'leader', st).lead).toBe('Labor won')
+  })
+})

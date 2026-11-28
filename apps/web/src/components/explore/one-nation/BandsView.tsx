@@ -7,6 +7,8 @@ import type { Measure } from './measures'
 import type { SeatPick } from './useSeatPick'
 
 interface Props {
+  /** Every seat is declared: the words say "final count". */
+  final?: boolean
   bands: readonly Band[]
   rows: ReadonlyMap<number, PartyRow>
   measure: Measure
@@ -26,7 +28,7 @@ const MARGIN = { t: 8, r: 14, b: 34 }
  * Seats in fifths: the 88 seats ranked by one plain measure and cut into five bands. Each band is a row of dots, one dot a
  * seat, placed by the chosen party's share; the black tick is the band's average. It is about seats, not people.
  */
-export function BandsView({ bands, rows, measure, base, max, partyName, names, words, pal, pick }: Props) {
+export function BandsView({ final = false, bands, rows, measure, base, max, partyName, names, words, pal, pick }: Props) {
   const [ref, size] = useSize<HTMLDivElement>()
   const narrow = size.w > 0 && size.w < NARROW_PX
   const W = Math.max(size.w, 260)
@@ -71,7 +73,7 @@ export function BandsView({ bands, rows, measure, base, max, partyName, names, w
               </g>
             ))}
           </g>
-          <text className="onl__axis" x={(labelW + W - MARGIN.r) / 2} y={H - 6} textAnchor="middle">{partyName} share of first preferences, 2025</text>
+          <text className="onl__axis" x={(labelW + W - MARGIN.r) / 2} y={H - 6} textAnchor="middle">{partyName} share of first preferences ({final ? 'final' : "tonight's"} count, or 2025 federal before counting starts)</text>
           {bands.map((b) => {
             const top = MARGIN.t + laneH * b.index
             return (

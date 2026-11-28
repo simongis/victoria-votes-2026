@@ -26,7 +26,10 @@
 .bp__end { text-align: right; }
 .bp__two-bar { position: relative; display: flex; height: 12px; border-radius: 3px; overflow: hidden; background: var(--color-surface-alt); }
 .bp__two-bar span { display: block; height: 100%; }
-.bp__two-bar i { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: var(--color-text); opacity: 0.7; }
+.bp__two-bar i { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: repeating-linear-gradient(to bottom, var(--mid-ink, #141414) 0 3px, transparent 3px 5px); }
+/* VE-284: dark or light by the fill under the 50% line (midlineInk). */
+.bp__two-bar i[data-ink="light"] { --mid-ink: rgba(255, 255, 255, 0.95); }
+.bp__two-bar i[data-ink="dark"] { --mid-ink: #141414; }
 
 .bp__facts { display: grid; grid-template-columns: max-content 1fr; gap: 2px var(--space-3); margin: 0; font-size: var(--text-sm); }
 .bp__facts dt { color: var(--color-text-subtle); }
@@ -54,3 +57,10 @@
 
 /* VE-227 (finding 7): the "Other places" picker is 27 px tall; a finger gets 44. */
 @media (pointer: coarse) { .bp__select { min-height: 44px; } }
+
+/* VE-292: the switch between a joint voting centre's districts. Wraps on a narrow panel; 44 px targets on touch. */
+.bp__joint { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.bp__joint-btn { padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-xs); cursor: pointer; }
+.bp__joint-btn[aria-pressed="true"] { background: var(--color-navy); border-color: var(--color-navy); color: var(--color-surface); font-weight: 700; }
+.bp__joint-btn:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+@media (pointer: coarse) { .bp__joint-btn { min-height: 44px; padding-inline: 14px; } }

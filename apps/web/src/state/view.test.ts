@@ -116,6 +116,8 @@ describe('colour in the URL (ADR 0018)', () => {
     // Gains (VE-156)
     expect(colourFromSearch('?colour=gains')).toBe('gains')
     expect(withColour('?shape=hex', 'gains')).toBe('?shape=hex&colour=gains')
+    expect(colourFromSearch('?colour=lvc')).toBe('lvc')
+    expect(withColour('?shape=hex', 'lvc')).toBe('?shape=hex&colour=lvc')
   })
   it('writes it back, dropping the param for Leader and keeping every other param', () => {
     expect(withColour('', 'trust')).toBe('?colour=trust')

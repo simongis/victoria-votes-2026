@@ -1,7 +1,7 @@
 /** Screen state shared by every view: which tick is shown, which district is selected, and the stage's shape. */
 export type Shape = 'map' | 'hex'
 /** How the seats are filled (ADR 0018). Leader is the default and has no URL param. */
-export type Colour = 'leader' | 'trust' | 'certainty' | 'gains'
+export type Colour = 'leader' | 'trust' | 'certainty' | 'gains' | 'lvc'
 
 /** Map is the default and has no URL param; any other value of ?shape= is ignored (ADR 0018). */
 export function shapeFromSearch(search: string): Shape {
@@ -18,7 +18,7 @@ export function withShape(search: string, shape: Shape): string {
 }
 
 // `?colour=certainty` is an old How sure link (VE-127): it is no longer offered, so it opens Leader.
-const COLOUR_VALUES: readonly Colour[] = ['trust', 'gains']
+const COLOUR_VALUES: readonly Colour[] = ['trust', 'gains', 'lvc']
 
 export function colourFromSearch(search: string): Colour {
   const v = new URLSearchParams(search).get('colour')

@@ -159,3 +159,38 @@ describe('buildDots with a picked seat (VE-153)', () => {
     expect(buildDots(input()).some((d) => d.faded)).toBe(false)
   })
 })
+
+describe('stacked dots of a joint voting centre (VE-292)', () => {
+  it('counts the districts a stacked dot serves, and the hover label says so', () => {
+    const base = input()
+    const booths = [...base.booths, { id: 4, name: 'Big Hall', districtId: 11, e: 1.2, n: 1.1 }]
+    const dots = buildDots({ ...base, booths, byBooth: new Map([...base.byBooth, [4, [{ at: 100, fp: fp({ ALP: 50 }) }]]]) })
+    expect(dots.find((x) => x.id === 1)!.joint).toBe(2)
+    expect(dots.find((x) => x.id === 2)!.joint).toBeUndefined()
+    expect(boothLabel(dots.find((x) => x.id === 4)!).lead).toBe('Joint voting centre, serves 2 districts')
+  })
+})
+
+describe('early voting centres outside their district (VE-301)', () => {
+  const members = [{ id: 90, districtId: 10 }, { id: 91, districtId: 11 }, { id: 92, districtId: 12 }]
+  const evc = [{ key: 'k', name: 'Town Hall', e: 5, n: 5, ids: [90, 91, 92], districtIds: [10, 11, 12], members }]
+  const byBooth = new Map(input().byBooth)
+  for (const id of [90, 91, 92]) byBooth.set(id, [{ at: 100, fp: fp({ GRN: 30 }) }])
+  const seats = new Map([[10, { name: 'Alpha', close: false }], [11, { name: 'Beta', close: false }], [12, { name: 'Gamma', close: false }]])
+
+  it('opens the district that holds the centre when one of the records is inside its own district', () => {
+    const d = buildDots(input({ evc, byBooth, seats, outside: new Set([90, 92]) })).find((x) => x.evc)!
+    expect(d.pick).toBe(91)
+    expect(d.districtId).toBe(11)
+    expect(d.outside).toBeUndefined()
+  })
+  it('flags the dot and says so on the hover label when the centre is outside every district it serves', () => {
+    const d = buildDots(input({ evc, byBooth, seats, outside: new Set([90, 91, 92]) })).find((x) => x.evc)!
+    expect(d.pick).toBe(90)
+    expect(d.outside).toBe(true)
+    expect(boothLabel(d).extra).toContain('Early voting centre for Alpha voters, located outside the district')
+  })
+  it('changes nothing when no outside set is given', () => {
+    expect(buildDots(input({ evc, byBooth, seats })).find((x) => x.evc)!.pick).toBe(90)
+  })
+})

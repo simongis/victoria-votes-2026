@@ -22,6 +22,7 @@ const FILTERS: { key: SwingFilter; label: string; title: string }[] = [
   { key: 'labor', label: 'Toward Labor', title: 'Labor v Coalition seats that swung toward Labor' },
   { key: 'coalition', label: 'Toward the Coalition', title: 'Labor v Coalition seats that swung toward the Liberals or Nationals' },
   { key: 'other', label: 'Not Labor v Coalition', title: 'Seats where the top two are not Labor and the Coalition' },
+  { key: 'changed', label: 'Different contest from 2022', title: 'Labor v Coalition seats where the top two were a different pair in 2022, so there is no swing to compare' },
 ]
 
 const signed = (n: number): string => `${n >= 0 ? '+' : '-'}${Math.abs(n).toFixed(1)}`
@@ -60,6 +61,14 @@ function SwingMark({ r, pal }: { r: SwingRow; pal: Palette }) {
     return (
       <svg width={MARK_W} height={MARK_H} viewBox={`0 0 ${MARK_W} ${MARK_H}`} focusable="false">
         <circle cx={CX} cy={CY} r="3.8" fill="none" stroke="var(--color-text-subtle)" strokeWidth="1.5" />
+      </svg>
+    )
+  }
+  if (m.kind === 'changed') {
+    // A diamond, as on the stage: the same two sides now, but not the pair the last election measured.
+    return (
+      <svg width={MARK_W} height={MARK_H} viewBox={`0 0 ${MARK_W} ${MARK_H}`} focusable="false">
+        <rect x={CX - 3} y={CY - 3} width="6" height="6" transform={`rotate(45 ${CX} ${CY})`} fill="var(--color-text-subtle)" />
       </svg>
     )
   }
@@ -109,7 +118,8 @@ export function SwingPanel({ rows: built, summary }: { rows: readonly SwingRow[]
   const [query, setQuery] = useState('')
   const counts = useMemo(() => swingCounts(rows), [rows])
   const shown = useMemo(() => filterSwing(rows, filter, query), [rows, filter, query])
-  const chips: LensFilterChip[] = FILTERS.map((f) => ({ ...f, count: counts[f.key] }))
+  // The "different contest" chip appears only when a seat has it, so most nights the key stays three short chips.
+  const chips: LensFilterChip[] = FILTERS.filter((f) => f.key !== 'changed' || counts.changed > 0).map((f) => ({ ...f, count: counts[f.key] }))
   const views: LensRowView[] = useMemo(
     () => shown.map((r) => ({ id: r.id, name: r.name, colour: leaderCss(r.seat, pal), mark: <SwingMark r={r} pal={pal} />, value: valueOf(r), words: rowSentence(r) })),
     [shown, pal],
