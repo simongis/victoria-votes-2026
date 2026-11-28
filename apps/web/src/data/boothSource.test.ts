@@ -59,7 +59,19 @@ describe('AGOL booth source: statics', () => {
     const s = await createAgolBoothSource({ url: URL_, confirmedAt: () => CONFIRMED, fetchJson }).statics()
     expect(s.features.map((f) => f.properties.booth_id)).toEqual([1, 2, 3])
     expect(seen).toHaveLength(2)
-    expect(new URL(seen[1]!).searchParams.get('resultOffset')).toBe('2000')
+    // VE-316: the next page starts after the rows the server sent (it may cap a page below the asked size), not at 2000.
+    expect(new URL(seen[1]!).searchParams.get('resultOffset')).toBe('2')
+  })
+
+  it('reads every row when the server caps a page below the asked size (VE-316: the live view returns 1000 at most)', async () => {
+    const all = Array.from({ length: 2500 }, (_, i) => i + 1)
+    const { fetchJson } = stub((_l, p) => {
+      const off = Number(p.get('resultOffset'))
+      const ids = all.slice(off, off + 1000)
+      return { features: ids.map((i) => ({ attributes: { booth_id: i, district_id: 1, booth_type: 'election_day' }, geometry: { x: 145, y: -37 } })), exceededTransferLimit: off + 1000 < all.length }
+    })
+    const s = await createAgolBoothSource({ url: URL_, confirmedAt: () => CONFIRMED, fetchJson }).statics()
+    expect(s.features.map((f) => f.properties.booth_id)).toEqual(all)
   })
 
   it('returns an empty file for an empty layer', async () => {

@@ -22,12 +22,15 @@ interface QueryJson<A> {
 export function createProfileLoader({ url = DEFAULT_VIEW_URL, fetchJson = fetchJsonOverHttp }: { url?: string; fetchJson?: FetchJson } = {}) {
   async function rows<A>(layer: number): Promise<A[]> {
     const out: A[] = []
-    for (let offset = 0; ; offset += 2000) {
+    // Step by the rows the server actually sent (the live view caps a page at 1000), never by the asked size (VE-316).
+    for (let offset = 0; ; ) {
       const q = new URLSearchParams({ where: '1=1', outFields: '*', f: 'json', returnGeometry: 'false', resultOffset: String(offset), resultRecordCount: '2000' })
       const res = await fetchJson<QueryJson<A>>(`${url}/${layer}/query?${q}`)
       if (res.error) throw new Error(`layer ${layer}: ${res.error.message}`)
-      out.push(...(res.features ?? []).map((f) => f.attributes))
-      if (!res.exceededTransferLimit) return out
+      const got = res.features ?? []
+      out.push(...got.map((f) => f.attributes))
+      if (!res.exceededTransferLimit || got.length === 0) return out
+      offset += got.length
     }
   }
   let cached: Promise<ProfileData> | null = null

@@ -106,11 +106,14 @@ export function createAgolBoothSource({ url, fetchJson, confirmedAt, timeoutMs =
 
   async function pages<A>(layer: number, params: Record<string, string>): Promise<EsriFeature<A>[]> {
     const out: EsriFeature<A>[] = []
-    for (let offset = 0; ; offset += PAGE) {
+    // Step by the rows the server actually sent (the live view caps a page at 1000), never by PAGE (VE-316).
+    for (let offset = 0; ; ) {
       const res = await get<QueryJson<EsriFeature<A>>>(layer, { ...params, resultOffset: String(offset), resultRecordCount: String(PAGE) })
       if (res.error) throw new Error(`layer ${layer}: ${res.error.message}`)
-      out.push(...(res.features ?? []))
-      if (!res.exceededTransferLimit) return out
+      const got = res.features ?? []
+      out.push(...got)
+      if (!res.exceededTransferLimit || got.length === 0) return out
+      offset += got.length
     }
   }
 

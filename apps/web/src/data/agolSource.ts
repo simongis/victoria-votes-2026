@@ -54,13 +54,17 @@ export function createAgolSource({
 
   async function rows<A>(layer: number, params: Record<string, string>): Promise<A[]> {
     const out: A[] = []
-    for (let offset = 0; ; offset += PAGE) {
+    // Step by the rows the server actually sent: the live view caps a page at 1000 (maxRecordCount), so stepping by PAGE
+    // skipped rows 1000-1999 and froze the timeline at the 6:55 pm file on election night (VE-316).
+    for (let offset = 0; ; ) {
       const res = await fetchJson<QueryJson<A>>(
         query(layer, { f: 'json', returnGeometry: 'false', resultOffset: String(offset), resultRecordCount: String(PAGE), ...params }),
       )
       if (res.error) throw new Error(`layer ${layer}: ${res.error.message}`)
-      out.push(...(res.features ?? []).map((f) => f.attributes))
-      if (!res.exceededTransferLimit) return out
+      const got = res.features ?? []
+      out.push(...got.map((f) => f.attributes))
+      if (!res.exceededTransferLimit || got.length === 0) return out
+      offset += got.length
     }
   }
 
