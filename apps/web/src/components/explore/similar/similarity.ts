@@ -10,8 +10,7 @@ import raw from './similarity.json'
 export const NEAREST = 5
 
 /** The data's credit: always shown behind the "i", whatever the forecast-link switch says (it is the data's credit, not the link's). */
-/** VE-312 (Simon): the credit's lead words; SimilarLens follows them with the site's name (CREDIT_NAME), linked. */
-export const SIMILAR_CREDIT = 'Place similarity:'
+export const SIMILAR_CREDIT = 'Place similarity: Esri Australia geodemographic embedding, via a polling model by Chris Landvogt.'
 
 export type Order = Readonly<Record<string, readonly number[]>>
 

@@ -1,5 +1,4 @@
 import { useEffect, useId, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { CountBadge } from './CountBadge'
 import { IN_DOUBT_TCP_PCT, type DistrictStatic } from '@vic26/schema'
 import type { Seat } from '../derive/seats'
 import { DOUBT, focusName, type Focus } from '../derive/focus'
@@ -263,7 +262,7 @@ export function SeatsRail({ seats, statics, selected, focus, onFocus, onSelect, 
         <div className="rail__filters">
           {CHIPS.filter((c) => !(c.key === 'doubt' && ((finished && status !== 'doubt') || !closeShown)) && !(c.key === 'won' && (final || (counts.won === 0 && status !== 'won'))) && !(c.key === 'changing' && !changingShown)).map((c) => (
             <button key={c.key} type="button" className="rail__chip" aria-pressed={status === c.key} title={c.title} onClick={() => onStatus(status === c.key ? null : c.key)}>
-              {c.key === 'changing' && final ? 'Changed hands' : c.label}<CountBadge n={counts[c.key]} />
+              {c.key === 'changing' && final ? 'Changed hands' : c.label} ({counts[c.key]})
             </button>
           ))}
           {/* The In doubt pick has its own chip above, already pressed. */}

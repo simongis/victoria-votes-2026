@@ -1,10 +1,10 @@
+import { LensNotice } from '../LensNotice'
 import { useEffect, useMemo, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { sparkPath } from '../../../derive/pulse'
 import { css, usePalette } from '../../../theme/theme'
 import { isFinal } from '../../../derive/turnout'
 import { stepRgb } from '../../../views/encoding'
-import { StageInfo } from '../../info/StageInfo'
-import { RaceMovedArt } from '../../info/lensArt'
+import { InfoButton } from '../../InfoButton'
 import { CLOSE_PTS, multiRows, multiSentence, type MultiRow } from '../../lenspanel/multi'
 import type { LensProps } from '../lenses'
 import { LensBar } from '../LensBar'
@@ -103,11 +103,11 @@ export default function MultiplesLens({ seats, statics, title, onShowSeat }: Len
       <LensBar
         title={title}
         info={
-          <StageInfo label="About the small charts">
-            <RaceMovedArt final={final} closePts={CLOSE_PTS} />
-            <p>Each hexagon is a seat, in its place on the Hex; the line is the 2022 holder&apos;s lead over the night. The colour is {final ? 'the winner' : "tonight's leader"}.</p>
-            <p>Tap a seat to see its line and the key facts.</p>
-          </StageInfo>
+          <InfoButton label="About the small charts" align="right">
+            <p>Each hexagon is a seat, in its place on the Hex. The line is the 2022 holder&apos;s lead over the night: above the faint middle line they are ahead, below it they trail, and a line that crosses it is a lead changing. The colour is {final ? 'the winner' : "tonight's leader"}.</p>
+            <p>{final ? '' : 'Faded seats are won or certain. '}Shaded hexagons with heavier lines are races within {CLOSE_PTS} points. Tap a seat to see its line and the key facts.</p>
+            <LensNotice seats={seats} />
+          </InfoButton>
         }
       />
       {rows.some((r) => r.state === 'close') && (

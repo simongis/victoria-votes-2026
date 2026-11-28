@@ -653,6 +653,7 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
   const shadow = darkPaper(pal) ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.28)'
   const ids = tier ? [...tier.paths.keys()] : []
   const bandOf = (id: number): number => (certainty ? (paints.get(id)?.band ?? 2) : 2)
+  const edge = css(pal.edge)
   const region = { x: -60, y: -60, width: size.w + 120, height: size.h + 120 }
   // Under polling places the seats are quiet ground, so no declared ticks. At Final every seat is declared, so a tick on each says nothing (VE-166, FB-195); it derives from the seats on screen, so Rewind brings the ticks back.
   const won = dots || allDeclared(seats.values()) ? [] : ids.filter((id) => seats.get(id)?.state === 'won')
@@ -786,6 +787,7 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
                 .filter((id) => bandOf(id) === band)
                 .map((id) => {
                   const s = seats.get(id)
+                  const empty = !s?.leader
                   return (
                     <Fragment key={id}>
                     <path
@@ -794,9 +796,9 @@ export function MapPane({ apiRef, seats, paints, certainty, selected, pop, onSel
                       d={tier!.paths.get(id)}
                       fillRule="evenodd"
                       fill={css(paints.get(id)?.rgb ?? pal.noResult)}
-                      // VE-314 (FB-53): one outline for every seat in every view. Two styles (dark for no result, pale for a leader) read as gaps beside hatched seats and as a bug in Polling places.
-                      stroke={emptyStroke}
-                      strokeWidth={0.75}
+                      // A seat with no result yet is the same colour as the ground, so it gets a faint outline to keep the state's shape readable (FB-53).
+                      stroke={empty ? emptyStroke : edge}
+                      strokeWidth={empty ? 0.75 : 0.5}
                     />
                     {/* Trust, too early to compare (VE-98): stripes over the faint base, never taking the pointer. */}
                     {paints.get(id)?.empty && <path className="map-empty" d={tier!.paths.get(id)} fillRule="evenodd" fill="url(#map-empty)" stroke="none" pointerEvents="none" aria-hidden />}

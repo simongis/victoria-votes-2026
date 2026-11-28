@@ -190,7 +190,7 @@ a.explore-card { box-sizing: border-box; text-decoration: none; }
 .prefs__dot:focus-visible .prefs__d { stroke: var(--map-selected); stroke-width: 2; }
 
 /* One Nation lens (VE-101): the arrows layout with a navy "estimate" marker, a measure switch and a pill that can hold a button. */
-.onl__marker { margin: 0 var(--space-2) var(--space-1); align-self: flex-start; padding: 1px var(--space-2); border-radius: var(--radius-pill); background: var(--color-blue, #003174); color: #fff; font-size: var(--text-xs); font-weight: 700; }
+.onl__marker { margin: 0 var(--space-2) var(--space-1); align-self: flex-start; padding: 1px var(--space-2); border-radius: 999px; background: var(--color-blue, #003174); color: #fff; font-size: var(--text-xs); font-weight: 700; }
 .onl__caption { padding: 0 var(--space-2) var(--space-1); flex: none; }
 .onl__failed { margin: auto; color: var(--color-text); font-size: var(--text-base, 1rem); }
 .onl__stage { overflow: hidden; }
@@ -202,7 +202,7 @@ a.explore-card { box-sizing: border-box; text-decoration: none; }
 .onl__nokey { flex-basis: 100%; }
 @media (min-width: 700px) { .onl__nokey { flex-basis: auto; margin-left: var(--space-3); } }
 .onl__chips { flex: none; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); padding: 0 var(--space-2) var(--space-1); }
-.onl__chip { min-height: 32px; padding: 2px var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill-md); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-sm, 0.875rem); cursor: pointer; }
+.onl__chip { min-height: 32px; padding: 2px var(--space-3); border: 1px solid var(--color-border-strong); border-radius: 999px; background: var(--color-surface); color: var(--color-text); font: inherit; font-size: var(--text-sm, 0.875rem); cursor: pointer; }
 .onl__chip[aria-pressed="true"] { background: var(--color-blue, #003174); border-color: var(--color-blue, #003174); color: #fff; }
 .onl__chip:focus-visible, .onl__show:focus-visible, .onl__card:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 .onl__scatter { position: absolute; inset: 0; }
@@ -432,7 +432,7 @@ a.explore-card { box-sizing: border-box; text-decoration: none; }
 /* VE-282: "Where is each party strongest?" seat facts panel, and the "No figures yet" key swatch. */
 .onl__hatch--wait { background-color: color-mix(in srgb, var(--map-no-result) 30%, var(--map-paper)); background-image: repeating-linear-gradient(45deg, rgba(110, 110, 120, 0.6) 0 1.5px, transparent 1.5px 4px); }
 .onl__seat { padding: var(--space-3) var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
-.onl__seat-notlive { margin: 0; padding: 1px var(--space-2); align-self: flex-start; border-radius: var(--radius-pill); background: var(--color-blue, #003174); color: #fff; font-size: var(--text-xs); font-weight: 700; }
+.onl__seat-notlive { margin: 0; padding: 1px var(--space-2); align-self: flex-start; border-radius: 999px; background: var(--color-blue, #003174); color: #fff; font-size: var(--text-xs); font-weight: 700; }
 .onl__seat-h { margin: var(--space-3) 0 0; font-size: var(--text-sm); font-weight: 700; color: var(--color-text); }
 .onl__seat-note { margin: 0; color: var(--color-text-subtle); font-size: var(--text-xs); }
 .onl__seat-place { margin: 0; font-size: var(--text-base, 1rem); color: var(--color-text); }

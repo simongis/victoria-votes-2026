@@ -7,8 +7,7 @@ let shownThisSession = false
 
 type TourWindow = Window & { __VIC26_TOUR__?: boolean }
 
-// VE-303: the map's own "How to read this map" (desktop stage, lens corner) or the phone's float "i".
-const infoButtons = '.stage-info .info__btn, .float .info__btn'
+const infoButtons = '.band .info__btn, .float .info__btn'
 
 /** After the tour: Done opens the "i" once so the key is on show (FB-79). Clicking the real button keeps its state in React. */
 function afterTour(done: boolean): void {

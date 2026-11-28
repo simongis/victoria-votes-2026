@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { CountBadge } from '../CountBadge'
 import { scrollRowIntoView } from '../scrollRowIntoView'
 
 /**
@@ -156,7 +155,7 @@ export function LensPanel({ summary, unit, filters, filter, onFilter, query, onQ
         <div className="rail__filters" role="group" aria-label="Show">
           {filters.map((f) => (
             <button key={f.key} type="button" className="rail__chip" aria-pressed={filter === f.key} title={f.title} onClick={() => onFilter(filter === f.key ? null : f.key)}>
-              {f.label}<CountBadge n={f.count} />
+              {f.label} ({f.count})
             </button>
           ))}
           {query.trim() !== '' && (

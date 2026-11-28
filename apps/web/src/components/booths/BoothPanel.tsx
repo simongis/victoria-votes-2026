@@ -10,7 +10,6 @@ import { nightWords } from '../../derive/nightWords'
 import { currentMotion, usePresence } from '../DistrictPanel'
 import { InfoButton } from '../InfoButton'
 import { outsideWords } from './dots'
-import type { ClosedPlace } from '../../data/closedPlaces'
 import { FLOAT_ROW_PX, PANEL_HALF, sheetGrows } from '../sheet/sheet'
 import { PANEL_SHEET_QUERY, panelSheetMemory, useSheet } from '../sheet/useSheet'
 import '../../styles/panel.css'
@@ -25,8 +24,6 @@ export interface BoothPanelData {
   centre?: { id: number; districtId: number; seat: string }[]
   /** VE-301: an early voting centre whose point is outside the district it reports for. */
   outside?: boolean
-  /** VE-306: for a closed place, the place its votes are counted at (opened by the button), or null when it is not in the data. */
-  redirectId?: number | null
   /** The biggest place's votes, for the size of the dots in the strip. */
   maxFormal: number
 }
@@ -155,8 +152,6 @@ export function BoothPanel({ data, dataLabel, since, label, nightEnds, onSeat, o
           </div>
         )}
 
-        {p.closedEarly && <ClosedEarly c={p.closedEarly} redirectId={data.redirectId ?? null} onPick={onPick} />}
-        {p.state === 'closed' && p.closed && <Closed c={p.closed} redirectId={data.redirectId ?? null} onPick={onPick} />}
         {p.state === 'waiting' && <Waiting p={p} seat={seat} label={label} />}
         {p.state === 'evc-no-result' && <EvcNoResult p={p} seat={seat} />}
         {(p.state === 'first-preferences' || p.state === 'counted') && (
@@ -426,36 +421,4 @@ export function BoothPanelHost(props: Omit<Props, 'closing' | 'motion' | 'data'>
   }
   if (!present || !shown) return null
   return <BoothPanel {...props} data={shown} closing={closing} motion={motion} handoff={swap} />
-}
-
-/** VE-310: a place closed early that still reports. One line above the results; same redirect button as the all-day case. Text matches closedEarlyWords. */
-function ClosedEarly({ c, redirectId, onPick }: { c: ClosedPlace; redirectId: number | null; onPick: (id: number) => void }) {
-  return (
-    <p className="bp__line" data-testid="booth-closed-early">
-      <b>Closed early this afternoon ({c.reason}), so the count here is smaller.</b> Voters were sent to{' '}
-      {redirectId !== null ? (
-        <button type="button" className="bp__crumb" data-testid="booth-closed-redirect" onClick={() => onPick(redirectId)}>{c.redirect.label}</button>
-      ) : (
-        c.redirect.label
-      )}
-      .
-    </p>
-  )
-}
-
-/** VE-306: a place the VEC closed on the day. The redirect is a button that opens that place when it is in the data, plain text when not. */
-function Closed({ c, redirectId, onPick }: { c: ClosedPlace; redirectId: number | null; onPick: (id: number) => void }) {
-  return (
-    <div className="bp__block bp__block--first" data-testid="booth-closed">
-      <p className="bp__line">
-        <b>Closed today ({c.reason}).</b> Votes are counted at{' '}
-        {redirectId !== null ? (
-          <button type="button" className="bp__crumb" data-testid="booth-closed-redirect" onClick={() => onPick(redirectId)}>{c.redirect.label}</button>
-        ) : (
-          c.redirect.label
-        )}
-        .
-      </p>
-    </div>
-  )
 }

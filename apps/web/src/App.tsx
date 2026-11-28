@@ -8,7 +8,6 @@ import { captionCounts, classifySeat } from './derive/arrows'
 import { LENSES, lensStartMode } from './components/explore/lenses'
 import { lensReady } from './components/explore/ready'
 import { HexInset } from './components/inset/HexInset'
-import { MapInfo } from './components/info/StageInfo'
 import { VIC_OUTLINE_PATH, VIC_OUTLINE_VIEWBOX } from './components/map/vicOutline'
 import { readMinimised, writeMinimised } from './components/inset/pref'
 import { FxAnnouncer, FxProvider, useUpdateEffects } from './components/Effects'
@@ -38,7 +37,7 @@ import { BoothSourceContext, useBoothData, useBoothsAvailable } from './componen
 import { buildDots, type BoothDot } from './components/booths/dots'
 import { BoothPanelHost, type BoothPanelData } from './components/booths/BoothPanel'
 import { findPlace, outsideOf, placeInput, placesInSeat } from './components/booths/panelInput'
-import { CountNotes, ReadingKey, TopBand } from './components/TopBand'
+import { ReadingKey, TopBand } from './components/TopBand'
 import { createSource } from './data'
 import { autoStartTour } from './tour'
 import { countedScale, seatPaint, swingShown, trustReady, type SeatPaint } from './derive/colour'
@@ -679,7 +678,10 @@ export function App() {
         {!showResults ? (
           <main className="holding" data-testid="holding">
             <p>{sv.banner}</p>
-            {/* VE-149, VE-307: the notice and the source are in the header's About, on a phone too, so the page needs no "i" of its own. */}
+            {/* VE-149 (ADR 0017): the "i" with the provisional notice and attribution is reachable here too; on narrow screens it floats as it does over the stage. */}
+            <div className="float" data-testid="float-controls">
+              <ReadingKey holding sourceNote={source.note} pollNote={pollNote} />
+            </div>
           </main>
         ) : !statics ? (
           <main className="holding holding--loading" data-testid="holding-loading">
@@ -688,6 +690,9 @@ export function App() {
               <path d={VIC_OUTLINE_PATH} />
             </svg>
             <p>{error ?? 'Loading results...'}</p>
+            <div className="float" data-testid="float-controls">
+              <ReadingKey holding sourceNote={source.note} pollNote={pollNote} />
+            </div>
           </main>
         ) : (
           <div className="workspace">
@@ -733,8 +738,6 @@ export function App() {
                 onRestore={() => setInset(false)}
               />
               )}
-              {/* VE-303: the map's own "How to read this map", top right of the stage on a desktop (the phone keeps its float "i"). */}
-              {!lensOpen && <MapInfo colourInfo={<ColourInfo colour={view.colour} placesOn={placesOn} final={time.state === 'final'} noFaint={noFaint} tally={tally} />} final={allWon} marksDrawn={placesOn || view.colour === 'leader'} dataLabel={sv.dataLabel} sourceNote={source.note} notes={view.colour === 'leader' && !placesOn ? <CountNotes final={allWon} /> : undefined} />}
               {/* The dots have no Hex and no region buttons (FB-153), so the shape controls and the inset step aside. */}
               {!placesOn && <StageControls shape={view.shape} onShape={changeShape} />}
               <ColourChips
@@ -771,7 +774,7 @@ export function App() {
               <ViewSheet shape={view.shape} onShape={changeShape} />
               {/* Narrow screens: the "i" floats over the stage (it sits in the band on desktop). */}
               <div className="float" data-testid="float-controls">
-                <ReadingKey sourceNote={source.note} colourInfo={<ColourInfo colour={view.colour} placesOn={placesOn} final={time.state === 'final'} noFaint={noFaint} tally={tally} />} final={allWon} dataLabel={sv.dataLabel} marksDrawn={placesOn || view.colour === 'leader'} />
+                <ReadingKey sourceNote={source.note} pollNote={pollNote} colourInfo={<ColourInfo colour={view.colour} placesOn={placesOn} final={time.state === 'final'} noFaint={noFaint} />} final={allWon} dataLabel={sv.dataLabel} />
               </div>
               <ExploreLayer seats={seats} statics={statics} explore={explore} onExplore={setExplore} rewinding={view.rewindOpen || !live} onSelectSeat={select} selectedId={view.selected} at={tick?.snapshotAt} replay={notLive} dataLabel={sv.dataLabel} />
             </div>

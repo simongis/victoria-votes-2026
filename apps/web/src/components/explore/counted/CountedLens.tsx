@@ -1,8 +1,9 @@
+import { LensNotice } from '../LensNotice'
 import { useEffect, useMemo, useState, type PointerEvent } from 'react'
 import { COUNTED_ALPHA, countedRgb, countedScale, countedStep } from '../../../derive/colour'
 import type { ExploreMode } from '../../../state/view'
 import { css, usePalette } from '../../../theme/theme'
-import { StageInfo } from '../../info/StageInfo'
+import { InfoButton } from '../../InfoButton'
 import { loadTier, type Tier } from '../../map/tiers'
 import type { LensProps } from '../lenses'
 import { LensBar } from '../LensBar'
@@ -79,9 +80,10 @@ export default function CountedLens({ seats, statics, mode, title, onMode }: Len
         mode={shown}
         onMode={onMode}
         info={
-          <StageInfo label="About counted">
+          <InfoButton label="About counted" align="right">
             <p>Counted is the ballots counted so far, out of everyone enrolled in the seat. Not everyone votes, so a finished seat stops near 85 to 90%, never 100%.</p>
-          </StageInfo>
+            <LensNotice seats={seats} />
+          </InfoButton>
         }
       />
 

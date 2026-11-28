@@ -10,14 +10,14 @@ import { isFinal } from '../../../derive/turnout'
 import { css, usePalette } from '../../../theme/theme'
 import { allDeclared, leaderRgb, LEAD_STEP_WORDS, stepRgb, type LeadStep } from '../../../views/encoding'
 import type { ExploreMode } from '../../../state/view'
-import { StageInfo } from '../../info/StageInfo'
-import { SimilarArt } from '../../info/lensArt'
+import { InfoButton } from '../../InfoButton'
 import { LIST_HALF, sheetGrows } from '../../sheet/sheet'
 import { useSheet } from '../../sheet/useSheet'
 import { loadTier, tierFor, type Tier } from '../../map/tiers'
-import { CREDIT_NAME, CREDIT_URL, FORECAST_BASE, forecastSimilarHref } from '../forecastLink'
+import { FORECAST_BASE, forecastSimilarHref } from '../forecastLink'
 import type { LensProps } from '../lenses'
 import { LensBar } from '../LensBar'
+import { LensNotice } from '../LensNotice'
 import { Shape } from '../Shape'
 import { useTraitTable } from './sharedData'
 import { locateSeat, type GeoLike } from './locate'
@@ -359,12 +359,10 @@ export default function SimilarLens({ seats, statics, mode, title, onMode, onSho
         mode={shown}
         onMode={onMode}
         info={
-          <StageInfo label="About seats that are alike">
+          <InfoButton label="About seats that are alike" align="right">
             <div className="similar__info">
-              <SimilarArt />
-              {/* VE-303 (Simon expected voting to count): say plainly that "alike" is about the place only. */}
-              <p data-testid="similar-meaning"><b>Alike as places (Census, land use, built form), not by past votes.</b> It describes places, not people.</p>
-              <p>It is a rank, not a score.</p>
+              <p>Alike means the place itself: a model of Census figures, land use, built form and environment, summed up for each seat. It describes places, not people.</p>
+              <p>It is a rank, not a score. The threads show the 5 nearest; then come the next 15 (faintly shaded), 25 and 42.</p>
               {traits.length > 0 && me && (
                 <>
                   <p>What they share comes from the Census and SEIFA; the ranking itself comes from the place model.</p>
@@ -393,13 +391,10 @@ export default function SimilarLens({ seats, statics, mode, title, onMode, onSho
                 </>
               )}
               <p>Only counted votes are shown. It is not a forecast.</p>
-              {/* VE-312 (Simon): the credit names the site, never a person, and the site's name always links to it. */}
-              <p className="similar__credit" data-testid="similar-credit">
-                {SIMILAR_CREDIT}{' '}
-                <a href={CREDIT_URL} target="_blank" rel="noopener noreferrer" data-testid="similar-credit-link">{CREDIT_NAME}</a>
-              </p>
+              <p className="similar__credit" data-testid="similar-credit">{SIMILAR_CREDIT}</p>
+              <LensNotice seats={seats} />
             </div>
-          </StageInfo>
+          </InfoButton>
         }
       />
 

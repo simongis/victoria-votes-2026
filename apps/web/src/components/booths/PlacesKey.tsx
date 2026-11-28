@@ -43,12 +43,11 @@ export function PlacesKey({ parties, final = false }: { parties?: readonly Party
 }
 
 /** Behind the "i": what a dot is, in plain words. On a phone the size and faint lines of the key live here (VE-167). */
-export function PlacesInfo() {
-  // VE-308 (pick P1): the three rules are drawn (PlacesArt), so the words shrink to one line and the one caveat.
+export function PlacesInfo({ final = false }: { final?: boolean }) {
   return (
     <>
-      <p>Each dot is a polling place on election day.</p>
-      <p className="key__sub">Early and postal votes count in seat totals only.</p>
+      <p>Each dot is a polling place on election day. Its colour is the party with the most first-preference votes there, and a bigger dot means more votes counted.{final ? '' : ' A faint dot has not reported yet.'}</p>
+      <p>Pick a party in the tally to light the places it leads, or a seat to outline its places. Early voting centres and postal votes are not shown: they count in the seat totals only.</p>
     </>
   )
 }

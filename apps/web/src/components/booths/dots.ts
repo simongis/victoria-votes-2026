@@ -5,7 +5,6 @@ import type { Focus } from '../../derive/focus'
 import { evcRing } from './evc'
 import { centresOf } from './panelInput'
 import type { EvcGroup } from './evc'
-import { closedFor } from '../../data/closedPlaces'
 import { boothAt, boothInFocus, boothSummary, dotRadius, type BoothRow, type BoothStatic } from './model'
 
 /** The biggest dot's radius in pixels at the whole-state zoom; the smallest is the floor. A waiting booth is a speck. */
@@ -13,8 +12,6 @@ import { boothAt, boothInFocus, boothSummary, dotRadius, type BoothRow, type Boo
 export const R_MAX = 4.2
 export const R_FLOOR = 2.7
 export const R_WAITING = 1.3
-/** A closed place's ring: big enough to read as a ring (VE-306). */
-export const R_CLOSED = 2.4
 
 export interface BoothDot {
   id: number
@@ -42,10 +39,6 @@ export interface BoothDot {
   evc?: true
   /** VE-301: an early voting centre whose point is outside every district it serves (the VEC places some so). */
   outside?: true
-  /** VE-306: the VEC closed this place on the day. Drawn as a hollow ring, never as "none yet"; it has zero figures all night. */
-  closed?: true
-  /** VE-310: closed early but still reporting: drawn as normal, the hover label says so. */
-  closedEarly?: true
   /** A joint voting centre (VE-292): how many districts this building serves, when two or more. */
   joint?: number
 }
@@ -79,7 +72,6 @@ export function buildDots(i: DotInput): BoothDot[] {
   const out = i.booths.map((b): BoothDot => {
     const s = boothSummary(boothAt(i.byBooth.get(b.id) as BoothRow[] | undefined, i.at))
     const seat = i.seats.get(b.districtId)
-    const closure = closedFor(b.districtId, b.name)
     const counted = s.state === 'counted'
     const leader = counted ? s.leader : null
     return {
@@ -98,8 +90,6 @@ export function buildDots(i: DotInput): BoothDot[] {
       lit: boothInFocus(i.focus, leader, seat),
       outlined: i.selected !== null && b.districtId === i.selected,
       faded: i.selected !== null && b.districtId !== i.selected,
-      ...(closure?.when === 'all-day' ? { closed: true as const, r0: R_CLOSED } : {}),
-      ...(closure?.when === 'early' ? { closedEarly: true as const } : {}),
       ...(centres.has(b.id) ? { joint: centres.get(b.id)!.length } : {}),
     }
   })
@@ -125,7 +115,7 @@ export function buildDots(i: DotInput): BoothDot[] {
       lit: boothInFocus(i.focus, s.leader, seat), outlined: g.districtIds.includes(i.selected ?? -1), faded: i.selected !== null && !g.districtIds.includes(i.selected), evc: true,
     })
   }
-  const shown = i.reportedOnly ? out.filter((d) => d.state === 'counted' || d.closed) : out
+  const shown = i.reportedOnly ? out.filter((d) => d.state === 'counted') : out
   return shown.sort((a, b) => (a.state !== b.state ? (a.state === 'waiting' ? -1 : 1) : b.formal - a.formal || a.id - b.id))
 }
 
@@ -136,14 +126,7 @@ const votes = (n: number): string => n.toLocaleString('en-AU')
 
 /** The words on a dot's hover or focus label: booth, leader and share, then seat and votes. */
 export function boothLabel(d: BoothDot): HexLabelText {
-  const l = baseLabel(d)
-  // VE-310: a place closed early keeps its figures; the extra slot says why the count is small.
-  return d.closedEarly ? { ...l, extra: l.extra ? `closed early, ${l.extra}` : 'closed early' } : l
-}
-
-function baseLabel(d: BoothDot): HexLabelText {
   // A stacked dot: name the centre and how many districts it serves; the panel has each district's result (VE-292).
-  if (d.closed) return { name: d.name, leader: null, lead: 'closed today', extra: d.seatName }
   if (d.joint) return { name: d.name, leader: d.leader, lead: `Joint voting centre, serves ${d.joint} districts`, extra: 'Tap for each district' }
   if (d.state === 'waiting' || d.leader === null) return { name: d.name, leader: null, lead: 'No figures yet', extra: d.seatName }
   if (d.outside) return { name: d.name, leader: d.leader, lead: `${PARTY_NAMES[d.leader]} ${d.share}%`, extra: `${outsideWords(d.seatName)}, ${votes(d.formal)} votes` }

@@ -24,7 +24,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   { id: 'chips', selector: '.stage > .colour-chips .segmented', side: 'top', title: 'Colour the seats', text: 'Ways to colour the seats.' },
   { id: 'rewind', selector: '.rewind__handle[aria-controls="rewind-panel"]', side: 'top', title: 'Rewind', text: 'Replay the count through the night.' },
   { id: 'explore', selector: '.more-ways-chip, .explore-peek, .explore-more', side: 'top', title: 'More ways', text: 'More ways to see the results.' },
-  { id: 'info', selector: '.stage > .stage-info .info__btn, .float .info__btn', side: 'bottom', title: 'Map key', text: 'How to read the map: what the colours and marks mean.' },
+  { id: 'info', selector: '.band .info__btn, .float .info__btn', side: 'bottom', title: 'The "i"', text: 'What everything means, and where the figures come from.' },
 ]
 
 const visible = (el: Element): boolean => (el as HTMLElement).getClientRects().length > 0

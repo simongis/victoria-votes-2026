@@ -72,10 +72,3 @@ body,
   color: var(--color-text);
   background: var(--color-surface-alt);
 }
-/* VE-312: clip, not hidden. A hidden box can still be scrolled by script, and scrollIntoView (the guided tour's, on a
-   target a pixel past the window's bottom edge) slid the whole app up, leaving a blank grey band below it. A clipped box
-   is not a scroll container, so the app never moves. html keeps hidden: clip on the root is read as hidden anyway. */
-body,
-#root {
-  overflow: clip;
-}

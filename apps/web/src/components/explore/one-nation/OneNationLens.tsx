@@ -1,11 +1,11 @@
+import { LensNotice } from '../LensNotice'
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
-import { StrongestArt } from '../../info/lensArt'
 import type { OneNationAsset, ShareParty } from '@vic26/schema'
 import { useBoothData, useBoothSource, useBoothsAvailable } from '../../booths/data'
 import { PARTY_OPTIONS, partyLabel, quintileBands, rampMax } from '../../../derive/oneNation'
 import type { ExploreMode } from '../../../state/view'
 import { usePalette } from '../../../theme/theme'
-import { StageInfo } from '../../info/StageInfo'
+import { InfoButton } from '../../InfoButton'
 import { loadTier, type Tier } from '../../map/tiers'
 import { partyRows } from '../../lenspanel/party'
 import type { LensProps } from '../lenses'
@@ -242,19 +242,20 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
         onMode={onMode}
         info={
           top === 'flow' ? (
-            <StageInfo label="About this view">
+            <InfoButton label="About this view" align="right">
               <p>When a seat is down to two candidates, VEC counts each ballot again for those two. The gain each finalist makes between the two counts is where the votes of everyone else went.</p>
               <p>This is all the other candidates&apos; votes together, not any one party&apos;s voters. It uses only polling places that have both counts, and leaves out early and postal votes. Seats with an Independent or Other finalist, or too few such votes, are left out.</p>
               <p>It is about seats, never people. Source: Victorian Electoral Commission.</p>
-            </StageInfo>
+              <LensNotice seats={seats} />
+            </InfoButton>
           ) : (
-          <StageInfo label="About this view">
-            <StrongestArt top={top} base={base} max={max} partyName={name} />
+          <InfoButton label="About this view" align="right">
             <p>Federal votes from 2025 show until counting starts, then tonight&apos;s count only. &quot;No figures yet&quot;: under {LIVE_MIN_PCT}% counted.</p>
-            <p>The Coalition is the Liberals and Nationals together.</p>
+            <p>The Coalition is the Liberals and Nationals together. Hatched: the party stood in part of the seat.</p>
             <p>About seats, never people; a link is not a cause. The state results take over. Sources: © Commonwealth of Australia, Australian Electoral Commission (CC BY 4.0); ABS Census 2021.</p>
             {!resultsIn && pollsLineFor(party, ONP_POLLS) !== '' && <p data-testid="onl-polls">{pollsLineFor(party, ONP_POLLS)}</p>}
-          </StageInfo>
+            <LensNotice seats={seats} />
+          </InfoButton>
           )
         }
       >

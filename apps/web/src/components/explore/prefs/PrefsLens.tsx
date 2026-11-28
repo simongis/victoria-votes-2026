@@ -1,9 +1,10 @@
 import { isFinal } from '../../../derive/turnout'
+import { LensNotice } from '../LensNotice'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import { OUTRIGHT_PCT, X_HI, X_LO, packRow, prefsPoints, regionRows, shortRegion, xFor, type PrefsPoint } from '../../../derive/prefs'
 import { partyName } from '../../../derive/seats'
 import { css, usePalette } from '../../../theme/theme'
-import { StageInfo } from '../../info/StageInfo'
+import { InfoButton } from '../../InfoButton'
 import { hexView, mapView, useSize } from '../stageGeom'
 import { loadTier, type Tier } from '../../map/tiers'
 import { Shape } from '../Shape'
@@ -177,11 +178,12 @@ export default function PrefsLens({ seats, statics, title, mode, onMode }: LensP
         mode={locMode}
         onMode={onMode}
         info={
-          <StageInfo label="About preferences">
+          <InfoButton label="About preferences" align="right">
             <p>First preferences are the votes for each candidate before preferences move. A seat is won once someone has more than half after preferences. Under 50%, preferences decide.</p>
             <p>Rows group seats by area. Point at a row, or a patch of the small map, to see the other.</p>
+            <LensNotice seats={seats} />
 
-          </StageInfo>
+          </InfoButton>
         }
       >
         <p className="arrows__caption" data-testid="prefs-count">

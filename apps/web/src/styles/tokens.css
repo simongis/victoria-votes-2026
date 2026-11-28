@@ -76,17 +76,10 @@
   --label-tracking: 0.08em;   /* uppercase microlabel letter-spacing */
 
   /* ── Border radius ────────────────────────────────── */
-  /* VE-308 (Simon, 28 Nov, round 2 pick A): one 8 px corner across the app's buttons, pills, chips, toggles and panels
-     ("slightly less rounded, but be consistent across the app"). The pill tokens stay as names so each control keeps its
-     hook for restyling; --radius-round is for dots and rings that must stay round. */
   --radius-sm:   4px;
   --radius-md:   8px;
-  --radius-lg:   8px;
-  --radius-pill: 8px;
-  --radius-pill-md: 8px;
-  --radius-pill-lg: 8px;
-  --radius-badge: 5px;        /* the small count badge inside a chip: the corner less its inset */
-  --radius-round: 999px;
+  --radius-lg:   12px;
+  --radius-pill: 999px;
 
   /* ── Elevation ────────────────────────────────────────── */
   /* Restraint rule: floating map cards get shadow-sm; docked panels get a

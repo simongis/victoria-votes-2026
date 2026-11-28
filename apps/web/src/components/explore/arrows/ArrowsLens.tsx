@@ -1,10 +1,11 @@
 import { isFinal } from '../../../derive/turnout'
+import { LensNotice } from '../LensNotice'
 import { useEffect, useMemo, useState, type PointerEvent } from 'react'
 import { arrowLength, captionCounts, captionOf, classifySeat, rankedArrows, type Mark } from '../../../derive/arrows'
 import { SWING_MIN_PCT } from '../../../derive/colour'
 import type { ExploreMode } from '../../../state/view'
 import { css, usePalette, type Palette, type Rgb } from '../../../theme/theme'
-import { StageInfo } from '../../info/StageInfo'
+import { InfoButton } from '../../InfoButton'
 import { loadTier, type Tier } from '../../map/tiers'
 import type { LensProps } from '../lenses'
 import { LensBar } from '../LensBar'
@@ -135,11 +136,14 @@ export default function ArrowsLens({ seats, statics, mode, title, onMode }: Lens
         mode={mode}
         onMode={onMode}
         info={
-          <StageInfo label="About the swing arrows">
+          <InfoButton label="About the swing arrows" align="right">
             <ArrowsDiagram />
-            {/* VE-308 (pick S1): the picture carries the meaning; one line under it. */}
-            <p>Longer arrow, bigger swing. Tap a seat for every party&apos;s change. Marks show from {SWING_MIN_PCT}% counted.</p>
-          </StageInfo>
+            <p>Tap a seat to see how each party's first preferences changed since the last election.</p>
+            <p>Arrows are Labor v Coalition seats: longer means a bigger swing.</p>
+            <p>Triangles are other seats, for the party whose first preferences changed most.</p>
+            <p>Marks show from {SWING_MIN_PCT}% counted.</p>
+            <LensNotice seats={seats} />
+          </InfoButton>
         }
       >
         <p className="arrows__caption" data-testid="arrows-caption">{caption}</p>

@@ -41,8 +41,6 @@ export function BoothLayer({ dots, ring, onFocusDot, onPick, flash = null }: Pro
         // A touch of alpha (0.86) lets overlaps show through without the muddy darkening a multiply blend gave (VE-143).
         const opacity = waiting ? (d.lit && !d.faded ? 0.22 : 0.08) : d.lit ? (d.faded ? 0.3 : 0.86) : 0.1
         const named = d.outlined
-        // VE-306: a closed place is a hollow ring in ink, not a faint "none yet" speck.
-        const closed = d.closed === true
         return (
           <circle
             key={d.id}
@@ -54,13 +52,12 @@ export function BoothLayer({ dots, ring, onFocusDot, onPick, flash = null }: Pro
             data-e={d.e}
             data-n={d.n}
             data-r={d.r0}
-            fill={closed ? 'none' : fill}
-            fillOpacity={closed ? 0 : d.evc ? Math.min(opacity, evcRing(d.r0).fillOpacity) : opacity}
-            stroke={closed ? ink : d.evc ? fill : d.outlined ? ink : paper}
-            strokeOpacity={closed ? (d.faded ? 0.3 : 0.9) : d.outlined || d.evc ? 1 : d.lit ? (d.faded ? 0.3 : 0.92) : 0.15}
-            strokeWidth={closed ? 1.4 : d.evc ? evcRing(d.r0).strokeWidth : d.outlined ? 1.6 : 1}
-            data-closed={closed || undefined}
-            data-halo={!closed && !d.evc && !d.outlined ? '' : undefined}
+            fill={fill}
+            fillOpacity={d.evc ? Math.min(opacity, evcRing(d.r0).fillOpacity) : opacity}
+            stroke={d.evc ? fill : d.outlined ? ink : paper}
+            strokeOpacity={d.outlined || d.evc ? 1 : d.lit ? (d.faded ? 0.3 : 0.92) : 0.15}
+            strokeWidth={d.evc ? evcRing(d.r0).strokeWidth : d.outlined ? 1.6 : 1}
+            data-halo={!d.evc && !d.outlined ? '' : undefined}
             data-outlined={d.outlined || undefined}
             data-faded={d.faded || undefined}
             data-evc={d.evc || undefined}
