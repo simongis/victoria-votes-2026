@@ -13,10 +13,12 @@ import { countedShare, countedWord } from '../derive/turnout'
 import { LEAD_STEP_WORDS, allDeclared, leadStep, partyCss, stepRgb, type LeadStep } from '../views/encoding'
 import { Roll, useRoll } from './Effects'
 import { InfoButton } from './InfoButton'
+import { RaceArt } from './info/MapLegendArt'
+import { MapKeyFace } from './info/StageInfo'
+import { CREDIT_NAME, CREDIT_URL } from './explore/forecastLink'
 import { setPhoneBit, usePhoneBits } from '../state/phoneBits'
 import { pillWords, type TimeState } from '../state/timeState'
 import { openTour } from '../tour'
-import { useMotion } from '../state/motion'
 import '../styles/topband.css'
 import '../styles/leader.css'
 
@@ -116,34 +118,15 @@ function Count({ value, testId }: { value: number; testId?: string }) {
   )
 }
 
-/** The "i": how to read the colours and the counts, and where the figures came from (ADR 0017: the attribution lives here). */
-export function ReadingKey({ sourceNote, className, pollNote, colourInfo, holding, final, dataLabel }: { sourceNote: string | null; /** VE-254 (F7): the marker beside the title (Replay, Trial); the sheet says in a line what it means, because the phone marker is short. */ dataLabel?: string | null; /** Every seat is declared (VE-166): no tick is drawn, so the key does not explain one. */ final?: boolean; className?: string; /** VE-149: the holding page has no results to read, so only the notice, source and settings show. */ holding?: boolean; /** What the stage colour means (VE-141): first in the sheet, so there is one "i", not two. */ colourInfo?: ReactNode; /** The quiet poll note (VE-54): set while retrying or on the backup check. */ pollNote?: string | null }) {
-  const motion = useMotion()
-  // VE-144a: what left the phone's stage (the votes still to come) is the first thing in the sheet.
-  const { stillLine } = usePhoneBits()
+/** The race to 45 and the fold-away detail on the counts (VE-118, VE-296, VE-303): in the map's "How to read" on a desktop and in the phone's float "i". */
+export function CountNotes({ final }: { final?: boolean }) {
   return (
-    <InfoButton label="How to read this" className={className}>
-      {dataLabel === 'Trial' && <p className="key__trial" data-testid="info-trial"><b>Trial:</b> this is test data, not real results.</p>}
-      {dataLabel === 'Replay' && <p className="key__trial" data-testid="info-replay"><b>{nightWords('Replay')!.infoLead}</b> {nightWords('Replay')!.infoLine}.</p>}
-      {!holding && stillLine && (
-        <div className="key__counts" data-testid="info-counts">
-          {stillLine && <p data-testid="info-still">{stillLine}</p>}
-        </div>
-      )}
-      {!holding && colourInfo && <div className="key__colour" data-testid="colour-info">{colourInfo}</div>}
-      {/* VE-221 (B3): the one line on when seats settle; at Final there is nothing left to settle. */}
-      {!holding && !final && <p data-testid="info-settle">Most seats are clear on the night; close ones can take weeks.</p>}
+    <>
       {/* VE-296: the one place that says what 45 means and what a hung result does. */}
-      {!holding && <p data-testid="info-majority">{MAJORITY} of {SEATS} seats is a majority; short of that, the crossbench decides who governs.</p>}
+      {/* VE-303: the race to 45 drawn small: two lanes and the line they run to. */}
+      <RaceArt />
+      <p data-testid="info-majority">{MAJORITY} of {SEATS} seats is a majority; short of that, the crossbench decides who governs.</p>
       {/* VE-118 (FB-119): a few plain lines at rest; the detail folds away. */}
-      {/* VE-170: the colour rule is said once, in colourInfo above; the tick key below is all this adds. */}
-      {!holding && !final && (
-      <ul className="key">
-        <li><span className="key__tick" aria-hidden>&#10003;</span> Declared by the VEC</li>
-        <li><span className="sq sq--none" /> No figures yet</li>
-      </ul>
-      )}
-      {!holding && (
       <details className="key__more">
         <summary>More detail</summary>
         <p><b>The top bar</b> is the key: tap a party to light its seats. An outline marks the seats picked in the tally.</p>
@@ -153,38 +136,100 @@ export function ReadingKey({ sourceNote, className, pollNote, colourInfo, holdin
         </p>
         <p>{FIRM_RULE}</p>
       </details>
-      )}
-      {sourceNote && <p>{sourceNote}</p>}
-      {pollNote && <p className="key__poll" data-testid="poll-note">{pollNote}</p>}
-      <p className="key__notice" data-testid="provisional">{final ? DECLARED_NOTICE : PROVISIONAL_NOTICE}</p>
-      {/* VE-89: the way back to the guided tour. */}
-      <p><button type="button" className="link-btn" data-testid="tour-open" onClick={() => void openTour()}>Show me around</button></p>
-      {/* VE-115 (ADR 0027): motion is on unless the visitor turns it off; the device setting only prompts the note. */}
-      <div className="motion-switch">
-        <span id="motion-label">Animations</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={motion.on}
-          aria-labelledby="motion-label"
-          className="switch"
-          data-testid="motion-switch"
-          onClick={() => motion.setOn(!motion.on)}
-        >
-          <span className="switch__state" aria-hidden>{motion.on ? 'On' : 'Off'}</span>
-        </button>
+    </>
+  )
+}
+
+/** The not-live line (Replay, Trial, Simulated) in a sheet: the phone marker is short, so the sheet says what it means (VE-254, F7). */
+function NotLiveLine({ dataLabel }: { dataLabel?: string | null }) {
+  if (dataLabel === 'Trial') return <p className="key__trial" data-testid="info-trial"><b>Trial:</b> this is test data, not real results.</p>
+  if (dataLabel === 'Replay') return <p className="key__trial" data-testid="info-replay"><b>{nightWords('Replay')!.infoLead}</b> {nightWords('Replay')!.infoLine}.</p>
+  return null
+}
+
+/**
+ * VE-307 (Simon, 28 Nov): About this app, in the header of every view: what the app is, the VEC's own notice and attribution
+ * (verbatim, ADR 0015, 0017), the not-live line, the forecast credit, the tour, and the maker's two links. It is the only sheet with the notice (ADR 0017 as
+ * changed by VE-307), so it stays live while a lens makes the rest of the page inert (data-keep-live, inertBehind).
+ */
+export function AboutSheet({ className, pollNote, final, dataLabel }: { className?: string; /** Every seat is declared (VE-166, VE-226 finding 12). */ final?: boolean; /** Replay, Trial or Simulated. */ dataLabel?: string | null; /** The quiet poll note (VE-54): set while retrying or on the backup check. */ pollNote?: string | null }) {
+  const notLive = dataLabel === 'Trial' || dataLabel === 'Replay' ? nightWords(dataLabel) : null
+  return (
+    <InfoButton label="About this app" face="About" className={className} keepLive>
+      {/* VE-308 (round 2 pick D1, panel as mocked): the name, one line, then the data and credits as icon rows, then the tour and the two links. */}
+      <div className="about">
+        <h3 className="about__name">Victoria Votes 2026</h3>
+        <p className="about__one" data-testid="about-lead">Live results for the Victorian Legislative Assembly, seat by seat, as the count comes in.</p>
+        <dl className="about__rows">
+          <dt aria-hidden>
+            <svg viewBox="0 0 24 24" width="18" height="18" focusable="false"><path d="M12 3C7.6 3 4 4.3 4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6c0-1.7-3.6-3-8-3zm6 15c0 .5-2.3 1.5-6 1.5S6 18.5 6 18v-2.3c1.5.8 3.7 1.1 6 1.1s4.5-.3 6-1.1zm0-4.5c0 .5-2.3 1.5-6 1.5s-6-1-6-1.5v-2.3c1.5.8 3.7 1.1 6 1.1s4.5-.3 6-1.1zM12 9c-3.7 0-6-1-6-1.5S8.3 6 12 6s6 1 6 1.5S15.7 9 12 9z" /></svg>
+          </dt>
+          <dd>
+            {/* The VEC's own wording, verbatim (ADR 0015, 0017). */}
+            <span className="key__notice" data-testid="provisional">{final ? DECLARED_NOTICE : PROVISIONAL_NOTICE}</span>
+            {!final && <small>Figures can change until each seat is declared.</small>}
+          </dd>
+          {notLive && (
+            <>
+              <dt aria-hidden><span className="about__mark" /></dt>
+              <dd className="key__trial" data-testid={dataLabel === 'Trial' ? 'info-trial' : 'info-replay'}><b>{notLive.infoLead}</b> {notLive.infoLine}.</dd>
+            </>
+          )}
+          <dt aria-hidden>
+            <svg viewBox="0 0 24 24" width="18" height="18" focusable="false"><path d="M4 19h16v2H4zM6 10h3v7H6zm5-4h3v11h-3zm5 7h3v4h-3z" /></svg>
+          </dt>
+          {/* VE-303, VE-312 (Simon): the forecast and similarity credit names the site (by Chris Landvogt), never a person, and always links to it. */}
+          <dd data-testid="about-forecast">
+            Seat forecasts and place similarity:{' '}
+            <a href={CREDIT_URL} target="_blank" rel="noopener noreferrer" data-testid="about-forecast-link">{CREDIT_NAME}</a>
+          </dd>
+        </dl>
+        {pollNote && <p className="key__poll" data-testid="poll-note">{pollNote}</p>}
+        <div className="about__foot">
+          {/* VE-89: the way back to the guided tour. */}
+          <button type="button" className="about__tour" data-testid="tour-open" onClick={() => void openTour()}>Show me around</button>
+          {/* VE-280, VE-307: the maker's two quiet links (named by their labels). Inline SVG, so the CSP is unchanged. */}
+          <p className="made-by" data-testid="made-by">
+            <a href="https://bsky.app/profile/simongis.bsky.social" target="_blank" rel="noopener noreferrer" aria-label="Simon Jackson on Bluesky" data-testid="link-bluesky">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden focusable="false"><path fill="currentColor" d="M12 10.8c-1.09-2.12-4.05-6.08-6.8-8.03C2.56.9 1.55 1.22.89 1.52.12 1.87 0 3.05 0 3.74c0 .7.38 5.74.63 6.58.82 2.74 3.72 3.67 6.39 3.37-3.92.58-7.4 2-2.83 7.07 5.02 5.19 6.88-1.11 7.81-4.28.93 3.17 2.01 9.19 7.9 4.28 4.36-4.28 1.2-6.49-2.72-7.07 2.67.3 5.57-.63 6.39-3.37.25-.84.63-5.88.63-6.58 0-.7-.12-1.87-.89-2.22-.66-.3-1.67-.62-4.31 1.27C16.05 4.72 13.09 8.68 12 10.8z"/></svg>
+            </a>
+            <a href="https://x.com/SimonGIS" target="_blank" rel="noopener noreferrer" aria-label="Simon Jackson on X" data-testid="link-x">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden focusable="false"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+          </p>
+        </div>
       </div>
-      {motion.note && <p className="motion-note" data-testid="motion-note">Your device asks for less motion. Turn animations off?</p>}
-      {/* VE-280: the maker's name and two quiet links, last in the sheet. Inline SVG, so the CSP is unchanged. */}
-      <p className="made-by" data-testid="made-by">
-        <span>Made by Simon Jackson</span>
-        <a href="https://bsky.app/profile/simongis.bsky.social" target="_blank" rel="noopener noreferrer" aria-label="Simon Jackson on Bluesky" data-testid="link-bluesky">
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden focusable="false"><path fill="currentColor" d="M12 10.8c-1.09-2.12-4.05-6.08-6.8-8.03C2.56.9 1.55 1.22.89 1.52.12 1.87 0 3.05 0 3.74c0 .7.38 5.74.63 6.58.82 2.74 3.72 3.67 6.39 3.37-3.92.58-7.4 2-2.83 7.07 5.02 5.19 6.88-1.11 7.81-4.28.93 3.17 2.01 9.19 7.9 4.28 4.36-4.28 1.2-6.49-2.72-7.07 2.67.3 5.57-.63 6.39-3.37.25-.84.63-5.88.63-6.58 0-.7-.12-1.87-.89-2.22-.66-.3-1.67-.62-4.31 1.27C16.05 4.72 13.09 8.68 12 10.8z"/></svg>
-        </a>
-        <a href="https://x.com/SimonGIS" target="_blank" rel="noopener noreferrer" aria-label="Simon Jackson on X" data-testid="link-x">
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden focusable="false"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-        </a>
-      </p>
+    </InfoButton>
+  )
+}
+
+/**
+ * The phone's float "i" over the stage: how to read the map (VE-141: what the colour means first, so there is one "i", not
+ * two), the votes still to come, the race to 45 and the fold-away detail. The app's own notes are in About (VE-307).
+ */
+export function ReadingKey({ sourceNote, className, colourInfo, final, dataLabel, marksDrawn }: { sourceNote: string | null; /** VE-303: the Leader legend already draws the tick and the stripes, so the list would repeat them. */ marksDrawn?: boolean; /** VE-254 (F7): the marker beside the title (Replay, Trial). */ dataLabel?: string | null; /** Every seat is declared (VE-166): no tick is drawn, so the key does not explain one. */ final?: boolean; className?: string; /** What the stage colour means (VE-141). */ colourInfo?: ReactNode }) {
+  // VE-144a: what left the phone's stage (the votes still to come) is the first thing in the sheet.
+  const { stillLine } = usePhoneBits()
+  return (
+    <InfoButton label="Map key" face={<MapKeyFace />} className={`stage-info${className ? ` ${className}` : ''}`}>
+      <NotLiveLine dataLabel={dataLabel} />
+      {stillLine && (
+        <div className="key__counts" data-testid="info-counts">
+          <p data-testid="info-still">{stillLine}</p>
+        </div>
+      )}
+      {colourInfo && <div className="key__colour" data-testid="colour-info">{colourInfo}</div>}
+      {/* VE-221 (B3): the one line on when seats settle; at Final there is nothing left to settle. */}
+      {!final && <p data-testid="info-settle">Most seats are clear on the night; close ones can take weeks.</p>}
+      {/* VE-170: the colour rule is said once, in colourInfo above; the tick key below is all this adds. */}
+      {!final && !marksDrawn && (
+        <ul className="key">
+          <li><span className="key__tick" aria-hidden>&#10003;</span> Declared by the VEC</li>
+          <li><span className="sq sq--none" /> No figures yet</li>
+        </ul>
+      )}
+      <CountNotes final={final} />
+      {sourceNote && <p>{sourceNote}</p>}
     </InfoButton>
   )
 }
@@ -426,7 +471,7 @@ export function TopBand(p: TopBandProps) {
         <span className="band__cell" title="Votes counted as a share of enrolment (turnout, once every seat is declared)"><b><Roll value={Math.round(p.countedPct)} />%</b> {countedWord(allDeclared(p.seats.values()))}</span>
         {closeShown && !closeWaiting && !(p.inDoubt === 0 && p.timeState === 'final') && <button type="button" className="band__cell band__cell--btn" data-testid="band-doubt" title="Close seats, out of 88: show them" aria-label={closeAria} onClick={p.onShowDoubt}><b><Roll value={p.close} /></b> close</button>}
       </div>
-      <ReadingKey sourceNote={p.sourceNote} className="band__desk" pollNote={p.pollNote} colourInfo={p.colourInfo} final={declared} dataLabel={p.dataLabel} />
+      <AboutSheet className="band__about" pollNote={p.pollNote} final={declared} dataLabel={p.dataLabel} />
       {/* VE-227 (finding 6): before the first figures the party chips would read "Labor 0, Coalition 0"; CSS hides them and keeps the bar and the 45 mark. */}
       <div className="tl" data-nofigures={p.asAt === null || !Object.values(sides).some((x) => x.all > 0) || undefined} data-race={race.kind}>
         {/* VE-269: two lanes run to one shared 45 line (the seats a party needs to govern alone). Names and counts are the buttons; the coloured parts of each lane pick too. */}

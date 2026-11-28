@@ -70,6 +70,6 @@ describe('row text', () => {
 
 describe('credit', () => {
   it('is the agreed wording', () => {
-    expect(SIMILAR_CREDIT).toBe('Place similarity: Esri Australia geodemographic embedding, via a polling model by Chris Landvogt.')
+    expect(SIMILAR_CREDIT).toBe('Place similarity:')
   })
 })

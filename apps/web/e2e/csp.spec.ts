@@ -105,7 +105,7 @@ test('desktop: main view, shapes, seat panel and polling places run clean under 
     await clickIfThere(page, page.getByRole('button', { name: 'Hide seats' }))
   }
   // The info sheet carries the attribution (ADR 0017); opening it exercises the dialog styles.
-  await clickIfThere(page, page.getByRole('button', { name: /About these figures|About this view|How to read this/ }))
+  await clickIfThere(page, page.getByRole('button', { name: /About these figures|About this view|Map key/ }))
   await expectClean(page, w)
 })
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { CountBadge } from './CountBadge'
 import { createPortal } from 'react-dom'
 import type { PartyBucket } from '@vic26/schema'
 import { usePhoneBits, setPhoneBit } from '../state/phoneBits'
@@ -14,7 +15,9 @@ import type { Colour, Shape } from '../state/view'
 import { PlacesInfo, PlacesKey } from './booths/PlacesKey'
 import type { Tally } from '../derive/seats'
 import type { Focus } from '../derive/focus'
-import { cycleIndex, keyParties } from './leaderKeyParties'
+import { cycleIndex, cycleStep, keyParties, msToNextStep } from './leaderKeyParties'
+import { GainsArt, LeaderArt, LvcArt, PlacesArt, SwingArt } from './info/MapLegendArt'
+import { artFor } from './info/legendArt'
 import '../styles/leader.css'
 
 
@@ -69,7 +72,8 @@ const GAINS_MORE = [
 ]
 
 const COLOUR_INFO: Record<Colour, string> = {
-  leader: 'Each seat takes its leader’s colour: faint early, stronger once likely, solid once certain or won. ✓ marks a seat the VEC has declared.',
+  // VE-303: the legend above draws the tick (Declared), so the sentence no longer repeats it.
+  leader: 'Each seat takes its leader’s colour: faint early, stronger once likely, solid once certain or won.',
   trust: `Colour is the swing to or from Labor since 2022, set against how close the seat is. Swing shows once ${SWING_MIN_PCT}% of a seat is counted.`,
   gains: GAINS_INFO,
   lvc: 'Labor against the Liberals or Nationals: red where Labor leads, blue where the Coalition leads, darker the bigger the lead (under 2, 2 to 6, 6 to 12, 12 to 20, 20 points or more). Pale seats are not Labor v Coalition: another pair is in the final two, or that pair may be wrong.',
@@ -92,29 +96,39 @@ const STEP_LABELS: readonly { step: LeadStep; text: string }[] = [
   { step: 1, text: LEAD_STEP_WORDS[1] },
   { step: 2, text: LEAD_STEP_WORDS[2] },
 ]
-/** VE-273: how long each party's ramp stays on the key; the colour cross-fades in leader.css. */
-export const KEY_CYCLE_MS = 5000
+/** VE-273: how long each party's ramp stays on the key (VE-308: 4 s, Simon); the colour cross-fades in leader.css. */
+export const KEY_CYCLE_MS = 4000
 
 
-/** The party whose ramp the Leader key shows now: steps through the list on a timer, paused while the tab is hidden. */
+/**
+ * The party whose ramp the Leader key shows now. VE-312: the step comes from the wall clock (one change every
+ * KEY_CYCLE_MS on the same boundary), so every copy of the key, the desktop strip and the phone sheet alike, and one
+ * mounted mid-cycle, changes in step. A timeout re-arms to the next boundary; a hidden tab skips its renders.
+ */
 function useKeyParty(parties: readonly PartyBucket[]): PartyBucket {
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState(() => cycleStep(Date.now(), KEY_CYCLE_MS))
   const n = parties.length
   useEffect(() => {
     if (n < 2) return
-    const id = setInterval(() => {
-      if (!document.hidden) setStep((x) => x + 1)
-    }, KEY_CYCLE_MS)
-    return () => clearInterval(id)
+    let id = 0
+    const arm = () => {
+      id = window.setTimeout(() => {
+        if (!document.hidden) setStep(cycleStep(Date.now() + 1, KEY_CYCLE_MS))
+        arm()
+      }, msToNextStep(Date.now(), KEY_CYCLE_MS))
+    }
+    arm()
+    return () => window.clearTimeout(id)
   }, [n])
   return parties[cycleIndex(step, n)] ?? 'ALP'
 }
 
 function LeaderKey({ noFigures, earlyOnly, tally, pick }: { noFigures?: boolean; earlyOnly?: boolean; tally?: Tally; pick?: Focus | null }) {
   const pal = usePalette()
-  // VE-287: only the app's Animations switch stops the cycle; the device's reduced-motion setting just drops the fade (CSS).
-  const animationsOff = useMotion().mode === 'reduced'
-  const parties = tally ? keyParties(tally, pick ?? null, animationsOff) : (['ALP'] as PartyBucket[])
+  // VE-312 (Simon): the chips cycle the main parties; reduced motion (the device's setting or the Animations switch) holds Labor.
+  const motion = useMotion()
+  const still = motion.mode === 'reduced' || motion.deviceLess
+  const parties = tally ? keyParties(tally, pick ?? null, still) : (['ALP'] as PartyBucket[])
   const party = useKeyParty(parties)
   return (
     <>
@@ -285,43 +299,27 @@ function CertaintyKey() {
 }
 
 /**
- * VE-302: the Changed hands "i" diagram. The same hex before and after: Labor red in 2022, then Liberal blue with the
- * map's changed-hands mark (the near-black edge, .map-gain / .hex--gain). Static, so nothing to switch off for reduced motion.
- */
-function GainsDiagram() {
-  const title = useId()
-  const hex = (cx: number, fill: string, marked: boolean) => (
-    <polygon points={[0, 1, 2, 3, 4, 5].map((i) => `${(cx + 22 * Math.cos(Math.PI / 6 + (i * Math.PI) / 3)).toFixed(1)},${(36 + 22 * Math.sin(Math.PI / 6 + (i * Math.PI) / 3)).toFixed(1)}`).join(' ')} fill={fill} stroke={marked ? 'var(--pick-ink)' : 'var(--color-border-strong)'} strokeWidth={marked ? 3 : 1} strokeLinejoin="round" />
-  )
-  return (
-    <svg className="gains-diagram" viewBox="0 0 360 96" role="img" aria-labelledby={title} style={{ display: 'block', width: '100%', maxWidth: 360, height: 'auto' }}>
-      <title id={title}>A seat held by Labor in 2022 that a Liberal now leads is drawn with a dark outline: it has changed hands.</title>
-      {hex(40, 'var(--party-alp)', false)}
-      <text x="40" y="78" textAnchor="middle" fontSize="12" fill="var(--color-text)">2022: Labor</text>
-      <path d="M92 36h72m-9-7 9 7-9 7" fill="none" stroke="var(--color-text-subtle)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      {hex(216, 'var(--party-lib)', true)}
-      <text x="216" y="78" textAnchor="middle" fontSize="12" fill="var(--color-text)">Tonight: Liberal leads</text>
-    </svg>
-  )
-}
-
-/**
  * What the colour on the stage means, in a sentence and a tiny key. It sits first in the one "i" (VE-141), so the
- * stage has a single "i" instead of a colour one beside the reading key.
+ * stage has a single "i" instead of a colour one beside the reading key. VE-303: an illustrated legend leads it.
  */
-export function ColourInfo({ colour, placesOn, final, noFaint }: { colour: Colour; placesOn: boolean; /** Every seat is declared (VE-153): the Leader words talk of results, not leads. */ final?: boolean; /** No dot is waiting, or "faint" would mean another seat's (VE-168): Polling places says nothing about faint. */ noFaint?: boolean }) {
+export function ColourInfo({ colour, placesOn, final, noFaint, tally }: { colour: Colour; placesOn: boolean; /** Every seat is declared (VE-153): the Leader words talk of results, not leads. */ final?: boolean; /** No dot is waiting, or "faint" would mean another seat's (VE-168): Polling places says nothing about faint. */ noFaint?: boolean; /** VE-303: the Leader legend cycles the parties that lead, as the map key does. */ tally?: Tally }) {
   // VE-302: the "i" follows the colour, so it opens by naming the view (the chip's own word, so the two match).
   const view = placesOn ? 'Polling places' : colour === 'gains' && final ? 'Changed hands' : (COLOURS.find((c) => c.colour === colour)?.label ?? 'How sure')
   const heading = <p className="key__colour-h" data-testid="colour-info-heading"><b>About this map: {view}</b></p>
+  const art = artFor(colour, placesOn, final === true)
   return placesOn ? (
     <>
       {heading}
-      <PlacesInfo final={noFaint ?? final} />
+      <PlacesArt final={noFaint ?? final} />
+      <PlacesInfo />
     </>
   ) : (
     <>
       {heading}
-      {colour === 'gains' && <GainsDiagram />}
+      {art === 'leader' && <LeaderArt tally={tally} />}
+      {art === 'swing' && <SwingArt />}
+      {art === 'lvc' && <LvcArt />}
+      {art === 'gains' && <GainsArt />}
       <p>{final && colour === 'leader' ? COLOUR_INFO_FINAL : COLOUR_INFO[colour]}</p>
       {colour === 'gains' && GAINS_MORE.map((t) => <p key={t}>{t}</p>)}
       {colour === 'trust' && <TrustKey />}
@@ -422,7 +420,7 @@ export function ColourChips({ colour, onColour, declared, noFaint, tooEarly, noF
               <rect x="1.5" y="9" width="5.5" height="5.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
               <rect x="9" y="9" width="5.5" height="5.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
             </svg>
-            <span aria-hidden>More ways ({moreWays.count})</span>
+            <span aria-hidden>More ways<CountBadge n={moreWays.count} /></span>
             <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden focusable="false"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
         )}

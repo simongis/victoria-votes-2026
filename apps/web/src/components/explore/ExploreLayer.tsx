@@ -1,3 +1,4 @@
+import { inertBehind } from './inertBehind'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { ComponentType } from 'react'
 import type { Statics } from '../../data/types'
@@ -101,6 +102,8 @@ export function ExploreLayer({ seats, statics, explore, onExplore, rewinding, on
     if (!sheet && !lens) return
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented) return
+      // VE-307: an open "i" sheet (About, or the lens's own) closes first; the lens stays.
+      if (document.querySelector('.info__pop')) return
       e.preventDefault()
       if (sheet) setSheet(false)
       else onExplore(null)
@@ -115,10 +118,8 @@ export function ExploreLayer({ seats, statics, explore, onExplore, rewinding, on
     const el = lensRef.current
     if (!el) return
     // Walk up to the app root, making every sibling on the way inert: the band, rail, footer and panel sit outside the stage.
-    const behind: Element[] = []
-    for (let node: Element | null = el; node && !node.classList.contains('app'); node = node.parentElement) {
-      for (const c of node.parentElement?.children ?? []) if (c !== node) behind.push(c)
-    }
+    // VE-307: all but the header's About, which stays reachable from every view.
+    const behind = inertBehind(el)
     behind.forEach((c) => c.setAttribute('inert', ''))
     return () => behind.forEach((c) => c.removeAttribute('inert'))
   }, [lensId])

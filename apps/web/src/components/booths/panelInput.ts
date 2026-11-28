@@ -4,6 +4,7 @@ import type { BoothStatic } from './model'
 import { colocatedPlaces, jointCentres, normaliseName, type CentreMember, type ColocatedMember } from '../../derive/jointCentres'
 import { outsideOwnDistrict } from '../../derive/pointInDistrict'
 import type { GeoCollection } from '../../data/types'
+import { closedFor } from '../../data/closedPlaces'
 
 const centreCache = new WeakMap<object, Map<number, CentreMember[]>>()
 /** The joint voting centres in the booth set (VE-292), computed once per load. */
@@ -71,7 +72,7 @@ export function placesInSeat(d: Pick<BoothData, 'booths' | 'evc'>, districtId: n
 }
 
 /** What the panel derives from, and the seat's other places for the keyboard's "another place" list. Null when the place or its seat is unknown. */
-export function placeInput(d: BoothData, id: number, c: PanelContext): { input: PlaceInput; others: { id: number; name: string }[]; centre: { id: number; districtId: number; seat: string }[]; outside: boolean } | null {
+export function placeInput(d: BoothData, id: number, c: PanelContext): { input: PlaceInput; others: { id: number; name: string }[]; centre: { id: number; districtId: number; seat: string }[]; outside: boolean; redirectId: number | null } | null {
   const found = findPlace(d, id)
   const seat = found ? c.seats.get(found.place.districtId) : undefined
   if (!found || !seat) return null
@@ -90,6 +91,15 @@ export function placeInput(d: BoothData, id: number, c: PanelContext): { input: 
     },
     others: placesInSeat(d, found.place.districtId),
     centre: centreButtons(colocatedOf(d).get(id) ?? [], new Map([...c.seats].map(([k, s]) => [k, s.name]))),
+    redirectId: redirectOf(d, found.place),
     outside: found.isEvc && c.districts !== undefined && outsideOf(d, c.districts).has(id),
   }
+}
+
+/** VE-306: where a closed place's votes are counted, as a place id in the same district; null when the place is open or the redirect is not in the data. */
+export function redirectOf(d: Pick<BoothData, 'booths'>, place: BoothStatic): number | null {
+  const closed = closedFor(place.districtId, place.name)
+  if (!closed) return null
+  const want = normaliseName(closed.redirect.name)
+  return d.booths.find((b) => b.districtId === place.districtId && normaliseName(b.name) === want)?.id ?? null
 }

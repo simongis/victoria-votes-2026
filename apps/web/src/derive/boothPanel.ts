@@ -6,6 +6,7 @@
  */
 import { PARTY_BUCKETS, type PartyBucket } from '@vic26/schema'
 import { personName } from '../format'
+import { closedFor, type ClosedPlace } from '../data/closedPlaces'
 import { boothAt, formalOf, type BoothRow, type BoothStatic } from '../components/booths/model'
 
 /** What the panel needs of a seat at the time shown. `Seat` satisfies it. */
@@ -41,7 +42,7 @@ export interface PlaceInput {
   ticks: readonly number[]
 }
 
-export type PanelState = 'waiting' | 'first-preferences' | 'counted' | 'evc-no-result'
+export type PanelState = 'closed' | 'waiting' | 'first-preferences' | 'counted' | 'evc-no-result'
 
 export type Swing = { kind: 'none' } | { kind: 'moved'; party: PartyBucket; points: number } | { kind: 'different-pair'; a: PartyBucket; b: PartyBucket }
 
@@ -72,6 +73,10 @@ export interface PlacePanel {
   vsSeat: { party: PartyBucket; here: number; seat: number; points: number } | null
   rank: { party: PartyBucket; rank: number; of: number; dots: { id: number; pct: number; formal: number; here: boolean }[] } | null
   share: { pctOfSeat: number; /** Null until votes not cast at a place have been counted: nothing counted is not zero. */ offPlacePct: number | null; party: PartyBucket; placesPct: number; otherPct: number | null; hasEvc: boolean } | null
+  /** VE-306: the VEC closed this place on the day; the state is then 'closed' whatever the rows say. */
+  closed: ClosedPlace | null
+  /** VE-310: the VEC closed this place early but it still reports: the state is the usual one and the panel adds a note. */
+  closedEarly: ClosedPlace | null
   /** Ballots counted here at each tick up to the time shown. */
   series: number[]
 }
@@ -107,7 +112,14 @@ export function placePanel(i: PlaceInput): PlacePanel {
   const mine = boothAt(i.rows as BoothRow[] | undefined, at)
   const firstAts = [i.rows?.[0]?.at, ...i.mates.map((m) => m.rows?.[0]?.at)].filter((t): t is number => t !== undefined && t <= at)
   const firstSeatAt = firstAts.length ? Math.min(...firstAts) : null
-  const empty: PlacePanel = { state: 'waiting', firstSeatAt, firstReportedAt: null, votes: null, informalPct: null, fp: [], twoCp: null, tooFew: false, swing: { kind: 'none' }, seatFallback: null, vsSeat: null, rank: null, share: null, series: [] }
+  const empty: PlacePanel = { state: 'waiting', firstSeatAt, firstReportedAt: null, votes: null, informalPct: null, fp: [], twoCp: null, tooFew: false, swing: { kind: 'none' }, seatFallback: null, vsSeat: null, rank: null, share: null, closed: null, closedEarly: null, series: [] }
+
+  // A place the VEC closed on the day has zero figures all night: say so, never "not counted yet" (VE-306).
+  const closure = closedFor(i.place.districtId, i.place.name)
+  const closed = closure?.when === 'all-day' ? closure : null
+  if (closed) return { ...empty, state: 'closed', closed }
+  // Closed early (VE-310): real results arrive, so the state stays the usual one and the note rides on every state.
+  empty.closedEarly = closure?.when === 'early' ? closure : null
 
   // A centre the source gives no results for (the 2022 replay): the seat stands in, and says so.
   if (i.isEvc && (i.rows?.length ?? 0) === 0) return { ...empty, state: 'evc-no-result', seatFallback: pair }
