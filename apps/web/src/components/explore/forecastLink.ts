@@ -6,6 +6,7 @@
  *   - components/DistrictPanel.tsx (the last line of the seat panel)
  *   - components/explore/similar/SimilarLens.tsx (the "<seat> on the polling model (another site)" line; the lens and its
  *     credit stay when the link is off)
+ * VE-312: the credits in About and the Similar key link to CREDIT_URL whatever this switch says.
  * To remove the feature for good, see docs/ops.md, Polling model link.
  */
 
@@ -54,6 +55,13 @@ export function forecastHref(base: string, seatName?: string | null): string {
 export function forecastSimilarHref(base: string, seatName: string): string {
   return forecastHref(base, seatName)
 }
+
+/**
+ * VE-312 (Simon): the credit for the seat forecasts and the place-similarity ranks names the site, not a person, and the
+ * site's name always links here (About and the Similar key). It is a credit, so it does not follow the FORECAST_BASE switch.
+ */
+export const CREDIT_NAME = 'SpatialSearch'
+export const CREDIT_URL = 'https://spatialsearch.io/elections/'
 
 /** The base address set at build time, or null. Read once; Vite inlines it. */
 export const FORECAST_BASE: string | null = forecastBase(import.meta.env.VITE_FORECAST_URL)

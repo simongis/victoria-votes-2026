@@ -1,0 +1,22 @@
+/* VE-313: the small pictures at the top of the Strongest, Similar and Race-moved keys (components/info/lensArt.tsx). They
+   share the Map key art's box and its one-off movements (legend-art.css); this file holds only their own fills. */
+
+/* Similar: the lens's sand look (similar.css, data-look="sand"), so the picture matches the map it explains. */
+.lens-art--similar {
+  --la-seat: color-mix(in srgb, var(--map-no-result) 55%, var(--map-paper));
+  --la-seat2: color-mix(in srgb, #ead9b0 30%, var(--la-seat));
+}
+.lens-art__sim15 { fill: var(--la-seat2); stroke: var(--map-edge); stroke-width: 1; }
+.lens-art__simrest { fill: var(--la-seat); stroke: var(--map-edge); stroke-width: 1; }
+.lens-art__sim5 { fill: #ead9b0; stroke: #4a3a22; stroke-width: 1.2; stroke-linejoin: round; }
+.lens-art__simme { fill: #ffffff; stroke: var(--map-selected); stroke-width: 2.5; stroke-linejoin: round; }
+.lens-art__thread { fill: none; stroke: #3b2f20; stroke-width: 1.6; stroke-linecap: round; }
+.lens-art__case { fill: none; stroke: #fffaf0; stroke-width: 3.6; stroke-linecap: round; }
+.lens-art__src { margin: 0 0 var(--space-2); font-size: 12px; color: var(--color-text-subtle); }
+
+/* Race-moved: the small charts' own marks (explore.css .multi__*), drawn larger. */
+.lens-art__mid { stroke: var(--color-border-strong); stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.7; }
+.lens-art__line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.lens-art__line--faded { opacity: 0.38; stroke-width: 1.2; }
+.lens-art__line--close { stroke-width: 2.6; }
+.lens-art__close { fill: color-mix(in srgb, var(--color-text) 14%, var(--color-surface)); }

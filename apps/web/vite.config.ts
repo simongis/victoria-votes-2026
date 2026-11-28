@@ -124,6 +124,8 @@ function goLiveGuards(): Plugin {
   }
 }
 
+const RELEASE_TAG = 'r2b'
+
 export default defineConfig({
   base,
   plugins: [react(), replayMount(), goLiveGuards()],
@@ -132,7 +134,18 @@ export default defineConfig({
   // downloaded and evaluated a 12 MB (3.3 MB gzip) file before first paint. Left to the bundler, only what MapView
   // needs at start is eager (about 1.9 MB raw, 0.5 MB gzip) and the rest stays behind dynamic imports.
   // The first paint came down from about 6 s to about 1.5 s on this laptop. Do not add the rule back.
-  build: {},
+  // VE-318: every built file carries a release tag, so a new release never reuses a file name that GitHub Pages' cache
+  // may hold as a 404 from an earlier, half-deployed release (28 Nov, 7:57 pm: StageInfo chunk 404 stuck at the edge).
+  // Bump RELEASE_TAG for each public release.
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-${RELEASE_TAG}-[hash].js`,
+        chunkFileNames: `assets/[name]-${RELEASE_TAG}-[hash].js`,
+        assetFileNames: `assets/[name]-${RELEASE_TAG}-[hash][extname]`,
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

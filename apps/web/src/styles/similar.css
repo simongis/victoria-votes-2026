@@ -116,7 +116,7 @@
 .similar__select { flex: 1; min-width: 0; min-height: 44px; padding: var(--space-1) var(--space-2); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md, 8px); background: var(--color-surface); color: var(--color-text); font: inherit; }
 .similar__head { margin: var(--space-1) 0 0; font-size: 18px; line-height: 1.2; font-weight: 600; }
 .similar__lead { margin: 0; font-size: var(--text-sm, 12px); color: var(--color-text-subtle); }
-.similar__locate { align-self: flex-start; min-height: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill, 999px); background: var(--color-surface); color: var(--color-navy); font: inherit; font-size: var(--text-sm, 13px); font-weight: 600; cursor: pointer; }
+.similar__locate { align-self: flex-start; min-height: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill-lg, 20px); background: var(--color-surface); color: var(--color-navy); font: inherit; font-size: var(--text-sm, 13px); font-weight: 600; cursor: pointer; }
 .similar__locate:disabled { opacity: 0.6; cursor: progress; }
 .similar__locate:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
 .similar__list { list-style: none; margin: 0; padding: 0; }
@@ -147,6 +147,17 @@
 .similar__grip { display: none; }
 .similar__more { display: contents; }
 .similar__body { position: relative; }
+
+/* VE-312 (Simon): on desktop the panel stands where the seats rail stands for every other lens: the full height of the
+   stage at the right, rail-wide. The lens keeps the left column only, so the title and Map key sit at the map's top right
+   and Back to the map is centred under the map, as in Strongest and Race moved. The panel is pinned to the lens box (the
+   body stops being its containing block); the stage keeps its own box, so the map refits as before. */
+@media (min-width: 700px) {
+  .explore-lens[data-lens="similar"] { padding-right: var(--rail-w, 320px); }
+  .explore-lens[data-lens="similar"] .similar__body { position: static; display: flex; }
+  .explore-lens[data-lens="similar"] .similar__stage { flex: 1; min-width: 0; }
+  .explore-lens[data-lens="similar"] .similar__panel { position: absolute; top: 0; right: 0; bottom: 0; width: var(--rail-w, 320px); box-sizing: border-box; }
+}
 
 @media (max-width: 699px) {
   /* Phone: the map fills the stage and the words ride in the shared bottom sheet (useSheet, ADR 0035; app.css .panel, sheet-in).

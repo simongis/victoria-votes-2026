@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { KEEP_LIVE_ATTR } from './explore/inertBehind'
 
 /** The "i" that keeps explanation off the screen at rest (FB-01, FB-19). Escape or a click outside closes it. */
-export function InfoButton({ label, children, align = 'right', up = false, className }: { label: string; children: ReactNode; align?: 'left' | 'right'; /** Open upwards, for an "i" at the bottom of the stage. */ up?: boolean; className?: string }) {
+export function InfoButton({ label, children, align = 'right', up = false, className, face, keepLive }: { label: string; children: ReactNode; align?: 'left' | 'right'; /** Open upwards, for an "i" at the bottom of the stage. */ up?: boolean; className?: string; /** VE-303: what the button shows instead of the bare "i" (the header About, the stage How to read). */ face?: ReactNode; /** VE-307: stays usable while a lens makes the page behind it inert (the header's About). */ keepLive?: boolean }) {
   const [open, setOpen] = useState(false)
   const id = useId()
   const wrap = useRef<HTMLSpanElement>(null)
@@ -27,7 +28,7 @@ export function InfoButton({ label, children, align = 'right', up = false, class
   }, [open])
 
   return (
-    <span className={`info${className ? ` ${className}` : ''}`} ref={wrap}>
+    <span className={`info${className ? ` ${className}` : ''}`} ref={wrap} {...(keepLive ? { [KEEP_LIVE_ATTR]: '' } : {})}>
       <button
         ref={btn}
         type="button"
@@ -38,7 +39,7 @@ export function InfoButton({ label, children, align = 'right', up = false, class
         aria-controls={id}
         onClick={() => setOpen((o) => !o)}
       >
-        i
+        {face ?? 'i'}
       </button>
       {open && (
         <div className={`info__pop info__pop--${align}${up ? ' info__pop--up' : ''}`} id={id} role="dialog" aria-label={label}>

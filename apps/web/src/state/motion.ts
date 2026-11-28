@@ -104,6 +104,8 @@ export interface MotionState {
   on: boolean
   /** Whether to show the one-time "your device asks for less motion" note. */
   note: boolean
+  /** VE-312: the device asks for less motion (a hint only; the Leader chips hold still on it, nothing else does). */
+  deviceLess: boolean
   setOn: (on: boolean) => void
 }
 
@@ -116,6 +118,7 @@ export function useMotion(): MotionState {
     mode: mode as MotionMode,
     on: mode === 'full',
     note: showDeviceNote(device === '1', (choice || null) as MotionChoice | null),
+    deviceLess: device === '1',
     setOn,
   }
 }
