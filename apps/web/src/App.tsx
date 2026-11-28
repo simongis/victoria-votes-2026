@@ -35,6 +35,7 @@ import { prefsRows, prefsSummary } from './components/lenspanel/prefs'
 import { GainsPanel } from './components/lenspanel/GainsPanel'
 import { ColourChips, ColourInfo, StageControls, ViewSheet } from './components/StageControls'
 import { BoothSourceContext, useBoothData, useBoothsAvailable } from './components/booths/data'
+import { CandidatesContext } from './components/explore/one-nation/vs'
 import { buildDots, type BoothDot } from './components/booths/dots'
 import { BoothPanelHost, type BoothPanelData } from './components/booths/BoothPanel'
 import { findPlace, outsideOf, placeInput, placesInSeat } from './components/booths/panelInput'
@@ -271,6 +272,9 @@ export function App() {
   }, [pickFocus])
   // Polling places (VE-77c) are offered wherever the source has booths (VE-136): the replay always, the live layer once it has rows. A source with none leaves the chip out without an error.
   const boothSource = source.booths ?? null
+  // VE-320: the Strongest lens reads every candidate at the tick on show for Victorian Socialists (inside Others in our buckets).
+  const tickSnapshot = tick?.snapshotId ?? null
+  const candidatesFeed = useMemo(() => ({ snapshotId: tickSnapshot, all: source.allCandidates ? (id: string) => source.allCandidates!(id) : null }), [tickSnapshot, source])
   const placesOffered = useBoothsAvailable(boothSource)
   const placesOn = view.places && placesOffered
   // Booth results are fetched the first time the chip is picked and not before (ADR 0020).
@@ -644,6 +648,7 @@ export function App() {
 
   return (
     <BoothSourceContext.Provider value={boothSource}>
+    <CandidatesContext.Provider value={candidatesFeed}>
     <PaletteContext.Provider value={palette}>
      <FxProvider value={fx}>
       <div className="app" style={{ ['--fx-scale' as string]: fx.scale }} data-mode={sv.mode} data-morph={morphing} data-shape={view.shape} data-colour={view.colour} data-places={placesOn} data-selected={view.selected !== null} data-rewind={view.rewindOpen ? 'open' : 'closed'} data-explore={lensOpen} data-time={time.state}>
@@ -832,6 +837,7 @@ export function App() {
       </div>
      </FxProvider>
     </PaletteContext.Provider>
+    </CandidatesContext.Provider>
     </BoothSourceContext.Provider>
   )
 }

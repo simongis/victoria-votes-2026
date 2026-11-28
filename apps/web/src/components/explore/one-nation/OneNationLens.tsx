@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
 import { StrongestArt } from '../../info/lensArt'
-import type { OneNationAsset, ShareParty } from '@vic26/schema'
+import type { OneNationAsset } from '@vic26/schema'
 import { useBoothData, useBoothSource, useBoothsAvailable } from '../../booths/data'
-import { PARTY_OPTIONS, partyLabel, quintileBands, rampMax } from '../../../derive/oneNation'
+import { PARTY_OPTIONS, partyBase, partyLabel, quintileBands, rampMax, type LensParty } from '../../../derive/oneNation'
 import type { ExploreMode } from '../../../state/view'
 import { usePalette } from '../../../theme/theme'
 import { StageInfo } from '../../info/StageInfo'
@@ -23,6 +23,7 @@ import { loadPartyAsset, resetParty, setFinal, setFlow, setLive, setParty, usePa
 import { hasResults, ONP_POLLS, pollsLineFor } from './polls'
 import { isCoarsePointer, moreHint } from './moreHint'
 import { useSeatPick } from './useSeatPick'
+import { useVsShares } from './vs'
 import { notLiveMarker } from '../../../derive/status'
 
 /** What App passes through ExploreLayer beyond LensProps (VE-101g). */
@@ -38,6 +39,7 @@ export interface OneNationExtras {
 const NARROW_PX = 700
 const MARKER = 'From the 2025 federal election, mapped to state seats'
 const NOT_AVAILABLE = 'These figures are not available.'
+const VS_BEFORE = 'Victorian Socialists did not stand at the 2025 federal election: their figures show once counting starts'
 
 type Top = 'vote' | 'share' | 'flow'
 const TOPS: readonly { id: Top; label: string }[] = [
@@ -79,7 +81,9 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
   const pal = usePalette()
   const party = useParty()
   const option = PARTY_OPTIONS.find((o) => o.id === party)!
-  const base = pal.party[option.bucket]
+  const base = partyBase(option, pal)
+  // VE-320: Victorian Socialists come from the candidates layer, read only while they are chosen.
+  const vs = useVsShares(party === 'VS')
   const [asset, setAsset] = useState<AssetState>(null)
   const [tier, setTier] = useState<Tier | null>(null)
   const [measureKey, setMeasureKey] = useState<string | null>(null)
@@ -129,7 +133,7 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
   const view: View | null = useMemo(() => (shape === 'hex' ? hexView(statics) : tier ? mapView(tier, statics, false) : null), [shape, tier, statics])
 
   // One row per seat for the chosen party; the same function the side panel ranks.
-  const list = useMemo(() => liveRows(partyRows(ready?.party_shares ?? [], party, names), seats.values(), party), [ready, party, names, seats])
+  const list = useMemo(() => liveRows(partyRows(ready?.party_shares ?? [], party, names), seats.values(), party, vs), [ready, party, names, seats, vs])
   const liveCount = useMemo(() => list.filter((r) => r.live).length, [list])
   // VE-282: from the first figures on the map shows only tonight's count; before that, the 2025 estimate.
   const final = useMemo(() => isFinal(seats.values()), [seats])
@@ -185,7 +189,7 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
     setFlowOn(t === 'flow')
     if (t !== 'flow') onMode(t === 'vote' ? lastShape : 'share')
   }
-  const choose = (p: ShareParty) => {
+  const choose = (p: LensParty) => {
     pick.clear()
     setParty(p)
   }
@@ -220,7 +224,9 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
   // Seats on tonight's count are named in the marker; replay or trial figures say so too (hard rule 2), whatever the view.
   const liveOn = top !== 'flow' && started
   const liveLine = liveMarker(liveCount, list.length, started, final)
-  const markerText = top === 'flow' ? (replay ? notLiveMarker(dataLabel ?? 'Replay') : MARKER) : liveOn ? (replay ? `${notLiveMarker(dataLabel ?? 'Replay')}. ${liveLine}` : liveLine) : MARKER
+  // Victorian Socialists did not stand federally in 2025, so before the state count there is nothing to map for them; say so plainly.
+  const idle = party === 'VS' ? VS_BEFORE : MARKER
+  const markerText = top === 'flow' ? (replay ? notLiveMarker(dataLabel ?? 'Replay') : MARKER) : liveOn ? (replay ? `${notLiveMarker(dataLabel ?? 'Replay')}. ${liveLine}` : liveLine) : idle
   // The third view is offered only once enough seats have both counts (FB-148: hide until there is something to see).
   const tops = TOPS.filter((t) => t.id !== 'flow' || flowOk)
   const partialCount = list.filter((r) => r.partial && !r.notStanding && !r.noFigures).length
@@ -262,7 +268,7 @@ export default function OneNationLens({ seats, statics, mode, title, onMode, onS
         <div className="segmented" style={{ flexWrap: 'nowrap', overflowX: 'auto', scrollbarWidth: 'none', maxWidth: '100%' }} role="radiogroup" aria-label="Party" data-testid="onl-parties" onKeyDown={radioKeys(PARTY_OPTIONS.map((o) => o.id), party, choose, 'data-party')}>
           {PARTY_OPTIONS.map((o) => (
             <button key={o.id} type="button" role="radio" data-party={o.id} aria-checked={party === o.id} tabIndex={party === o.id ? 0 : -1} onClick={() => choose(o.id)}>
-              {o.label}
+              {o.short ?? o.label}
             </button>
           ))}
         </div>

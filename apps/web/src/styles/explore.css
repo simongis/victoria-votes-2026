@@ -371,6 +371,10 @@ a.explore-card { box-sizing: border-box; text-decoration: none; }
    lens's own panel (data-lens="true": swing, counted, prefs, like...) stays. Back to the map brings both back as they were. */
 .app[data-explore="true"] .panel,
 .app[data-explore="true"] .rail[data-lens="false"] { display: none; }
+/* VE-319 (Simon, 28 Nov): a seat picked on the map before the lens opened stays selected (Similar starts from it), and
+   app.css hides the rail under a selection because the district panel covers it there. In a lens that panel is gone, so
+   the lens's own rail must show, or the right-hand column (desktop) or the sheet (phone) stays empty. */
+.app[data-explore="true"] .rail[data-lens="true"] { opacity: 1; visibility: visible; }
 
 /* VE-210 (FB-248): "More ways (7)" at the end of the colour chips. Same 44 px target and slim pill as the chips, but outlined on the
    stage ground with a chevron and never filled, so it reads as a door to other views and not as a colour that is on. */

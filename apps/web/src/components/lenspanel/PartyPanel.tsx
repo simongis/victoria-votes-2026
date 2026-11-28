@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { OneNationAsset } from '@vic26/schema'
-import { PARTY_OPTIONS, partyRgb, rampMax } from '../../derive/oneNation'
+import { PARTY_OPTIONS, partyBase, partyRgb, rampMax } from '../../derive/oneNation'
 import type { Statics } from '../../data/types'
 import { PARTY_NAMES } from '../../parties'
 import { css, usePalette, type Palette, type Rgb } from '../../theme/theme'
@@ -56,7 +56,7 @@ export function PartyPanel({ statics }: { statics: Statics }) {
   const live = useLive()
   const final = useFinal()
   const option = PARTY_OPTIONS.find((o) => o.id === party)!
-  const base = pal.party[option.bucket]
+  const base = partyBase(option, pal)
   const [asset, setAsset] = useState<OneNationAsset | 'failed' | null>(null)
   const [filter, setFilter] = useState<PartyFilter | null>(null)
   const [query, setQuery] = useState('')

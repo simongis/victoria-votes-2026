@@ -1,4 +1,5 @@
-import type { PartyBucket, ShareParty } from '@vic26/schema'
+import type { PartyBucket } from '@vic26/schema'
+import type { LensParty } from '../../../derive/oneNation'
 import { partyLabel } from '../../../derive/oneNation'
 import { partySentence, type PartyRow } from '../../lenspanel/party'
 
@@ -28,7 +29,7 @@ export interface LiveRow extends PartyRow {
 }
 
 /** The buckets a toggle choice adds up (the Coalition is Liberal plus National). */
-export const BUCKETS: Record<ShareParty, readonly PartyBucket[]> = {
+export const BUCKETS: Record<LensParty, readonly PartyBucket[]> = {
   ALP: ['ALP'],
   COA: ['LIB', 'NAT'],
   LIB: ['LIB'],
@@ -37,6 +38,8 @@ export const BUCKETS: Record<ShareParty, readonly PartyBucket[]> = {
   ONP: ['ONP'],
   IND: ['IND'],
   OTH: ['OTH'],
+  // Victorian Socialists are inside Others, so no bucket adds up to them; their figure comes from the candidates (vs.ts).
+  VS: [],
 }
 
 /**
@@ -47,7 +50,13 @@ export const BUCKETS: Record<ShareParty, readonly PartyBucket[]> = {
  * VE-282: until any seat has a count the 2025 federal rows stand as they are. From the first figures on only tonight's
  * count is drawn: a seat below the gate is "no figures yet" (no 2025 fill-in, so the two never read alike).
  */
-export function liveRows(federal: readonly PartyRow[], seats: Iterable<LiveSeat>, party: ShareParty): LiveRow[] {
+export function liveRows(
+  federal: readonly PartyRow[],
+  seats: Iterable<LiveSeat>,
+  party: LensParty,
+  /** VE-320: Victorian Socialists shares by seat from the candidates (vsShares); null where the source cannot say. */
+  vs: ReadonlyMap<number, number | null> | null = null,
+): LiveRow[] {
   const byId = new Map<number, LiveSeat>()
   for (const s of seats) byId.set(s.id, s)
   const started = countingStarted(byId.values())
@@ -58,7 +67,10 @@ export function liveRows(federal: readonly PartyRow[], seats: Iterable<LiveSeat>
       if (!s || s.pct === null || s.pct < LIVE_MIN_PCT || s.fp.length === 0) {
         return started ? { ...r, pct: 0, stood: 1, partial: false, notStanding: false, live: false, noFigures: true } : { ...r, live: false, noFigures: false }
       }
-      const pct = s.fp.filter((f) => want.has(f.party)).reduce((n, f) => n + f.pct, 0)
+      // Victorian Socialists without a candidate figure for this seat wait, rather than read as did not stand.
+      const vsPct = party === 'VS' ? vs?.get(r.id) : undefined
+      if (party === 'VS' && (vsPct === undefined || vsPct === null)) return { ...r, pct: 0, stood: 1, partial: false, notStanding: false, live: false, noFigures: true }
+      const pct = party === 'VS' ? (vsPct ?? 0) : s.fp.filter((f) => want.has(f.party)).reduce((n, f) => n + f.pct, 0)
       return { ...r, pct, stood: 1, partial: false, notStanding: pct <= 0, live: true, noFigures: false }
     })
     .sort((a, b) => Number(a.noFigures) - Number(b.noFigures) || b.pct - a.pct || a.name.localeCompare(b.name))
@@ -73,7 +85,7 @@ export function countingStarted(seats: Iterable<LiveSeat>): boolean {
 const f1 = (n: number) => n.toFixed(1)
 
 /** The seat's sentence: tonight's figure, "did not stand", or the 2025 federal wording the panel already uses. */
-export function liveSentence(r: LiveRow, party: ShareParty, final = false): string {
+export function liveSentence(r: LiveRow, party: LensParty, final = false): string {
   if (r.noFigures) return `${r.name}: no figures yet (under ${LIVE_MIN_PCT}% counted).`
   if (!r.live) return partySentence(r, party)
   const label = partyLabel(party)

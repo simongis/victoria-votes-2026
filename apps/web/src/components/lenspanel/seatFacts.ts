@@ -3,15 +3,15 @@
  * 2025 (federal) and tonight, its place in the seat, the three seats the Similar lens ranks nearest, and a few Census 2021
  * measures with the middle Victorian seat beside each. Everything here reads static assets or the lens's own rows; nothing is fetched.
  */
-import type { PartyBucket, ShareParty } from '@vic26/schema'
-import { partyLabel } from '../../derive/oneNation'
+import type { PartyBucket } from '@vic26/schema'
+import { partyLabel, type LensParty } from '../../derive/oneNation'
 import type { FpShare } from '../../derive/seats'
 import { PARTY_NAMES } from '../../parties'
 import { BUCKETS, type LiveRow } from '../explore/one-nation/live'
 import { nearest } from '../explore/similar/similarity'
 
 /** One point on the over-time line. `wait` is a seat below the count gate; `none` is a party that did not stand. */
-export type Point = { kind: 'pct'; pct: number } | { kind: 'none' } | { kind: 'wait' }
+export type Point = { kind: 'pct'; pct: number } | { kind: 'none' } | { kind: 'wait' } | { kind: 'others' }
 export type TonightPoint = { kind: 'pct'; pct: number; counted: number | null } | { kind: 'none' } | { kind: 'wait' }
 
 export interface OverTime {
@@ -33,10 +33,12 @@ export interface OverTimeInput {
   counted: number | null
 }
 
-export function overTime(party: ShareParty, i: OverTimeInput): OverTime {
+export function overTime(party: LensParty, i: OverTimeInput): OverTime {
   const want = BUCKETS[party]
   let y2022: Point | null = null
-  if (i.fp2022) {
+  // VE-320: the 2022 asset is by party bucket, where Victorian Socialists are inside Others, so there is no figure of theirs (they did stand).
+  if (i.fp2022 && party === 'VS') y2022 = { kind: 'others' }
+  else if (i.fp2022) {
     const have = want.filter((b) => i.fp2022![b] !== undefined)
     y2022 = have.length === 0 ? { kind: 'none' } : { kind: 'pct', pct: have.reduce((n, b) => n + (i.fp2022![b] ?? 0), 0) }
   }
@@ -56,7 +58,7 @@ export interface Place {
 }
 
 /** The party's place among those with votes on first preferences, with Liberal and National as one Coalition entry. Null when it has no votes. */
-export function placeIn(fp: readonly FpShare[], party: ShareParty): Place | null {
+export function placeIn(fp: readonly FpShare[], party: LensParty): Place | null {
   const merge = party === 'COA'
   const entries: { key: string; label: string; pct: number }[] = []
   for (const f of fp) {
@@ -149,7 +151,7 @@ export function demoFacts(id: number, src: DemoSources): DemoFact[] {
  * preferences, and "leading" or "ahead" is only ever after preferences, as on the map and the seat panel, so the two never
  * read as one leader against another. `after` is the seat's leader after preferences (null when there is none yet).
  */
-export function placeWords(p: Place, o: { party: ShareParty; after: PartyBucket | null; final: boolean }): { rank: string; rest: string } {
+export function placeWords(p: Place, o: { party: LensParty; after: PartyBucket | null; final: boolean }): { rank: string; rest: string } {
   const when = o.final ? 'in the final count' : 'tonight'
   const coa = (q: PartyBucket) => q === 'LIB' || q === 'NAT'
   const mine = o.after !== null && (o.party === 'COA' ? coa(o.after) : o.after === o.party)

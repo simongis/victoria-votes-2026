@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FirstPrefs2022Asset, OneNationAsset, ShareParty } from '@vic26/schema'
-import { partyLabel, partyRgb } from '../../derive/oneNation'
+import type { FirstPrefs2022Asset, OneNationAsset } from '@vic26/schema'
+import { partyLabel, partyRgb, type LensParty } from '../../derive/oneNation'
 import { css, type Palette, type Rgb } from '../../theme/theme'
 import { validateFp2022 } from '../explore/arrows/fp2022'
 import { FORECAST_BASE, forecastHref, seatLabel } from '../explore/forecastLink'
@@ -11,7 +11,7 @@ import { demoFacts, mostLike, overTime, placeIn, placeWords, type OverTime, type
 
 interface Props {
   statics: Statics
-  party: ShareParty
+  party: LensParty
   pick: SeatPick & { id: number }
   asset: OneNationAsset
   /** The 2025 federal rows for the party, by seat. */
@@ -53,7 +53,7 @@ function OverTimeChart({ final, series, colour, partyName, pal }: { series: Over
   const drawn = points.filter((q) => q.p?.kind === 'pct') as (typeof points[number] & { p: { kind: 'pct'; pct: number } })[]
   const line = drawn.map((q, i) => `${i === 0 ? 'M' : 'L'}${q.x},${y(q.p.pct)}`).join(' ')
   const summary = points
-    .map((q) => `${q.label} ${q.sub}: ${q.p === null ? 'loading' : q.p.kind === 'pct' ? `${q.p.pct.toFixed(1)}%` : q.p.kind === 'none' ? 'did not stand' : 'no figures yet'}`)
+    .map((q) => `${q.label} ${q.sub}: ${q.p === null ? 'loading' : q.p.kind === 'pct' ? `${q.p.pct.toFixed(1)}%` : q.p.kind === 'none' ? 'did not stand' : q.p.kind === 'others' ? 'counted with Others' : 'no figures yet'}`)
     .join('; ')
   return (
     <svg className="onl__trend" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${partyName} share of first preferences. ${summary}.`} data-testid="onl-seat-trend">
@@ -67,7 +67,7 @@ function OverTimeChart({ final, series, colour, partyName, pal }: { series: Over
               <text x={q.x} y={y(q.p.pct) - 11} textAnchor="middle" className="onl__trend-v">{q.p.pct.toFixed(1)}%</text>
             </>
           ) : (
-            <text x={q.x} y={BOTTOM - 9} textAnchor="middle" className="onl__trend-n">{q.p === null ? '' : q.p.kind === 'none' ? 'did not stand' : 'no figures yet'}</text>
+            <text x={q.x} y={BOTTOM - 9} textAnchor="middle" className="onl__trend-n">{q.p === null ? '' : q.p.kind === 'none' ? 'did not stand' : q.p.kind === 'others' ? 'with Others' : 'no figures yet'}</text>
           )}
           <text x={q.x} y={BOTTOM + 15} textAnchor="middle" className="onl__trend-y">{q.label}</text>
           <text x={q.x} y={BOTTOM + 28} textAnchor="middle" className="onl__trend-s">{q.sub}</text>

@@ -193,5 +193,15 @@ export function createAgolSource({
         return null
       }
     },
+
+    async allCandidates(snapshotId: string) {
+      // About 750 rows over one or two pages, only the fields the share needs. Same current-snapshot-only rule as above.
+      try {
+        const list = await rows<CandidateAttributes>(LAYERS.candidates.id, { where: '1=1', outFields: 'district_id,affiliation_name,fp_pct,snapshot_id' })
+        return list.length > 0 && list.every((c) => c.snapshot_id === snapshotId) ? list : null
+      } catch {
+        return null
+      }
+    },
   }
 }

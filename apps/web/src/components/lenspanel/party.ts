@@ -2,9 +2,9 @@
  * The party-strength lens's panel (VE-101e): every seat ranked by the chosen party's 2025 federal share, highest first.
  * The same rows, sentences and ramp for every party, so the list reads alike whoever is chosen.
  */
-import type { PartyBucket, PartySharesSeat, ShareParty } from '@vic26/schema'
+import type { PartyBucket, PartySharesSeat } from '@vic26/schema'
 import { useEffect, useMemo, useState } from 'react'
-import { coverage, partyLabel } from '../../derive/oneNation'
+import { coverage, partyLabel, type LensParty } from '../../derive/oneNation'
 import type { Statics } from '../../data/types'
 import { PARTY_NAMES } from '../../parties'
 import { flowSentence, type SeatFlow } from '../explore/one-nation/flow'
@@ -23,9 +23,11 @@ export interface PartyRow {
 }
 export type PartyFilter = 'partial'
 
-export function partyRows(shares: readonly PartySharesSeat[], party: ShareParty, names: ReadonlyMap<number, string>): PartyRow[] {
+export function partyRows(shares: readonly PartySharesSeat[], party: LensParty, names: ReadonlyMap<number, string>): PartyRow[] {
   return shares
     .map((s): PartyRow => {
+      // VE-320: Victorian Socialists did not stand at the 2025 federal election, so the asset has no key for them.
+      if (party === 'VS') return { id: s.district_id, name: names.get(s.district_id) ?? String(s.district_id), pct: 0, stood: 0, partial: false, notStanding: true }
       const stood = s.stood_2025[party] ?? 1
       const c = coverage(stood)
       return { id: s.district_id, name: names.get(s.district_id) ?? String(s.district_id), pct: s.share_2025[party], stood, partial: c !== 'full', notStanding: c === 'none' }
@@ -36,18 +38,19 @@ export function partyRows(shares: readonly PartySharesSeat[], party: ShareParty,
 const f1 = (n: number) => n.toFixed(1)
 
 /** One line for the top of the panel, the same words for every party. Seats where the party did not stand are not "strongest". */
-export function partySummary(rows: readonly PartyRow[], party: ShareParty, final = false): string {
+export function partySummary(rows: readonly PartyRow[], party: LensParty, final = false): string {
   // VE-270: once any seat is on tonight's count the line is about those seats (rows are LiveRow from the lens; mixing in 2025 seats would rank unlike figures).
   const isLive = (r: PartyRow) => (r as { live?: boolean }).live === true
   const onTonight = rows.some(isLive) || rows.some((r) => (r as { noFigures?: boolean }).noFigures === true)
   const top = rows.filter((r) => !r.notStanding && (!onTonight || isLive(r))).slice(0, 3)
+  if (top.length === 0 && party === 'VS' && !onTonight) return 'Victorian Socialists did not stand at the 2025 federal election. Their figures show once counting starts.'
   if (top.length === 0) return rows.some((r) => (r as { noFigures?: boolean }).noFigures === true) ? 'Counting has started. Seats appear here once 5% of each is counted.' : 'These figures are not available.'
   if (onTonight) return `Strongest for ${partyLabel(party)} ${final ? 'in the final count' : 'tonight'}: ${top.map((r) => `${r.name} ${f1(r.pct)}%`).join(', ')}.`
   return `Strongest seats for ${partyLabel(party)} at the 2025 federal election: ${top.map((r) => `${r.name} ${f1(r.pct)}%`).join(', ')}.`
 }
 
 /** The row's tooltip, the pill's sentence and what a screen reader hears. */
-export function partySentence(r: PartyRow, party: ShareParty): string {
+export function partySentence(r: PartyRow, party: LensParty): string {
   const label = partyLabel(party)
   if (r.notStanding) return `${r.name}: ${label} did not stand here at the 2025 federal election.`
   const base = `${r.name}: ${label} ${f1(r.pct)}% of first preferences at the 2025 federal election.`

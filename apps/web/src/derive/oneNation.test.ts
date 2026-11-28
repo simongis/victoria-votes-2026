@@ -92,8 +92,9 @@ describe('validateAsset (hold last good: nothing is shown rather than something 
 })
 
 describe('the party toggle', () => {
-  it('offers Labor, Coalition, Greens, One Nation, Independents, each named alike', () => {
-    expect(PARTY_OPTIONS.map((o) => o.label)).toEqual(['Labor', 'Coalition', 'Greens', 'One Nation', 'Independents'])
+  it('offers Labor, Coalition, Greens, One Nation, Independents and Victorian Socialists (VE-320), each named alike', () => {
+    expect(PARTY_OPTIONS.map((o) => o.label)).toEqual(['Labor', 'Coalition', 'Greens', 'One Nation', 'Independents', 'Victorian Socialists'])
+    expect(PARTY_OPTIONS.find((o) => o.id === 'VS')?.short).toBe('Vic Socialists')
     expect(partyLabel('COA')).toBe('Coalition')
   })
   it('the Coalition wears the Liberal colour', () => {

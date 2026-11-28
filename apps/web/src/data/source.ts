@@ -32,6 +32,8 @@ export interface ResultsSource {
   timeline(): Promise<Timeline>
   /** Candidates for one district at one snapshot, or null when the source cannot say. */
   candidates(snapshotId: string, districtId: number): Promise<CandidateAttributes[] | null>
+  /** VE-320: every district's candidates at one snapshot (for a party our buckets fold into Others), or null when the source cannot say. */
+  allCandidates?(snapshotId: string): Promise<CandidateAttributes[] | null>
 }
 
 const asKind = (v: string | null | undefined): SourceKind | null =>

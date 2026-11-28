@@ -124,7 +124,7 @@ function goLiveGuards(): Plugin {
   }
 }
 
-const RELEASE_TAG = 'r2b'
+const RELEASE_TAG = 'r2c'
 
 export default defineConfig({
   base,

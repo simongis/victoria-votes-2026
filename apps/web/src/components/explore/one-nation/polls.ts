@@ -1,4 +1,4 @@
-import type { ShareParty } from '@vic26/schema'
+import type { LensParty } from '../../../derive/oneNation'
 
 /**
  * The one polling line the lens's "i" carries before results arrive (VE-101g, FB-171). Only rows marked CONFIRMED in
@@ -37,6 +37,6 @@ export function hasResults(seats: Iterable<{ fp: readonly { votes: number }[] }>
 }
 
 /** The polls are of One Nation only, so the line belongs to that party's chip and no other (FB-174). Empty for any other party. */
-export function pollsLineFor(party: ShareParty, polls: readonly Poll[]): string {
+export function pollsLineFor(party: LensParty, polls: readonly Poll[]): string {
   return party === 'ONP' ? pollsLine(polls) : ''
 }

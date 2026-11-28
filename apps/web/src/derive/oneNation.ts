@@ -57,13 +57,27 @@ export function validateAsset(raw: unknown, ids: ReadonlySet<number>): OneNation
 }
 
 // ---------- the party toggle ----------
+/**
+ * A choice on the toggle: an asset party, or Victorian Socialists (VE-320). They sit in our Others bucket, so the app builds
+ * their figure from the candidates layer instead; the schema's ShareParty (the asset's keys) is unchanged.
+ */
+export type LensParty = ShareParty | 'VS'
 export interface PartyOption {
-  id: ShareParty
+  id: LensParty
   /** Plain name, the same grammar for every party. */
   label: string
+  /** The button's words where the name is long. */
+  short?: string
   /** Whose colour the ramp wears (the Coalition wears the Liberal blue). */
   bucket: PartyBucket
+  /** Its own colour where the bucket's would mislead (Victorian Socialists are not the grey of Others). */
+  rgb?: Rgb
 }
+/**
+ * VE-320: no party colour of ours fits Victorian Socialists, and their own red would read as Labor, so a plum (#8e2c78):
+ * apart from every other party hue on the map, and dark enough to read against the pale paper and the "did not stand" hatching.
+ */
+export const VS_RGB: Rgb = [142, 44, 120]
 /** The toggle, in the order it is drawn. One Nation is where the lens opens (FB-162). */
 export const PARTY_OPTIONS: readonly PartyOption[] = [
   { id: 'ALP', label: 'Labor', bucket: 'ALP' },
@@ -71,9 +85,12 @@ export const PARTY_OPTIONS: readonly PartyOption[] = [
   { id: 'GRN', label: 'Greens', bucket: 'GRN' },
   { id: 'ONP', label: 'One Nation', bucket: 'ONP' },
   { id: 'IND', label: 'Independents', bucket: 'IND' },
+  { id: 'VS', label: 'Victorian Socialists', short: 'Vic Socialists', bucket: 'OTH', rgb: VS_RGB },
 ]
-export const DEFAULT_PARTY: ShareParty = 'ONP'
-export const partyLabel = (p: ShareParty): string => PARTY_OPTIONS.find((o) => o.id === p)?.label ?? p
+export const DEFAULT_PARTY: LensParty = 'ONP'
+export const partyLabel = (p: LensParty): string => PARTY_OPTIONS.find((o) => o.id === p)?.label ?? p
+/** The colour a choice's ramp is built on. */
+export const partyBase = (o: PartyOption, pal: { party: Record<PartyBucket, Rgb> }): Rgb => o.rgb ?? pal.party[o.bucket]
 
 /** Below this fraction of the seat's area, a party "stood in part of the seat" and the share is only partly comparable. */
 export const PARTIAL_BELOW = 0.95

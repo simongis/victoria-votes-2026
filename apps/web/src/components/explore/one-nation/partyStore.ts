@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import type { OneNationAsset, ShareParty } from '@vic26/schema'
-import { DEFAULT_PARTY, validateAsset } from '../../../derive/oneNation'
+import type { OneNationAsset } from '@vic26/schema'
+import { DEFAULT_PARTY, validateAsset, type LensParty } from '../../../derive/oneNation'
 import type { SeatFlow } from './flow'
 import type { LiveRow } from './live'
 
@@ -8,21 +8,21 @@ import type { LiveRow } from './live'
  * The chosen party, shared by the lens (which draws it) and the side panel (which ranks it). The lens owns the setting;
  * the panel only reads it. A tiny module store keeps App.tsx free of the choice.
  */
-let current: ShareParty = DEFAULT_PARTY
+let current: LensParty = DEFAULT_PARTY
 const listeners = new Set<() => void>()
 const subscribe = (fn: () => void) => {
   listeners.add(fn)
   return () => listeners.delete(fn)
 }
 
-export function setParty(p: ShareParty): void {
+export function setParty(p: LensParty): void {
   if (p === current) return
   current = p
   listeners.forEach((fn) => fn())
 }
 /** The lens opens on One Nation each time (FB-162), so closing it puts the choice back. */
 export const resetParty = () => setParty(DEFAULT_PARTY)
-export const useParty = (): ShareParty => useSyncExternalStore(subscribe, () => current, () => DEFAULT_PARTY)
+export const useParty = (): LensParty => useSyncExternalStore(subscribe, () => current, () => DEFAULT_PARTY)
 
 /** The asset, imported once (its own chunk) and checked against the district statics every time (hold last good). `null` means it would not load or would not validate. */
 export async function loadPartyAsset(ids: ReadonlySet<number>): Promise<OneNationAsset | null> {

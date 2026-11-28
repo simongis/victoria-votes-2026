@@ -16,6 +16,13 @@ describe('overTime (VE-282: the party across 2022 state, 2025 federal and tonigh
     expect(overTime('COA', { fp2022: { ALP: 100 }, federal: row(), counted: null }).y2022).toEqual({ kind: 'none' })
   })
 
+  it('VE-320: Victorian Socialists have no 2022 figure of their own (inside Others), never "did not stand", and a federal did-not-stand', () => {
+    const t = overTime('VS', { fp2022: { ALP: 40, OTH: 20 }, federal: row({ notStanding: true, pct: 0 }), live: row({ live: true, pct: 13 }), counted: 60 })
+    expect(t.y2022).toEqual({ kind: 'others' })
+    expect(t.fed2025).toEqual({ kind: 'none' })
+    expect(t.tonight).toEqual({ kind: 'pct', pct: 13, counted: 60 })
+  })
+
   it('is unknown (null) while the 2022 asset has not loaded', () => {
     expect(overTime('ALP', { fp2022: null, federal: row(), counted: null }).y2022).toBeNull()
   })

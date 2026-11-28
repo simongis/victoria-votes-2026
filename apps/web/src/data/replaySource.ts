@@ -180,5 +180,11 @@ export function createReplaySource(opts: ReplayOptions): ResultsSource {
       if (!p) return null
       return (await p).candidates.filter((c) => c.district_id === districtId)
     },
+
+    async allCandidates(snapshotId) {
+      const l = await load()
+      const p = snapshotFile(l, snapshotId)
+      return p ? (await p).candidates : null
+    },
   }
 }
